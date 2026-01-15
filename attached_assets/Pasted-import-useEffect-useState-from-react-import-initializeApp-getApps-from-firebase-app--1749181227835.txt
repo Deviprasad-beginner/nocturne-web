@@ -1,0 +1,110 @@
+import { useEffect, useState } from "react";
+import { initializeApp, getApps } from "firebase/app";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+} from "firebase/auth";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  serverTimestamp,
+} from "firebase/firestore";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Moon, Star, Music, MessageCircle, Notebook, LogOut, Coffee, Brain, Users } from "lucide-react";
+
+// Check if environment variables are loaded correctly
+const getEnvVar = (key) => {
+  const value = import.meta.env[key];
+  if (!value) {
+    throw new Error(`Missing environment variable: ${key}`);
+  }
+  return value;
+};
+
+// Firebase config with validation
+const firebaseConfig = {
+  apiKey: getEnvVar("VITE_FIREBASE_API_KEY"),
+  authDomain: getEnvVar("VITE_FIREBASE_AUTH_DOMAIN"),
+  projectId: getEnvVar("VITE_FIREBASE_PROJECT_ID"),
+  storageBucket: getEnvVar("VITE_FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: getEnvVar("VITE_FIREBASE_MESSAGING_SENDER_ID"),
+  appId: getEnvVar("VITE_FIREBASE_APP_ID"),
+};
+
+let app;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0];
+}
+
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+export default function NocturneHome() {
+  const [user, setUser] = useState(null);
+  const [diaries, setDiaries] = useState([]);
+  const [whispers, setWhispers] = useState([]);
+  const [mindMaze, setMindMaze] = useState([]);
+  const [nightCircles, setNightCircles] = useState([]);
+  const [midnightCafe, setMidnightCafe] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    fetchCategory("diaries", setDiaries, true);
+    fetchCategory("whispers", setWhispers);
+    fetchCategory("mindMaze", setMindMaze);
+    fetchCategory("nightCircles", setNightCircles);
+    fetchCategory("midnightCafe", setMidnightCafe);
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login error:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const fetchCategory = async (name, setter, filterPublic = false) => {
+    try {
+      const q = query(collection(db, name), orderBy("timestamp", "desc"));
+      const snapshot = await getDocs(q);
+      const items = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((item) => (filterPublic ? !item.isPrivate : true));
+      setter(items);
+    } catch (error) {
+      console.error(`Failed to fetch ${name}:`, error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white p-6">
+      {/* UI rendering logic goes here */}
+    </div>
+  );
+}
