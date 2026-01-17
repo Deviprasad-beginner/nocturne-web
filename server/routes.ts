@@ -311,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
   // WebSocket server for real-time communication on a specific path
-  const wss = new WebSocketServer({ 
+  const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws'
   });
@@ -348,7 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
           case 'user_report':
             handleUserReport(ws, message);
-            break;          case 'end_session':
+            break; case 'end_session':
             endSession(ws, message.sessionId);
             break;
         }
@@ -357,8 +357,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    ws.on('close', () => {
-      leaveRoom(ws);
+    ws.on('close', async () => {
+      await leaveRoom(ws);
       // Remove from waiting queue if present
       const queueIndex = waitingQueue.indexOf(ws);
       if (queueIndex > -1) {
@@ -367,9 +367,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  function joinRoom(ws: WebSocket, roomId: string, username: string) {
+  async function joinRoom(ws: WebSocket, roomId: string, username: string) {
     // Leave current room if in one
-    leaveRoom(ws);
+    await leaveRoom(ws);
 
     // Join new room
     if (!rooms.has(roomId)) {
@@ -378,6 +378,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     rooms.get(roomId)!.add(ws);
     userRooms.set(ws, roomId);
+
+    // Update database member count if this is a Night Circle
+    if (roomId.startsWith('circle_')) {
+      const circleId = parseInt(roomId.split('_')[1]);
+      if (!isNaN(circleId)) {
+        try {
+          // Use the actual connection count
+          const currentCount = rooms.get(roomId)!.size;
+          await storage.updateNightCircleMembers(circleId, currentCount);
+        } catch (error) {
+          console.error(`Failed to update member count for circle ${circleId}:`, error);
+        }
+      }
+    }
 
     // Notify room members
     broadcastToRoom(ws, {
@@ -394,12 +408,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }));
   }
 
-  function leaveRoom(ws: WebSocket) {
+  async function leaveRoom(ws: WebSocket) {
     const roomId = userRooms.get(ws);
     if (roomId && rooms.has(roomId)) {
       const room = rooms.get(roomId)!;
       room.delete(ws);
       userRooms.delete(ws);
+
+      // Update database member count if this is a Night Circle
+      if (roomId.startsWith('circle_')) {
+        const circleId = parseInt(roomId.split('_')[1]);
+        if (!isNaN(circleId)) {
+          try {
+            await storage.updateNightCircleMembers(circleId, room.size);
+          } catch (error) {
+            console.error(`Failed to update member count for circle ${circleId}:`, error);
+          }
+        }
+      }
 
       if (room.size === 0) {
         rooms.delete(roomId);

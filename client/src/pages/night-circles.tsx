@@ -42,32 +42,15 @@ export default function NightCircles() {
     },
   });
 
-  const joinCircleMutation = useMutation({
-    mutationFn: async ({ id, currentMembers }: { id: number; currentMembers: number }) => {
-      const response = await fetch(`/api/nightCircles/${id}/members`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ members: currentMembers + 1 }),
-      });
-      if (!response.ok) throw new Error('Failed to join circle');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/nightCircles'] });
-    },
-  });
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
       createCircleMutation.mutate({
         name: name.trim(),
-        description: description.trim() || "A space for night owls to connect",
+        description: "A space for night owls to connect",
         maxMembers: 6,
-        currentMembers: 1,
-        isActive: true
       });
     }
   };
@@ -78,14 +61,11 @@ export default function NightCircles() {
       if (!newUsername?.trim()) return;
       setUsername(newUsername.trim());
     }
-    
+
     setCurrentRoomId(`circle_${circle.id}`);
     setCurrentView('video-chat');
-    
-    joinCircleMutation.mutate({ 
-      id: circle.id, 
-      currentMembers: circle.members || 0 
-    });
+
+
   };
 
   const handleStartRandomChat = () => {
@@ -94,7 +74,7 @@ export default function NightCircles() {
       if (!newUsername?.trim()) return;
       setUsername(newUsername.trim());
     }
-    
+
     setCurrentView('random-chat');
   };
 
@@ -123,8 +103,8 @@ export default function NightCircles() {
     );
   }
 
-  const activeCircles = nightCircles.filter(circle => circle.active);
-  const inactiveCircles = nightCircles.filter(circle => !circle.active);
+  const activeCircles = nightCircles.filter(circle => circle.isActive);
+  const inactiveCircles = nightCircles.filter(circle => !circle.isActive);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white p-6">
@@ -145,7 +125,7 @@ export default function NightCircles() {
               <h1 className="text-3xl font-bold">Night Circles</h1>
             </div>
           </div>
-          <Button 
+          <Button
             onClick={() => setIsCreating(!isCreating)}
             className="bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700"
           >
@@ -155,7 +135,7 @@ export default function NightCircles() {
 
         <div className="mb-6 p-4 bg-pink-900/30 rounded-lg border border-pink-700/50">
           <p className="text-sm text-pink-200">
-            Join intimate conversation circles for meaningful discussions with fellow night owls. 
+            Join intimate conversation circles for meaningful discussions with fellow night owls.
             Share thoughts, find support, and build connections in smaller groups.
           </p>
         </div>
@@ -178,8 +158,8 @@ export default function NightCircles() {
                     className="bg-gray-700/50 border-gray-600 text-white"
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={!name.trim() || createCircleMutation.isPending}
                   className="bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700"
                 >
@@ -199,7 +179,7 @@ export default function NightCircles() {
               {activeCircles.length} active now
             </Badge>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeCircles.length === 0 ? (
               <div className="col-span-full text-center text-gray-400 py-12">
@@ -218,27 +198,24 @@ export default function NightCircles() {
                         <span className="text-xs text-green-400">Live</span>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3 mb-4">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-400">Members</span>
-                        <span className="text-white">{circle.members || 0}</span>
+                        <span className="text-white">{circle.currentMembers || 0}</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Online now</span>
-                        <span className="text-green-400">{circle.online || 0}</span>
-                      </div>
+
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-400">Created</span>
                         <span className="text-gray-300">
-                          {circle.timestamp ? new Date(circle.timestamp).toLocaleDateString() : 'Recently'}
+                          {circle.createdAt ? new Date(circle.createdAt).toLocaleDateString() : 'Recently'}
                         </span>
                       </div>
                     </div>
-                    
-                    <Button 
+
+                    <Button
                       onClick={() => handleJoinCircle(circle)}
-                      disabled={joinCircleMutation.isPending}
+
                       className="w-full bg-pink-600 hover:bg-pink-700 text-white"
                     >
                       <UserPlus className="w-4 h-4 mr-2" />
@@ -261,7 +238,7 @@ export default function NightCircles() {
                 {inactiveCircles.length} dormant
               </Badge>
             </div>
-            
+
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {inactiveCircles.map((circle) => (
                 <Card key={circle.id} className="bg-gray-800/30 border-gray-700/50 hover:bg-gray-800/50 transition-colors">
@@ -273,23 +250,23 @@ export default function NightCircles() {
                         <span className="text-xs text-gray-500">Sleeping</span>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3 mb-4">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-500">Members</span>
-                        <span className="text-gray-400">{circle.members || 0}</span>
+                        <span className="text-gray-400">{circle.currentMembers || 0}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-500">Last active</span>
                         <span className="text-gray-400">
-                          {circle.timestamp ? new Date(circle.timestamp).toLocaleDateString() : 'Unknown'}
+                          {circle.createdAt ? new Date(circle.createdAt).toLocaleDateString() : 'Unknown'}
                         </span>
                       </div>
                     </div>
-                    
-                    <Button 
+
+                    <Button
                       onClick={() => handleJoinCircle(circle)}
-                      disabled={joinCircleMutation.isPending}
+
                       variant="outline"
                       className="w-full border-gray-600 text-gray-400 hover:text-white hover:border-pink-500"
                     >
