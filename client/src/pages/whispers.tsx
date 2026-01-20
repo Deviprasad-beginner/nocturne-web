@@ -26,13 +26,13 @@ export default function Whispers() {
         },
         body: JSON.stringify(newWhisper),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       console.log('Success result:', result);
       return result;
@@ -56,13 +56,13 @@ export default function Whispers() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       console.log('Like success:', result);
       return result;
@@ -108,7 +108,7 @@ export default function Whispers() {
               <h1 className="text-xl sm:text-3xl font-bold">Whispers</h1>
             </div>
           </div>
-          <Button 
+          <Button
             onClick={() => setIsCreating(!isCreating)}
             className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 w-full sm:w-auto"
           >
@@ -118,7 +118,7 @@ export default function Whispers() {
 
         <div className="mb-6 p-4 bg-indigo-900/30 rounded-lg border border-indigo-700/50">
           <p className="text-sm text-indigo-200">
-            <span className="font-medium">Quantum Whisper Network:</span> Anonymous thought transmission system utilizing zero-knowledge cryptography. 
+            <span className="font-medium">Quantum Whisper Network:</span> Anonymous thought transmission system utilizing zero-knowledge cryptography.
             Deploy unfiltered cognitive fragments into the collective subconscious with absolute identity protection.
           </p>
         </div>
@@ -140,8 +140,8 @@ export default function Whispers() {
                     className="bg-gray-700/50 border-gray-600 text-white"
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={!content.trim() || createWhisperMutation.isPending}
                   className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
                 >
@@ -171,7 +171,7 @@ export default function Whispers() {
                   <p className="text-gray-200 leading-relaxed mb-4">{whisper.content}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-400">
-                      {new Date(whisper.createdAt).toLocaleString()}
+                      {whisper.createdAt ? new Date(whisper.createdAt).toLocaleString() : 'Just now'}
                     </span>
                     <Button
                       variant="ghost"

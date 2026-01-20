@@ -21,7 +21,7 @@ export default function AmFounderPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const { data: founders = [], isLoading } = useQuery({
+  const { data: founders = [], isLoading } = useQuery<AmFounder[]>({
     queryKey: ["/api/amFounder"],
   });
 
@@ -53,8 +53,6 @@ export default function AmFounderPage() {
       createFounderMutation.mutate({
         content: content.trim(),
         category,
-        upvotes: 0,
-        comments: 0
       });
     }
   };
@@ -236,8 +234,8 @@ export default function AmFounderPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={!content.trim() || !category || createFounderMutation.isPending}
                   className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
                 >
@@ -277,7 +275,7 @@ export default function AmFounderPage() {
             <CardContent className="p-6 text-center">
               <TrendingUp className="w-8 h-8 text-blue-400 mx-auto mb-2" />
               <div className="text-2xl font-bold text-blue-300">
-                {founders.reduce((sum, f) => sum + f.upvotes, 0)}
+                {founders.reduce((sum, f) => sum + (f.upvotes || 0), 0)}
               </div>
               <div className="text-sm text-gray-400">Community Upvotes</div>
             </CardContent>
@@ -287,7 +285,7 @@ export default function AmFounderPage() {
             <CardContent className="p-6 text-center">
               <MessageCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
               <div className="text-2xl font-bold text-green-300">
-                {founders.reduce((sum, f) => sum + f.comments, 0)}
+                {founders.reduce((sum, f) => sum + (f.comments || 0), 0)}
               </div>
               <div className="text-sm text-gray-400">Conversations Started</div>
             </CardContent>
@@ -318,8 +316,8 @@ export default function AmFounderPage() {
                     </Badge>
                     <div className="flex items-center space-x-3 text-sm text-gray-400">
                       <Clock className="w-4 h-4" />
-                      <span>{new Date(founder.createdAt).toLocaleString()}</span>
-                      {new Date(founder.createdAt).getHours() >= 0 && new Date(founder.createdAt).getHours() <= 5 && (
+                      <span>{new Date(founder.createdAt || new Date()).toLocaleString()}</span>
+                      {new Date(founder.createdAt || new Date()).getHours() >= 0 && new Date(founder.createdAt || new Date()).getHours() <= 5 && (
                         <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs">
                           🌙 3AM Drop
                         </Badge>

@@ -86,7 +86,7 @@ export function useWebSocket(url: string, onMessage?: (message: WebSocketMessage
   return {
     isConnected,
     lastMessage,
-    sendMessage: isConnected ? sendMessage : undefined,
+    sendMessage,
     disconnect
   };
 }

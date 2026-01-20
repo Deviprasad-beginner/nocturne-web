@@ -18,8 +18,12 @@ export default function MoonMessengerPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [] } = useQuery<MoonMessenger[]>({
     queryKey: ["/api/moonMessenger", currentSessionId],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/moonMessenger?sessionId=${currentSessionId}`);
+      return res.json();
+    },
     enabled: !!currentSessionId,
   });
 
@@ -41,10 +45,7 @@ export default function MoonMessengerPage() {
 
   const createMessageMutation = useMutation({
     mutationFn: async (newMessage: InsertMoonMessenger) => {
-      const response = await apiRequest("/api/moonMessenger", {
-        method: "POST",
-        body: newMessage,
-      });
+      const response = await apiRequest("POST", "/api/moonMessenger", newMessage);
       return response;
     },
     onSuccess: () => {
@@ -86,7 +87,6 @@ export default function MoonMessengerPage() {
       sessionId: currentSessionId,
       message: message.trim(),
       sender: anonymousId,
-      isActive: true
     });
 
     // Send via WebSocket for real-time delivery
@@ -116,7 +116,8 @@ export default function MoonMessengerPage() {
     setIsSearching(false);
   };
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp: string | Date | null) => {
+    if (!timestamp) return "";
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -237,11 +238,10 @@ export default function MoonMessengerPage() {
                           className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
-                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                              isOwnMessage
-                                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
-                                : 'bg-gray-700 text-gray-200'
-                            }`}
+                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isOwnMessage
+                              ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+                              : 'bg-gray-700 text-gray-200'
+                              }`}
                           >
                             <p className="text-sm">{msg.message}</p>
                             <div className="flex items-center justify-between mt-1">

@@ -15,15 +15,14 @@ export const sessions = pgTable(
 
 // User storage table supporting both Firebase and Replit Auth
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(), // Changed to varchar for Replit Auth compatibility
-  username: varchar("username", { length: 255 }),
-  email: varchar("email", { length: 255 }).unique(),
-  firstName: varchar("first_name", { length: 255 }),
-  lastName: varchar("last_name", { length: 255 }),
-  profileImageUrl: varchar("profile_image_url", { length: 500 }),
-  firebaseUid: varchar("firebase_uid", { length: 255 }), // For Firebase users
+  id: serial("id").primaryKey(),
+  username: text("username").unique().notNull(),
+  password: text("password"),
+  googleId: text("google_id").unique(),
+  displayName: text("display_name"),
+  email: text("email").unique(),
+  profileImageUrl: text("profile_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const diaries = pgTable("diaries", {
@@ -31,7 +30,7 @@ export const diaries = pgTable("diaries", {
   content: text("content").notNull(),
   isPublic: boolean("is_public").default(false),
   mood: varchar("mood", { length: 100 }),
-  authorId: varchar("author_id").references(() => users.id),
+  authorId: integer("author_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -73,15 +72,13 @@ export const midnightCafe = pgTable("midnight_cafe", {
 // Upsert user schema for auth systems
 export const upsertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
-  updatedAt: true,
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 }).extend({
-  id: z.string().optional(),
+  id: z.number().optional(),
 });
 
 export const insertDiarySchema = createInsertSchema(diaries).omit({

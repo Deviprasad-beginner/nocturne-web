@@ -31,16 +31,21 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
+  sessionStore: session.Store;
+  getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
 
   // Diary operations
   createDiary(diary: InsertDiary): Promise<Diary>;
-  getDiaries(filterPublic?: boolean): Promise<Diary[]>;
   getDiaries(filterPublic?: boolean): Promise<Diary[]>;
   getDiary(id: number): Promise<Diary | undefined>;
   deleteDiary(id: number): Promise<boolean>;
@@ -83,52 +88,33 @@ export interface IStorage {
 }
 
 // In-memory storage implementation
-class MemoryStorage implements IStorage {
-  private users: User[] = [];
-  private diaries: Diary[] = [
-    { id: 1, content: "The city never sleeps, and neither do I. There's something beautiful about the quiet hours when the world feels like it belongs to us night owls.", isPublic: true, mood: "contemplative", authorId: null, createdAt: new Date() }
-  ];
-  private whispers: Whisper[] = [
-    { id: 1, content: "Sometimes the darkest nights produce the brightest stars", hearts: 42, createdAt: new Date() }
-  ];
-  private mindMazes: MindMaze[] = [
-    { id: 1, type: "philosophy", content: "If you could speak to your past self, what would you say?", options: ["Follow your dreams", "Trust your instincts", "Don't be afraid to fail", "Love yourself first"], responses: 127, createdAt: new Date() }
-  ];
-  private nightCircles: NightCircle[] = [
-    { id: 1, name: "Midnight Philosophers", description: "Deep conversations under the stars", maxMembers: 6, currentMembers: 3, isActive: true, createdAt: new Date() }
-  ];
-  private midnightCafes: MidnightCafe[] = [
-    { id: 1, topic: "Late Night Musings", content: "What's everyone's go-to midnight snack and why?", category: "food", replies: 23, createdAt: new Date() }
-  ];
+export class MemoryStorage implements IStorage {
+  sessionStore: session.Store;
+  users: User[];
+  diaries: Diary[];
+  whispers: Whisper[];
+  mindMazes: MindMaze[];
+  nightCircles: NightCircle[];
+  midnightCafes: MidnightCafe[];
+  amFounders: AmFounder[];
+  starlitSpeakers: StarlitSpeaker[];
+  moonMessages: MoonMessenger[];
+  private nextId = 1;
 
-  private amFounders: AmFounder[] = [
-    {
-      id: 1,
-      content: "3AM thought: Maybe the best business ideas come when your logical brain is tired and your creative mind takes over. Just had a breakthrough on user onboarding.",
-      category: "idea",
-      upvotes: 15,
-      comments: 8,
-      createdAt: new Date()
-    }
-  ];
+  constructor() {
+    this.sessionStore = new session.MemoryStore();
+    this.users = [];
+    this.diaries = [];
+    this.whispers = [];
+    this.mindMazes = [];
+    this.nightCircles = [];
+    this.midnightCafes = [];
+    this.amFounders = [];
+    this.starlitSpeakers = [];
+    this.moonMessages = [];
+  }
 
-  private starlitSpeakers: StarlitSpeaker[] = [
-    {
-      id: 1,
-      roomName: "Night Owl Entrepreneurs",
-      description: "Voice chat for founders burning the midnight oil",
-      topic: "Building in public during late hours",
-      maxParticipants: 8,
-      currentParticipants: 3,
-      isActive: true,
-      createdAt: new Date()
-    }
-  ];
-
-  private moonMessages: MoonMessenger[] = [];
-  private nextId = 100;
-
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: number): Promise<User | undefined> {
     return this.users.find(u => u.id === id);
   }
 
@@ -136,48 +122,24 @@ class MemoryStorage implements IStorage {
     return this.users.find(u => u.username === username);
   }
 
-  async createUser(user: InsertUser): Promise<User> {
-    const newUser: User = {
-      id: (this.nextId++).toString(),
-      username: user.username || null,
-      email: user.email || null,
-      firstName: user.firstName || null,
-      lastName: user.lastName || null,
-      profileImageUrl: user.profileImageUrl || null,
-      firebaseUid: user.firebaseUid || null,
-      createdAt: new Date(),
-      updatedAt: new Date()
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.nextId++;
+    const user: User = {
+      ...insertUser,
+      id,
+      password: insertUser.password || null,
+      googleId: insertUser.googleId || null,
+      displayName: insertUser.displayName || null,
+      email: insertUser.email || null,
+      profileImageUrl: insertUser.profileImageUrl || null,
+      createdAt: new Date()
     };
-    this.users.push(newUser);
-    return newUser;
+    this.users.push(user);
+    return user;
   }
 
   async upsertUser(user: UpsertUser): Promise<User> {
-    const existingUser = this.users.find(u => u.id === user.id);
-    if (existingUser) {
-      existingUser.username = user.username || null;
-      existingUser.email = user.email || null;
-      existingUser.firstName = user.firstName || null;
-      existingUser.lastName = user.lastName || null;
-      existingUser.profileImageUrl = user.profileImageUrl || null;
-      existingUser.firebaseUid = user.firebaseUid || null;
-      existingUser.updatedAt = new Date();
-      return existingUser;
-    } else {
-      const newUser: User = {
-        id: user.id,
-        username: user.username || null,
-        email: user.email || null,
-        firstName: user.firstName || null,
-        lastName: user.lastName || null,
-        profileImageUrl: user.profileImageUrl || null,
-        firebaseUid: user.firebaseUid || null,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      this.users.push(newUser);
-      return newUser;
-    }
+    throw new Error("Upsert not implemented for MemoryStorage");
   }
 
   // Diary operations
@@ -422,9 +384,17 @@ class MemoryStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
+    });
+  }
   private memStorage = new MemoryStorage();
 
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: number): Promise<User | undefined> {
     try {
       const [user] = await db.select().from(users).where(eq(users.id, id));
       return user || undefined;
@@ -445,53 +415,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const userData = {
-      id: insertUser.id || crypto.randomUUID(),
-      username: insertUser.username,
-      email: insertUser.email,
-      firstName: insertUser.firstName,
-      lastName: insertUser.lastName,
-      profileImageUrl: insertUser.profileImageUrl,
-      firebaseUid: insertUser.firebaseUid,
-    };
-    const [user] = await db.insert(users).values(userData).returning();
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values({
-        id: userData.id,
-        username: userData.username,
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        profileImageUrl: userData.profileImageUrl,
-        firebaseUid: userData.firebaseUid,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          username: userData.username,
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          profileImageUrl: userData.profileImageUrl,
-          firebaseUid: userData.firebaseUid,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
+  async upsertUser(user: UpsertUser): Promise<User> {
+    throw new Error("Upsert not implemented for standard auth");
   }
+
 
   // Diary operations
   async createDiary(diary: InsertDiary): Promise<Diary> {
     const [newDiary] = await db.insert(diaries).values(diary).returning();
     return newDiary;
+  }
+
+  async getDiary(id: number): Promise<Diary | undefined> {
+    try {
+      const [diary] = await db.select().from(diaries).where(eq(diaries.id, id));
+      return diary || undefined;
+    } catch (error) {
+      console.error("Error getting diary:", error);
+      return undefined;
+    }
   }
 
   async getDiaries(filterPublic = false): Promise<Diary[]> {
@@ -509,7 +455,7 @@ export class DatabaseStorage implements IStorage {
         {
           id: 1,
           content: "The city never sleeps, and neither do I. Tonight I watched the rain create patterns on my window, each drop a tiny universe of reflection. There's something magical about 3 AM thoughts - they feel more honest, more raw. I wonder if anyone else is awake right now, sharing this quiet moment with the night.",
-          authorId: "user_001",
+          authorId: 1,
           isPublic: true,
           mood: null,
           createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
@@ -517,7 +463,7 @@ export class DatabaseStorage implements IStorage {
         {
           id: 2,
           content: "Had the strangest dream about floating through a library made of stars. Each book contained a different lifetime, a different possibility. When I woke up, I felt like I'd lived a thousand lives in those few hours of sleep. Dreams are the night's way of showing us infinite potential.",
-          authorId: "user_002",
+          authorId: 2,
           isPublic: true,
           mood: null,
           createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000) // 4 hours ago
@@ -525,7 +471,7 @@ export class DatabaseStorage implements IStorage {
         {
           id: 3,
           content: "Tonight's moon is a silver coin tossed into the velvet sky. I made myself some chamomile tea and sat on my balcony, just breathing. Sometimes the best therapy is silence and starlight. The world feels different at night - softer, more forgiving, full of possibilities.",
-          authorId: "user_003",
+          authorId: 3,
           isPublic: true,
           mood: null,
           createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000) // 6 hours ago
@@ -533,7 +479,7 @@ export class DatabaseStorage implements IStorage {
         {
           id: 4,
           content: "Been thinking about time lately. How it moves differently in the dark. Minutes stretch like hours when you're lost in thought, but hours disappear like seconds when you're creating something beautiful. Tonight I wrote three poems and painted a small canvas. The night is my muse.",
-          authorId: "user_004",
+          authorId: 4,
           isPublic: true,
           mood: null,
           createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000) // 8 hours ago
@@ -541,7 +487,7 @@ export class DatabaseStorage implements IStorage {
         {
           id: 5,
           content: "There's a cat that visits my fire escape every night around midnight. Tonight I left out some milk and we shared a moment of understanding. Animals know something we've forgotten - how to simply exist without the weight of tomorrow's worries. Lessons from a midnight cat.",
-          authorId: "user_005",
+          authorId: 5,
           isPublic: true,
           mood: null,
           createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000) // 10 hours ago
@@ -549,7 +495,7 @@ export class DatabaseStorage implements IStorage {
         {
           id: 6,
           content: "Insomnia has become my unwanted companion again. But instead of fighting it, I've learned to dance with it. Tonight I reorganized my bookshelf by color, discovered a letter from my grandmother I'd forgotten about, and realized that sleepless nights can be gifts in disguise.",
-          authorId: "user_006",
+          authorId: 6,
           isPublic: true,
           mood: null,
           createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000) // 12 hours ago
@@ -563,15 +509,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getDiary(id: number): Promise<Diary | undefined> {
-    try {
-      const [diary] = await db.select().from(diaries).where(eq(diaries.id, id));
-      return diary || undefined;
-    } catch (error) {
-      console.error("Error getting diary:", error);
-      return undefined;
-    }
-  }
+
 
   async deleteDiary(id: number): Promise<boolean> {
     try {
@@ -786,14 +724,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // 3AM Founder operations
+  // 3AM Founder operations
   async createAmFounder(founder: InsertAmFounder): Promise<AmFounder> {
-    try {
-      const [newFounder] = await db.insert(amFounder).values(founder).returning();
-      return newFounder;
-    } catch (error) {
-      console.error("Error creating amFounder:", error);
-      return this.memStorage.createAmFounder(founder);
-    }
+    const [newFounder] = await db.insert(amFounder).values(founder).returning();
+    return newFounder;
   }
 
   async getAmFounder(): Promise<AmFounder[]> {
@@ -801,7 +735,7 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(amFounder).orderBy(desc(amFounder.createdAt));
     } catch (error) {
       console.error("Error getting amFounder:", error);
-      return this.memStorage.getAmFounder();
+      return [];
     }
   }
 
@@ -813,7 +747,6 @@ export class DatabaseStorage implements IStorage {
         .where(eq(amFounder.id, id));
     } catch (error) {
       console.error("Error incrementing founder upvotes:", error);
-      return this.memStorage.incrementFounderUpvotes(id);
     }
   }
 
@@ -825,19 +758,13 @@ export class DatabaseStorage implements IStorage {
         .where(eq(amFounder.id, id));
     } catch (error) {
       console.error("Error incrementing founder comments:", error);
-      return this.memStorage.incrementFounderComments(id);
     }
   }
 
   // Starlit Speaker operations
   async createStarlitSpeaker(speaker: InsertStarlitSpeaker): Promise<StarlitSpeaker> {
-    try {
-      const [newSpeaker] = await db.insert(starlitSpeaker).values(speaker).returning();
-      return newSpeaker;
-    } catch (error) {
-      console.error("Error creating starlitSpeaker:", error);
-      return this.memStorage.createStarlitSpeaker(speaker);
-    }
+    const [newSpeaker] = await db.insert(starlitSpeaker).values(speaker).returning();
+    return newSpeaker;
   }
 
   async getStarlitSpeaker(): Promise<StarlitSpeaker[]> {
@@ -845,7 +772,7 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(starlitSpeaker).orderBy(desc(starlitSpeaker.createdAt));
     } catch (error) {
       console.error("Error getting starlitSpeaker:", error);
-      return this.memStorage.getStarlitSpeaker();
+      return [];
     }
   }
 
@@ -857,19 +784,13 @@ export class DatabaseStorage implements IStorage {
         .where(eq(starlitSpeaker.id, id));
     } catch (error) {
       console.error("Error updating speaker participants:", error);
-      return this.memStorage.updateSpeakerParticipants(id, participants);
     }
   }
 
   // Moon Messenger operations
   async createMoonMessage(message: InsertMoonMessenger): Promise<MoonMessenger> {
-    try {
-      const [newMessage] = await db.insert(moonMessenger).values(message).returning();
-      return newMessage;
-    } catch (error) {
-      console.error("Error creating moon message:", error);
-      return this.memStorage.createMoonMessage(message);
-    }
+    const [newMessage] = await db.insert(moonMessenger).values(message).returning();
+    return newMessage;
   }
 
   async getMoonMessages(sessionId: string): Promise<MoonMessenger[]> {
@@ -881,7 +802,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(moonMessenger.timestamp);
     } catch (error) {
       console.error("Error getting moon messages:", error);
-      return this.memStorage.getMoonMessages(sessionId);
+      return [];
     }
   }
 
@@ -894,7 +815,7 @@ export class DatabaseStorage implements IStorage {
       return sessions.map(s => s.sessionId);
     } catch (error) {
       console.error("Error getting active sessions:", error);
-      return this.memStorage.getActiveSessions();
+      return [];
     }
   }
 }

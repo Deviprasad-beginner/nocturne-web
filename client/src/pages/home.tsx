@@ -1,11 +1,5 @@
-import { useState, useEffect } from "react";
-import { User } from "firebase/auth";
 import { useQuery } from "@tanstack/react-query";
-import {
-  onAuthStateChange,
-  signInWithGoogle,
-  signOutUser
-} from "@/lib/firebase";
+import { useAuth } from "@/hooks/useAuth";
 import { Diary, Whisper, MindMaze, NightCircle, MidnightCafe } from "@shared/schema";
 import { AuthButton } from "@/components/auth-button";
 import { CategoryCard } from "@/components/category-card";
@@ -41,16 +35,7 @@ function Star({ className, style }: { className: string; style?: React.CSSProper
 
 export default function Home() {
   const [location, setLocation] = useLocation();
-  const [user, setUser] = useState<User | null>(null);
-
-
-  // Firebase Auth state management
-  useEffect(() => {
-    const unsubscribe = onAuthStateChange((currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { user, logoutMutation } = useAuth();
 
   // Data fetching with React Query from our backend API
   const { data: diaries = [], isLoading: diariesLoading } = useQuery<Diary[]>({
@@ -78,20 +63,12 @@ export default function Home() {
     enabled: true,
   });
 
-  const handleLogin = async () => {
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      console.error("Login error:", error);
-    }
+  const handleLogin = () => {
+    setLocation("/auth");
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOutUser();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   // Placeholder components for new features. Replace with actual implementations.

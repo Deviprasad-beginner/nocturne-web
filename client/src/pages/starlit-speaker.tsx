@@ -22,18 +22,18 @@ export default function StarlitSpeakerPage() {
   const queryClient = useQueryClient();
 
   // Query to fetch starlit speakers
-  const { data: speakers = [] } = useQuery({
+  const { data: speakers = [] } = useQuery<StarlitSpeaker[]>({
     queryKey: ["/api/starlitSpeaker"],
-    queryFn: () => apiRequest("/api/starlitSpeaker"),
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/starlitSpeaker");
+      return res.json();
+    },
   });
 
   // Mutation to create new speaker session
   const createSpeakerMutation = useMutation({
     mutationFn: (speakerData: InsertStarlitSpeaker) =>
-      apiRequest("/api/starlitSpeaker", {
-        method: "POST",
-        body: speakerData,
-      }),
+      apiRequest("POST", "/api/starlitSpeaker", speakerData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/starlitSpeaker"] });
       setSpeechText("");
@@ -77,19 +77,19 @@ export default function StarlitSpeakerPage() {
 
   const startRecording = () => {
     if (!topic) return;
-    
+
     setIsRecording(true);
     setRecordingTime(0);
-    
+
     // Create a new speaker session
     createSpeakerMutation.mutate({
-      title: `${getCategoryLabel(topic)} Session`,
+      roomName: `${getCategoryLabel(topic)} Session`,
       topic: topic,
       description: speechText || "Live speaking practice session",
-      isActive: true,
+
       maxParticipants: 10,
-      currentParticipants: 1,
-      scheduledFor: new Date(),
+
+
     });
   };
 
@@ -226,11 +226,10 @@ export default function StarlitSpeakerPage() {
                 <Button
                   onClick={isRecording ? stopRecording : startRecording}
                   disabled={!topic}
-                  className={`${
-                    isRecording
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-purple-500 hover:bg-purple-600"
-                  } text-white px-8 py-4 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300`}
+                  className={`${isRecording
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-purple-500 hover:bg-purple-600"
+                    } text-white px-8 py-4 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300`}
                 >
                   {isRecording ? (
                     <div className="flex items-center space-x-2">
@@ -328,7 +327,7 @@ export default function StarlitSpeakerPage() {
                       {getCategoryLabel(session.topic)}
                     </Badge>
                     <div>
-                      <h4 className="font-medium text-gray-200">{session.title}</h4>
+                      <h4 className="font-medium text-gray-200">{session.roomName}</h4>
                       <p className="text-sm text-gray-400">
                         Participants: {session.currentParticipants}/{session.maxParticipants}
                       </p>

@@ -7,15 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Bell, 
-  BellOff, 
-  MessageSquare, 
-  Heart, 
-  Users, 
-  UserPlus, 
-  Calendar, 
-  Star, 
+import {
+  Bell,
+  BellOff,
+  MessageSquare,
+  Heart,
+  Users,
+  UserPlus,
+  Calendar,
+  Star,
   AlertCircle,
   Check,
   X,
@@ -24,7 +24,7 @@ import {
   VolumeX,
   Clock,
   Trash2,
-  MarkUnread
+
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,7 +45,7 @@ export default function Notifications() {
     pushEnabled: true,
     soundEnabled: true,
     emailDigest: true,
-    
+
     // Type-specific settings
     messages: true,
     likes: true,
@@ -53,13 +53,13 @@ export default function Notifications() {
     circles: true,
     mentions: true,
     system: false,
-    
+
     // Timing settings
     quietHours: true,
     quietStart: "23:00",
     quietEnd: "07:00",
     weekendOnly: false,
-    
+
     // Frequency settings
     instantNotifications: true,
     hourlyDigest: false,
@@ -77,7 +77,7 @@ export default function Notifications() {
       actionUser: "MidnightDreamer"
     },
     {
-      id: "2", 
+      id: "2",
       type: "message",
       title: "New message",
       content: "SleeplessInSeattle sent you a private message",
@@ -122,13 +122,13 @@ export default function Notifications() {
   ]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  
+
   const handleSettingChange = (key: string, value: any) => {
     setNotificationSettings(prev => ({
       ...prev,
       [key]: value
     }));
-    
+
     toast({
       title: "Notification Setting Updated",
       description: "Your preferences have been saved.",
@@ -199,7 +199,7 @@ export default function Notifications() {
             <p className="text-gray-400">Manage your notifications and preferences</p>
           </div>
           <div className="flex gap-2">
-            <Button 
+            <Button
               onClick={markAllAsRead}
               variant="outline"
               className="border-slate-600 text-white hover:bg-slate-700"
@@ -228,36 +228,33 @@ export default function Notifications() {
                   <div className="p-6 space-y-4">
                     {notifications.map((notification, index) => (
                       <div key={notification.id}>
-                        <div className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${
-                          notification.read 
-                            ? 'bg-slate-700/30' 
+                        <div className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${notification.read
+                            ? 'bg-slate-700/30'
                             : 'bg-purple-900/20 border border-purple-700/30'
-                        }`}>
+                          }`}>
                           <div className="flex-shrink-0 mt-1">
                             {getNotificationIcon(notification.type)}
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div>
-                                <h3 className={`font-medium ${
-                                  notification.read ? 'text-gray-300' : 'text-white'
-                                }`}>
+                                <h3 className={`font-medium ${notification.read ? 'text-gray-300' : 'text-white'
+                                  }`}>
                                   {notification.title}
                                 </h3>
-                                <p className={`text-sm ${
-                                  notification.read ? 'text-gray-400' : 'text-gray-300'
-                                }`}>
+                                <p className={`text-sm ${notification.read ? 'text-gray-400' : 'text-gray-300'
+                                  }`}>
                                   {notification.content}
                                 </p>
                               </div>
-                              <Badge 
+                              <Badge
                                 className={`${getTypeColor(notification.type)} text-white text-xs flex-shrink-0`}
                               >
                                 {notification.type}
                               </Badge>
                             </div>
-                            
+
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 text-xs text-gray-500">
                                 <Clock className="h-3 w-3" />
@@ -269,7 +266,7 @@ export default function Notifications() {
                                   </>
                                 )}
                               </div>
-                              
+
                               <div className="flex items-center gap-1">
                                 {!notification.read && (
                                   <Button
@@ -338,8 +335,8 @@ export default function Notifications() {
                       checked={notificationSettings.soundEnabled}
                       onCheckedChange={(checked) => handleSettingChange('soundEnabled', checked)}
                     />
-                    {notificationSettings.soundEnabled ? 
-                      <Volume2 className="h-4 w-4 text-purple-400" /> : 
+                    {notificationSettings.soundEnabled ?
+                      <Volume2 className="h-4 w-4 text-purple-400" /> :
                       <VolumeX className="h-4 w-4 text-gray-400" />
                     }
                   </div>
@@ -478,8 +475,8 @@ export default function Notifications() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label className="text-gray-400 text-sm">Start Time</Label>
-                        <input 
-                          type="time" 
+                        <input
+                          type="time"
                           value={notificationSettings.quietStart}
                           onChange={(e) => handleSettingChange('quietStart', e.target.value)}
                           className="w-full mt-1 p-2 bg-slate-600 border border-slate-500 rounded text-white"
@@ -487,8 +484,8 @@ export default function Notifications() {
                       </div>
                       <div>
                         <Label className="text-gray-400 text-sm">End Time</Label>
-                        <input 
-                          type="time" 
+                        <input
+                          type="time"
                           value={notificationSettings.quietEnd}
                           onChange={(e) => handleSettingChange('quietEnd', e.target.value)}
                           className="w-full mt-1 p-2 bg-slate-600 border border-slate-500 rounded text-white"
@@ -524,7 +521,7 @@ export default function Notifications() {
 
             {/* Save Button */}
             <div className="flex justify-center">
-              <Button 
+              <Button
                 onClick={() => toast({ title: "Settings Saved", description: "Your notification preferences have been updated." })}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-8"
               >

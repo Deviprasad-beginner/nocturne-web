@@ -89,7 +89,7 @@ export default function MindMazePage() {
               <h1 className="text-3xl font-bold">Mind Maze</h1>
             </div>
           </div>
-          <Button 
+          <Button
             onClick={() => setIsCreating(!isCreating)}
             className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
           >
@@ -99,7 +99,7 @@ export default function MindMazePage() {
 
         <div className="mb-6 p-4 bg-purple-900/30 rounded-lg border border-purple-700/50">
           <p className="text-sm text-purple-200">
-            <span className="font-medium">Cognitive Labyrinth Engine:</span> Advanced philosophical reasoning challenges designed to stimulate 
+            <span className="font-medium">Cognitive Labyrinth Engine:</span> Advanced philosophical reasoning challenges designed to stimulate
             neural plasticity during peak nocturnal brain activity. Engage higher-order thinking protocols and expand consciousness parameters.
           </p>
         </div>
@@ -132,16 +132,16 @@ export default function MindMazePage() {
                     id="content"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder={type === 'puzzle' 
-                      ? "Describe your logic puzzle or brain teaser..." 
+                    placeholder={type === 'puzzle'
+                      ? "Describe your logic puzzle or brain teaser..."
                       : "Pose a thought-provoking philosophical question..."
                     }
                     rows={4}
                     className="bg-gray-700/50 border-gray-600 text-white"
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={!content.trim() || createMindMazeMutation.isPending}
                   className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
                 >
@@ -163,7 +163,7 @@ export default function MindMazePage() {
                 {philosophyItems.length} discussions
               </span>
             </div>
-            
+
             <div className="space-y-4">
               {philosophyItems.length === 0 ? (
                 <div className="text-center text-gray-400 py-8">
@@ -181,7 +181,7 @@ export default function MindMazePage() {
                           <span className="text-sm font-medium text-purple-300">Philosophy</span>
                         </div>
                         <span className="text-xs text-gray-400">
-                          {item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Recently'}
+                          {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recently'}
                         </span>
                       </div>
                       <p className="text-gray-200 leading-relaxed mb-4">{item.content}</p>
@@ -213,7 +213,7 @@ export default function MindMazePage() {
                 {puzzleItems.length} puzzles
               </span>
             </div>
-            
+
             <div className="space-y-4">
               {puzzleItems.length === 0 ? (
                 <div className="text-center text-gray-400 py-8">
@@ -231,7 +231,7 @@ export default function MindMazePage() {
                           <span className="text-sm font-medium text-green-300">Logic Puzzle</span>
                         </div>
                         <span className="text-xs text-gray-400">
-                          {item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Recently'}
+                          {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recently'}
                         </span>
                       </div>
                       <p className="text-gray-200 leading-relaxed mb-4">{item.content}</p>

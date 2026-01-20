@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Diary, InsertDiary } from "@shared/schema";
@@ -6,35 +6,26 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Notebook, Lock, Globe, Trash2 } from "lucide-react";
-import { User } from "firebase/auth";
-import { onAuthStateChange } from "@/lib/firebase";
-import { useEffect } from "react";
+import type { User } from "@shared/schema";
 
 export default function Diaries() {
-  const [user, setUser] = useState<User | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [content, setContent] = useState("");
-  const [author, setAuthor] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+
+  const { data: user } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+  });
 
   const { data: diaries = [], isLoading } = useQuery<Diary[]>({
     queryKey: ['/api/diaries'],
   });
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChange((currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
   const createDiaryMutation = useMutation({
     mutationFn: async (newDiary: InsertDiary) => {
-      console.log('Submitting diary:', newDiary);
       const response = await fetch('/api/diaries', {
         method: 'POST',
         headers: {
@@ -44,19 +35,13 @@ export default function Diaries() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const result = await response.json();
-      console.log('Success result:', result);
-      return result;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/diaries'] });
       setContent("");
-      setAuthor("");
       setIsPrivate(false);
       setIsCreating(false);
     },
@@ -86,15 +71,12 @@ export default function Diaries() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (content.trim() && author.trim()) {
-      // Create composite authorId if user is logged in: "Name::UID"
-      const authorId = user ? `${author.trim()}::${user.uid}` : author.trim();
-
+    if (content.trim()) {
       createDiaryMutation.mutate({
         content: content.trim(),
         mood: "contemplative",
         isPublic: !isPrivate,
-        authorId: authorId
+        authorId: user?.id
       });
     }
   };
@@ -142,16 +124,6 @@ export default function Diaries() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="author">Your Name</Label>
-                  <Input
-                    id="author"
-                    value={author}
-                    onChange={(e) => setAuthor(e.target.value)}
-                    placeholder="How would you like to be known?"
-                    className="bg-gray-700/50 border-gray-600 text-white"
-                  />
-                </div>
-                <div>
                   <Label htmlFor="content">Your Thoughts</Label>
                   <Textarea
                     id="content"
@@ -173,9 +145,12 @@ export default function Diaries() {
                     <span>{isPrivate ? "Private Entry" : "Public Entry"}</span>
                   </Label>
                 </div>
+                {!user && (
+                  <p className="text-xs text-red-400">You must be logged in to post.</p>
+                )}
                 <Button
                   type="submit"
-                  disabled={!content.trim() || !author.trim() || createDiaryMutation.isPending}
+                  disabled={!content.trim() || createDiaryMutation.isPending || !user}
                   className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700"
                 >
                   {createDiaryMutation.isPending ? "Publishing..." : "Publish Entry"}
@@ -199,13 +174,7 @@ export default function Diaries() {
             </div>
           ) : (
             diaries.map((diary) => {
-              // Parse authorId to check ownership
-              const rawAuthorId = diary.authorId || "Anonymous";
-              const [displayName, uid] = rawAuthorId.includes("::")
-                ? rawAuthorId.split("::")
-                : [rawAuthorId, undefined];
-
-              const isOwner = user && uid && user.uid === uid;
+              const isOwner = user && diary.authorId === user.id;
 
               return (
                 <Card key={diary.id} className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors">
@@ -214,11 +183,11 @@ export default function Diaries() {
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
                           <span className="text-white font-semibold text-sm">
-                            {displayName.charAt(0).toUpperCase()}
+                            {(diary.authorId ? "A" : "G")}
                           </span>
                         </div>
                         <div>
-                          <p className="font-semibold">{displayName}</p>
+                          <p className="font-semibold">{diary.authorId ? `Author #${diary.authorId}` : "Anonymous"}</p>
                           <p className="text-sm text-gray-400">
                             {diary.createdAt ? new Date(diary.createdAt).toLocaleString() : 'Just now'}
                           </p>

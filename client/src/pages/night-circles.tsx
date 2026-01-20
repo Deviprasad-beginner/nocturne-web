@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import { NightCircle, InsertNightCircle } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,13 @@ export default function NightCircles() {
   const [currentView, setCurrentView] = useState<'lobby' | 'video-chat' | 'random-chat'>('lobby');
   const [currentRoomId, setCurrentRoomId] = useState("");
   const [username, setUsername] = useState("");
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      setUsername(user.displayName || user.username);
+    }
+  }, [user]);
 
   const { data: nightCircles = [], isLoading } = useQuery<NightCircle[]>({
     queryKey: ['/api/nightCircles'],

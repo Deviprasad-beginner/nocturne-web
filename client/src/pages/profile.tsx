@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,17 +10,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { 
-  User, 
-  Edit, 
-  Camera, 
-  Star, 
-  Award, 
-  Calendar, 
-  MapPin, 
-  Link as LinkIcon, 
-  Mail, 
-  Moon, 
+import {
+  User,
+  Edit,
+  Camera,
+  Star,
+  Award,
+  Calendar,
+  MapPin,
+  Link as LinkIcon,
+  Mail,
+  Moon,
   MessageSquare,
   BookOpen,
   Users,
@@ -48,18 +49,31 @@ interface Achievement {
 
 export default function Profile() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
-    displayName: "Night Wanderer",
-    username: "nightwanderer42",
-    bio: "A fellow insomniac exploring the depths of midnight thoughts and philosophical conversations. Always up for deep discussions about life, technology, and the mysteries of the night.",
+    displayName: user?.displayName || user?.username || "Night Wanderer",
+    username: user?.username || "nightwanderer42",
+    bio: "A fellow insomniac exploring the depths of midnight thoughts and philosophical conversations.",
     location: "Somewhere in the night",
-    website: "https://mynight-blog.com",
-    email: "night@wanderer.com",
-    joinedAt: new Date("2023-12-01"),
+    website: "",
+    email: user?.email || "",
+    joinedAt: user?.createdAt ? new Date(user.createdAt) : new Date(),
     lastActive: new Date(),
-    timezone: "EST (UTC-5)",
+    timezone: "UTC",
   });
+
+  useEffect(() => {
+    if (user) {
+      setProfile(prev => ({
+        ...prev,
+        displayName: user.displayName || user.username,
+        username: user.username,
+        email: user.email || "",
+        joinedAt: user.createdAt ? new Date(user.createdAt) : new Date(),
+      }));
+    }
+  }, [user]);
 
   const [stats] = useState({
     level: 5,
@@ -90,7 +104,7 @@ export default function Profile() {
       rarity: "common"
     },
     {
-      id: "2", 
+      id: "2",
       title: "Whisper Master",
       description: "100 whispers shared",
       icon: "💭",
@@ -420,7 +434,7 @@ export default function Profile() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-white font-semibold">{achievement.title}</h3>
-                          <Badge className={getRarityColor(achievement.rarity)} size="sm">
+                          <Badge className={getRarityColor(achievement.rarity)}>
                             {achievement.rarity}
                           </Badge>
                         </div>

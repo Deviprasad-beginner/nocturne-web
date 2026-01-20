@@ -40,8 +40,12 @@ app.use((req, res, next) => {
 
 (async () => {
   const httpServer = createServer(app);
-  const server = await registerRoutes(app);
-  
+
+  // Setup authentication
+  await import("./auth").then(({ setupAuth }) => setupAuth(app));
+
+  const server = await registerRoutes(app, httpServer);
+
   // Initialize WebSocket manager
   new WebSocketManager(httpServer);
 

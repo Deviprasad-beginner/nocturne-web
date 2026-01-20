@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import express from "express";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertDiarySchema, insertWhisperSchema, insertMindMazeSchema, insertNightCircleSchema, insertMidnightCafeSchema, insertAmFounderSchema, insertStarlitSpeakerSchema, insertMoonMessengerSchema } from "@shared/schema";
 
 const router = express.Router();
@@ -20,8 +19,15 @@ router.get("/diaries", async (req, res) => {
 });
 
 router.post("/diaries", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   try {
-    const diaryData = insertDiarySchema.parse(req.body);
+    const diaryData = insertDiarySchema.parse({
+      ...req.body,
+      authorId: req.user!.id
+    });
     const diary = await storage.createDiary(diaryData);
     res.status(201).json(diary);
   } catch (error) {
@@ -31,13 +37,27 @@ router.post("/diaries", async (req, res) => {
 });
 
 router.delete("/diaries/:id", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   try {
     const id = parseInt(req.params.id);
+    const diary = await storage.getDiary(id);
+
+    if (!diary) {
+      return res.status(404).json({ error: "Diary not found" });
+    }
+
+    if (diary.authorId !== req.user!.id) {
+      return res.status(403).json({ error: "Forbidden: You can only delete your own diaries" });
+    }
+
     const success = await storage.deleteDiary(id);
     if (success) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: "Diary not found" });
+      res.status(500).json({ error: "Failed to delete diary" });
     }
   } catch (error) {
     console.error("Error deleting diary:", error);
@@ -289,41 +309,11 @@ router.get("/moonMessenger", async (req, res) => {
   }
 });
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication
-  try {
-    await setupAuth(app);
-    console.log("Replit authentication configured successfully");
-  } catch (error) {
-    console.log("Replit auth not available, continuing without authentication");
-  }
-
-  // Auth routes - make them optional in case auth isn't configured
-  app.get('/api/auth/user', async (req: any, res) => {
-    try {
-      // Try to use authentication if available
-      if (req.user && req.user.claims && req.user.claims.sub) {
-        const userId = req.user.claims.sub;
-        const user = await storage.getUser(userId);
-        if (user) {
-          res.json(user);
-        } else {
-          res.status(404).json({ message: "User not found" });
-        }
-      } else {
-        // Return null if not authenticated (for development)
-        res.json(null);
-      }
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.json(null);
-    }
-  });
+export async function registerRoutes(app: Express, httpServer: Server): Promise<Server> {
+  // Setup authentication is handled in index.ts via server/auth.ts
 
   // Use the API routes
   app.use("/api", router);
-
-  const httpServer = createServer(app);
 
   // WebSocket server for real-time communication on a specific path
   const wss = new WebSocketServer({
@@ -550,30 +540,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-export async function registerApiRoutes(app: Express): Promise<void> {
-  try {
-    await setupAuth(app);
-    console.log("Replit authentication configured successfully");
-  } catch (error) {
-    console.log("Replit auth not available, continuing without authentication");
-  }
-  app.get('/api/auth/user', async (req: any, res) => {
-    try {
-      if (req.user && req.user.claims && req.user.claims.sub) {
-        const userId = req.user.claims.sub;
-        const user = await storage.getUser(userId);
-        if (user) {
-          res.json(user);
-        } else {
-          res.status(404).json({ message: "User not found" });
-        }
-      } else {
-        res.json(null);
-      }
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.json(null);
-    }
-  });
-  app.use("/api", router);
-}
+
+

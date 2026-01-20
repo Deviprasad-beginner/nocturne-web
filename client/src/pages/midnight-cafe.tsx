@@ -8,12 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Coffee, MessageCircle, Clock, User } from "lucide-react";
+import { ArrowLeft, Coffee, MessageCircle, Clock } from "lucide-react";
 
 export default function MidnightCafePage() {
   const [isCreating, setIsCreating] = useState(false);
   const [content, setContent] = useState("");
-  const [author, setAuthor] = useState("");
+  const [topic, setTopic] = useState("");
 
   const { data: midnightCafe = [], isLoading } = useQuery<MidnightCafe[]>({
     queryKey: ['/api/midnightCafe'],
@@ -34,7 +34,7 @@ export default function MidnightCafePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/midnightCafe'] });
       setContent("");
-      setAuthor("");
+      setTopic("");
       setIsCreating(false);
     },
   });
@@ -54,11 +54,11 @@ export default function MidnightCafePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (content.trim() && author.trim()) {
+    if (content.trim() && topic.trim()) {
       createPostMutation.mutate({
         content: content.trim(),
-        author: author.trim(),
-        authorId: "current_user"
+        topic: topic.trim(),
+        category: "general"
       });
     }
   };
@@ -97,7 +97,7 @@ export default function MidnightCafePage() {
               </div>
             </div>
           </div>
-          <Button 
+          <Button
             onClick={() => setIsCreating(!isCreating)}
             className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
           >
@@ -107,7 +107,7 @@ export default function MidnightCafePage() {
 
         <div className="mb-6 p-4 bg-orange-900/30 rounded-lg border border-orange-700/50">
           <p className="text-sm text-orange-200">
-            <span className="font-medium">Dialectical Synthesis Hub:</span> Sophisticated discourse facilitation platform for deep intellectual exchange. 
+            <span className="font-medium">Dialectical Synthesis Hub:</span> Sophisticated discourse facilitation platform for deep intellectual exchange.
             Structured conversation algorithms optimize meaningful idea collision and collaborative knowledge construction.
           </p>
         </div>
@@ -153,12 +153,12 @@ export default function MidnightCafePage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="author">Your Name</Label>
+                  <Label htmlFor="topic">Topic</Label>
                   <Input
-                    id="author"
-                    value={author}
-                    onChange={(e) => setAuthor(e.target.value)}
-                    placeholder="How should we call you?"
+                    id="topic"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="What are we discussing?"
                     className="bg-gray-700/50 border-gray-600 text-white"
                   />
                 </div>
@@ -173,9 +173,9 @@ export default function MidnightCafePage() {
                     className="bg-gray-700/50 border-gray-600 text-white"
                   />
                 </div>
-                <Button 
-                  type="submit" 
-                  disabled={!content.trim() || !author.trim() || createPostMutation.isPending}
+                <Button
+                  type="submit"
+                  disabled={!content.trim() || !topic.trim() || createPostMutation.isPending}
                   className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
                 >
                   {createPostMutation.isPending ? "Sharing..." : "Share with Cafe"}
@@ -205,16 +205,16 @@ export default function MidnightCafePage() {
                   <div className="flex items-start space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-semibold text-lg">
-                        {"A"}
+                        {post.topic.charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="font-semibold text-amber-200">Anonymous Patron</h3>
+                        <h3 className="font-semibold text-amber-200">{post.topic}</h3>
                         <div className="flex items-center space-x-1 text-gray-400 text-sm">
                           <Clock className="w-3 h-3" />
                           <span>
-                            {post.createdAt 
+                            {post.createdAt
                               ? new Date(post.createdAt).toLocaleString()
                               : 'Just now'
                             }

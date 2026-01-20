@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -24,6 +24,8 @@ import Notifications from "@/pages/notifications";
 import Help from "@/pages/help";
 import NotFound from "@/pages/not-found";
 
+import AuthPage from "@/pages/auth-page";
+
 function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -31,15 +33,16 @@ function Landing() {
         <h1 className="text-4xl font-bold text-white mb-4">Welcome to Nocturne</h1>
         <p className="text-gray-300 text-lg">A social platform for night owls to connect and share thoughts during late hours.</p>
         <div className="space-y-4">
-          <a 
-            href="/api/login"
-            className="block bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-          >
-            Sign In with Replit
-          </a>
-          <p className="text-gray-400 text-sm">Secure authentication using your Replit account</p>
+          <Link href="/auth">
+            <a className="block bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+              Sign In / Register
+            </a>
+          </Link>
+          <p className="text-gray-400 text-sm">Join the community</p>
           <div className="text-center mt-6">
-            <p className="text-gray-500 text-xs">Experience the night owl community</p>
+            <Link href="/">
+              <a className="text-gray-500 text-xs hover:text-gray-400">Continue as Guest</a>
+            </Link>
           </div>
         </div>
       </div>
@@ -54,7 +57,8 @@ function Router() {
   // In production, uncomment the auth check
   return (
     <Switch>
-      <Route path="/login" component={Landing} />
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/login" component={AuthPage} />
       <Route path="/" component={Home} />
       <Route path="/diaries" component={Diaries} />
       <Route path="/whispers" component={Whispers} />

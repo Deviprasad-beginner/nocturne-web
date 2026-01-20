@@ -7,13 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  HelpCircle, 
-  MessageSquare, 
-  BookOpen, 
-  Search, 
-  Mail, 
-  Phone, 
+import {
+  HelpCircle,
+  MessageSquare,
+  BookOpen,
+  Search,
+  Mail,
+  Phone,
   ExternalLink,
   AlertCircle,
   CheckCircle,
@@ -24,8 +24,7 @@ import {
   Shield,
   User,
   Settings,
-  Bug,
-  Feature
+  Bug
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -64,7 +63,7 @@ export default function Help() {
       lastUpdate: new Date("2024-01-21")
     },
     {
-      id: "NOCT-002", 
+      id: "NOCT-002",
       subject: "Feature request: Dark mode themes",
       status: "resolved",
       priority: "low",
@@ -136,14 +135,14 @@ export default function Help() {
     }
   ];
 
-  const filteredFAQ = faqData.filter(item => 
-    searchQuery === "" || 
+  const filteredFAQ = faqData.filter(item =>
+    searchQuery === "" ||
     item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const categories = [...new Set(faqData.map(item => item.category))];
+  const categories = Array.from(new Set(faqData.map(item => item.category)));
 
   const handleSupportSubmit = () => {
     if (!supportForm.subject || !supportForm.description) {
@@ -271,8 +270,8 @@ export default function Help() {
                     <CardContent>
                       <Accordion type="single" collapsible className="space-y-2">
                         {categoryFAQ.map((item, index) => (
-                          <AccordionItem 
-                            key={index} 
+                          <AccordionItem
+                            key={index}
                             value={`${category}-${index}`}
                             className="border-slate-600"
                           >
@@ -350,7 +349,7 @@ export default function Help() {
                     />
                   </div>
 
-                  <Button 
+                  <Button
                     onClick={handleSupportSubmit}
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                   >
