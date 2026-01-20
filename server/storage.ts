@@ -1,26 +1,26 @@
 
-import { 
-  users, 
-  diaries, 
-  whispers, 
-  mindMaze, 
-  nightCircles, 
+import {
+  users,
+  diaries,
+  whispers,
+  mindMaze,
+  nightCircles,
   midnightCafe,
   amFounder,
   starlitSpeaker,
   moonMessenger,
-  type User, 
+  type User,
   type UpsertUser,
-  type InsertUser, 
-  type Diary, 
-  type InsertDiary, 
-  type Whisper, 
-  type InsertWhisper, 
-  type MindMaze, 
-  type InsertMindMaze, 
-  type NightCircle, 
-  type InsertNightCircle, 
-  type MidnightCafe, 
+  type InsertUser,
+  type Diary,
+  type InsertDiary,
+  type Whisper,
+  type InsertWhisper,
+  type MindMaze,
+  type InsertMindMaze,
+  type NightCircle,
+  type InsertNightCircle,
+  type MidnightCafe,
   type InsertMidnightCafe,
   type AmFounder,
   type InsertAmFounder,
@@ -41,7 +41,9 @@ export interface IStorage {
   // Diary operations
   createDiary(diary: InsertDiary): Promise<Diary>;
   getDiaries(filterPublic?: boolean): Promise<Diary[]>;
+  getDiaries(filterPublic?: boolean): Promise<Diary[]>;
   getDiary(id: number): Promise<Diary | undefined>;
+  deleteDiary(id: number): Promise<boolean>;
 
   // Whisper operations
   createWhisper(whisper: InsertWhisper): Promise<Whisper>;
@@ -98,7 +100,7 @@ class MemoryStorage implements IStorage {
   private midnightCafes: MidnightCafe[] = [
     { id: 1, topic: "Late Night Musings", content: "What's everyone's go-to midnight snack and why?", category: "food", replies: 23, createdAt: new Date() }
   ];
-  
+
   private amFounders: AmFounder[] = [
     {
       id: 1,
@@ -202,6 +204,13 @@ class MemoryStorage implements IStorage {
 
   async getDiary(id: number): Promise<Diary | undefined> {
     return this.diaries.find(d => d.id === id);
+  }
+
+  async deleteDiary(id: number): Promise<boolean> {
+    const index = this.diaries.findIndex(d => d.id === id);
+    if (index === -1) return false;
+    this.diaries.splice(index, 1);
+    return true;
   }
 
   // Whisper operations
@@ -414,7 +423,7 @@ class MemoryStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   private memStorage = new MemoryStorage();
-  
+
   async getUser(id: string): Promise<User | undefined> {
     try {
       const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -546,7 +555,7 @@ export class DatabaseStorage implements IStorage {
           createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000) // 12 hours ago
         }
       ];
-      
+
       if (filterPublic) {
         return mockDiaries.filter(diary => diary.isPublic);
       }
@@ -561,6 +570,16 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error getting diary:", error);
       return undefined;
+    }
+  }
+
+  async deleteDiary(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(diaries).where(eq(diaries.id, id)).returning();
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error deleting diary:", error);
+      return false;
     }
   }
 

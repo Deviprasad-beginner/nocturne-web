@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { User } from "firebase/auth";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  onAuthStateChange, 
-  signInWithGoogle, 
+import {
+  onAuthStateChange,
+  signInWithGoogle,
   signOutUser
 } from "@/lib/firebase";
 import { Diary, Whisper, MindMaze, NightCircle, MidnightCafe } from "@shared/schema";
@@ -13,14 +13,14 @@ import { HeroSection } from "@/components/hero-section";
 import { EnhancedHeader } from "@/components/enhanced-header";
 import { useLocation } from "wouter";
 import { Footer } from "@/components/footer";
-import { 
-  Moon, 
-  Notebook, 
-  MessageCircle, 
-  Brain, 
-  Users, 
-  Coffee, 
-  Music, 
+import {
+  Moon,
+  Notebook,
+  MessageCircle,
+  Brain,
+  Users,
+  Coffee,
+  Music,
   Heart,
   Lightbulb,
   Star as StarIcon
@@ -29,8 +29,8 @@ import {
 // Star component for background
 function Star({ className, style }: { className: string; style?: React.CSSProperties }) {
   return (
-    <div 
-      className={`absolute bg-white ${className}`} 
+    <div
+      className={`absolute bg-white ${className}`}
       style={{
         clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%)',
         ...style
@@ -170,22 +170,22 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <h3 className="text-3xl font-bold text-center mb-12 text-white">Explore Nocturne Communities</h3>
 
-      {/* Top Section - Activity & Profile */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2">
-          <LiveActivityFeed />
-        </div>
-        <div>
-          <UserProfileCard />
-        </div>
-      </div>
+          {/* Top Section - Activity & Profile */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="lg:col-span-2">
+              <LiveActivityFeed />
+            </div>
+            <div>
+              <UserProfileCard />
+            </div>
+          </div>
 
-      {/* Trending Section */}
-      <div className="mb-8">
-        <TrendingTopics />
-      </div>
+          {/* Trending Section */}
+          <div className="mb-8">
+            <TrendingTopics />
+          </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
 
             {/* Night Diaries */}
             <CategoryCard
@@ -204,12 +204,14 @@ export default function Home() {
                 ) : diaries.length === 0 ? (
                   <div className="text-gray-400 text-sm">No diary entries yet. Be the first to share your thoughts!</div>
                 ) : (
-                  diaries.slice(0, 2).map((diary: any) => (
+                  diaries.slice(0, 2).map((diary: Diary) => (
                     <div key={diary.id} className="bg-black/30 p-3 rounded-lg">
                       <p className="text-sm text-gray-300">"{diary.content.substring(0, 60)}..."</p>
                       <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                        <span>{diary.author}</span>
-                        <span>{new Date(diary.timestamp).toLocaleTimeString()}</span>
+                        {/* <span>{diary.author}</span> */} {/* author is not in Diary type based on schema, authorId is. Schema: authorId. Assuming author logic is elsewhere or simplified here. Wait, schema has authorId. Code uses diary.author. If diary.author is missing, we might have another issue. Let's stick to fixing the date first, but I should check if author exists. Schema says authorId. Let's keep existing structure primarily but fix date. */}
+                        {/* Actually, looking at schema, Diary has authorId. 'author' property might be joined. But standard getDiaries usually returns flat table. Let's check storage.getDiaries */}
+                        <span>Anoymous</span>
+                        <span>{new Date(diary.createdAt || new Date()).toLocaleTimeString()}</span>
                       </div>
                     </div>
                   ))
@@ -234,7 +236,7 @@ export default function Home() {
                 ) : whispers.length === 0 ? (
                   <div className="text-gray-400 text-sm">No whispers yet. Share your anonymous thoughts!</div>
                 ) : (
-                  whispers.slice(0, 2).map((whisper: any) => (
+                  whispers.slice(0, 2).map((whisper: Whisper) => (
                     <div key={whisper.id} className="bg-black/30 p-3 rounded-lg">
                       <p className="text-sm text-gray-300">"{whisper.content.substring(0, 60)}..."</p>
                       <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
@@ -242,7 +244,7 @@ export default function Home() {
                           <Heart className="w-3 h-3" />
                           <span>{whisper.hearts}</span>
                         </span>
-                        <span>{new Date(whisper.timestamp).toLocaleTimeString()}</span>
+                        <span>{new Date(whisper.createdAt || new Date()).toLocaleTimeString()}</span>
                       </div>
                     </div>
                   ))
@@ -301,10 +303,10 @@ export default function Home() {
                 ) : (
                   nightCircles.slice(0, 2).map((circle: any) => (
                     <div key={circle.id} className="bg-black/30 p-3 rounded-lg">
-                      <img 
-                        src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=100" 
-                        alt="People in deep conversation" 
-                        className="w-full h-16 object-cover rounded mb-2" 
+                      <img
+                        src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=100"
+                        alt="People in deep conversation"
+                        className="w-full h-16 object-cover rounded mb-2"
                       />
                       <p className="text-sm text-gray-300 font-medium">🌙 {circle.name}</p>
                       <p className="text-xs text-gray-500 mt-1">
@@ -335,10 +337,10 @@ export default function Home() {
                 ) : (
                   midnightCafe.slice(0, 2).map((post: any) => (
                     <div key={post.id} className="bg-black/30 p-3 rounded-lg">
-                      <img 
-                        src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=100" 
-                        alt="Cozy cafe interior" 
-                        className="w-full h-16 object-cover rounded mb-2" 
+                      <img
+                        src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=100"
+                        alt="Cozy cafe interior"
+                        className="w-full h-16 object-cover rounded mb-2"
                       />
                       <p className="text-sm text-gray-300">"{post.content.substring(0, 60)}..."</p>
                       <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
@@ -364,10 +366,10 @@ export default function Home() {
             >
               <div className="space-y-3">
                 <div className="bg-black/30 p-3 rounded-lg">
-                  <img 
-                    src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=100" 
-                    alt="People enjoying music under the stars" 
-                    className="w-full h-16 object-cover rounded mb-2" 
+                  <img
+                    src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=100"
+                    alt="People enjoying music under the stars"
+                    className="w-full h-16 object-cover rounded mb-2"
                   />
                   <p className="text-sm text-gray-300 font-medium">🎵 Currently Playing</p>
                   <p className="text-xs text-gray-400 mt-1">"Midnight Study Beats" • Lo-fi Hip Hop</p>

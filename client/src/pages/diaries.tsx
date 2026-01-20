@@ -9,9 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Notebook, Lock, Globe } from "lucide-react";
+import { ArrowLeft, Notebook, Lock, Globe, Trash2 } from "lucide-react";
+import { User } from "firebase/auth";
+import { onAuthStateChange } from "@/lib/firebase";
+import { useEffect } from "react";
 
 export default function Diaries() {
+  const [user, setUser] = useState<User | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
@@ -20,6 +24,13 @@ export default function Diaries() {
   const { data: diaries = [], isLoading } = useQuery<Diary[]>({
     queryKey: ['/api/diaries'],
   });
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const createDiaryMutation = useMutation({
     mutationFn: async (newDiary: InsertDiary) => {
@@ -31,13 +42,13 @@ export default function Diaries() {
         },
         body: JSON.stringify(newDiary),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       console.log('Success result:', result);
       return result;
@@ -54,14 +65,36 @@ export default function Diaries() {
     }
   });
 
+  const deleteDiaryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/diaries/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete diary');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/diaries'] });
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+    }
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (content.trim() && author.trim()) {
+      // Create composite authorId if user is logged in: "Name::UID"
+      const authorId = user ? `${author.trim()}::${user.uid}` : author.trim();
+
       createDiaryMutation.mutate({
         content: content.trim(),
         mood: "contemplative",
         isPublic: !isPrivate,
-        authorId: author.trim() || null
+        authorId: authorId
       });
     }
   };
@@ -85,7 +118,7 @@ export default function Diaries() {
               <h1 className="text-3xl font-bold">Night Diaries</h1>
             </div>
           </div>
-          <Button 
+          <Button
             onClick={() => setIsCreating(!isCreating)}
             className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700"
           >
@@ -95,7 +128,7 @@ export default function Diaries() {
 
         <div className="mb-6 p-4 bg-yellow-900/30 rounded-lg border border-yellow-700/50">
           <p className="text-sm text-yellow-200">
-            <span className="font-medium">Neural Archive Protocol:</span> Secure cognitive data storage for nocturnal consciousness patterns. 
+            <span className="font-medium">Neural Archive Protocol:</span> Secure cognitive data storage for nocturnal consciousness patterns.
             Advanced sentiment analysis and privacy encryption ensure your midnight reflections remain authentically preserved.
           </p>
         </div>
@@ -140,8 +173,8 @@ export default function Diaries() {
                     <span>{isPrivate ? "Private Entry" : "Public Entry"}</span>
                   </Label>
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={!content.trim() || !author.trim() || createDiaryMutation.isPending}
                   className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700"
                 >
@@ -165,32 +198,55 @@ export default function Diaries() {
               <p>Be the first to share your midnight thoughts!</p>
             </div>
           ) : (
-            diaries.map((diary) => (
-              <Card key={diary.id} className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">
-                          {diary.authorId ? diary.authorId.charAt(0).toUpperCase() : "A"}
-                        </span>
+            diaries.map((diary) => {
+              // Parse authorId to check ownership
+              const rawAuthorId = diary.authorId || "Anonymous";
+              const [displayName, uid] = rawAuthorId.includes("::")
+                ? rawAuthorId.split("::")
+                : [rawAuthorId, undefined];
+
+              const isOwner = user && uid && user.uid === uid;
+
+              return (
+                <Card key={diary.id} className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold text-sm">
+                            {displayName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-semibold">{displayName}</p>
+                          <p className="text-sm text-gray-400">
+                            {diary.createdAt ? new Date(diary.createdAt).toLocaleString() : 'Just now'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold">{diary.authorId || "Anonymous"}</p>
-                        <p className="text-sm text-gray-400">
-                          {diary.createdAt ? new Date(diary.createdAt).toLocaleString() : 'Just now'}
-                        </p>
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1 text-gray-400">
+                          {!diary.isPublic ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                          <span className="text-xs">{!diary.isPublic ? "Private" : "Public"}</span>
+                        </div>
+                        {isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                            onClick={() => deleteDiaryMutation.mutate(diary.id)}
+                            disabled={deleteDiaryMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1 text-gray-400">
-                      {!diary.isPublic ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
-                      <span className="text-xs">{!diary.isPublic ? "Private" : "Public"}</span>
-                    </div>
-                  </div>
-                  <p className="text-gray-200 leading-relaxed">{diary.content}</p>
-                </CardContent>
-              </Card>
-            ))
+                    <p className="text-gray-200 leading-relaxed">{diary.content}</p>
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
       </div>
