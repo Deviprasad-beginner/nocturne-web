@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction, QueryCache, MutationCache } from "@tanstack/react-query";
-import { getApiBaseUrl } from "./firebase-config";
+import { getApiBaseUrl } from "./firebase";
 
 // Enhanced error handling
 class APIError extends Error {

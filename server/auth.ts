@@ -30,16 +30,33 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+    const isProduction = app.get("env") === "production" || process.env.NODE_ENV === "production";
+
+    // Trust proxy for Render, Heroku, and other cloud platforms
+    if (isProduction) {
+        app.set("trust proxy", 1);
+    }
+
     const sessionSettings: session.SessionOptions = {
         secret: process.env.SESSION_SECRET || "nocturne_secret_key_12345",
         resave: false,
         saveUninitialized: false,
         store: storage.sessionStore,
+        cookie: {
+            // Secure cookies for production (HTTPS only)
+            secure: isProduction,
+            // HttpOnly prevents XSS attacks
+            httpOnly: true,
+            // SameSite prevents CSRF attacks
+            // 'none' allows cross-site cookies (needed if frontend/backend on different domains)
+            // 'lax' is safer if they're on the same domain
+            sameSite: isProduction ? 'none' : 'lax',
+            // Cookie expiration - 7 days
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            // Path where cookie is valid
+            path: '/',
+        },
     };
-
-    if (app.get("env") === "production") {
-        app.set("trust proxy", 1);
-    }
 
     app.use(session(sessionSettings));
     app.use(passport.initialize());

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as React from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -130,17 +131,27 @@ export default function MusicMood() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Hidden Player - Positioned off-screen to ensure it renders for YouTube API */}
-        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-          <ReactPlayer
-            src={currentStation?.youtubeId ? `https://www.youtube.com/watch?v=${currentStation.youtubeId}` : ""}
-            playing={isPlaying}
-            controls={false}
-            volume={volume}
-            width="100%"
-            height="100%"
-          />
-        </div>
+        {/* ReactPlayer - Positioned for audio playback */}
+        {currentStation && (
+          <div className="hidden">
+            {/* ReactPlayer types are incompatible - using type assertion */}
+            {React.createElement(ReactPlayer as any, {
+              url: `https://www.youtube.com/watch?v=${currentStation.youtubeId}`,
+              playing: isPlaying,
+              controls: false,
+              volume: volume,
+              width: "0",
+              height: "0",
+              onError: (error: any) => console.error('Player error:', error),
+              onReady: () => console.log('Player ready')
+            })}
+          </div>
+        )}
+
+
+
+
+
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
