@@ -27,7 +27,10 @@ import {
   type StarlitSpeaker,
   type InsertStarlitSpeaker,
   type MoonMessenger,
-  type InsertMoonMessenger
+  type InsertMoonMessenger,
+  type SavedStation,
+  type InsertSavedStation,
+  savedStations
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
@@ -41,6 +44,8 @@ export interface IStorage {
   sessionStore: session.Store;
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
 
@@ -84,7 +89,17 @@ export interface IStorage {
   // Moon Messenger operations
   createMoonMessage(moonMessage: InsertMoonMessenger): Promise<MoonMessenger>;
   getMoonMessages(sessionId: string): Promise<MoonMessenger[]>;
+  getMoonMessages(sessionId: string): Promise<MoonMessenger[]>;
   getActiveSessions(): Promise<string[]>;
+
+  // Saved Stations
+  toggleSavedStation(userId: number, stationId: string): Promise<boolean>; // Returns true if saved, false if removed
+  getSavedStations(userId: number): Promise<string[]>;
+
+  // User specific getters
+  getUserWhispers(userId: number): Promise<Whisper[]>;
+  getUserCafePosts(userId: number): Promise<MidnightCafe[]>;
+  getUserFounders(userId: number): Promise<AmFounder[]>;
 }
 
 // In-memory storage implementation
@@ -99,6 +114,7 @@ export class MemoryStorage implements IStorage {
   amFounders: AmFounder[];
   starlitSpeakers: StarlitSpeaker[];
   moonMessages: MoonMessenger[];
+  savedStations: SavedStation[];
   private nextId = 1;
 
   constructor() {
@@ -112,6 +128,7 @@ export class MemoryStorage implements IStorage {
     this.amFounders = [];
     this.starlitSpeakers = [];
     this.moonMessages = [];
+    this.savedStations = [];
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -120,6 +137,14 @@ export class MemoryStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     return this.users.find(u => u.username === username);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return this.users.find(u => u.email === email);
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    return this.users.find(u => u.googleId === googleId);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -181,6 +206,7 @@ export class MemoryStorage implements IStorage {
       id: this.nextId++,
       content: whisper.content,
       hearts: 0,
+      authorId: whisper.authorId || null,
       createdAt: new Date()
     };
     this.whispers.push(newWhisper);
@@ -257,6 +283,7 @@ export class MemoryStorage implements IStorage {
       content: midnightCafe.content,
       category: midnightCafe.category || null,
       replies: 0,
+      authorId: midnightCafe.authorId || null,
       createdAt: new Date()
     };
     this.midnightCafes.push(newMidnightCafe);
@@ -281,6 +308,7 @@ export class MemoryStorage implements IStorage {
       ...amFounder,
       upvotes: 0,
       comments: 0,
+      authorId: amFounder.authorId || null,
       createdAt: new Date()
     };
     this.amFounders.unshift(newFounder);
@@ -380,7 +408,40 @@ export class MemoryStorage implements IStorage {
     return Array.from(activeSessions);
   }
 
+  // Saved Stations
+  async toggleSavedStation(userId: number, stationId: string): Promise<boolean> {
+    const existingIndex = this.savedStations.findIndex(s => s.userId === userId && s.stationId === stationId);
+    if (existingIndex >= 0) {
+      this.savedStations.splice(existingIndex, 1);
+      return false;
+    } else {
+      this.savedStations.push({
+        id: this.nextId++,
+        userId,
+        stationId,
+        createdAt: new Date()
+      });
+      return true;
+    }
+  }
 
+  async getSavedStations(userId: number): Promise<string[]> {
+    return this.savedStations
+      .filter(s => s.userId === userId)
+      .map(s => s.stationId);
+  }
+
+  async getUserWhispers(userId: number): Promise<Whisper[]> {
+    return this.whispers.filter(w => w.authorId === userId);
+  }
+
+  async getUserCafePosts(userId: number): Promise<MidnightCafe[]> {
+    return this.midnightCafes.filter(c => c.authorId === userId);
+  }
+
+  async getUserFounders(userId: number): Promise<AmFounder[]> {
+    return this.amFounders.filter(f => f.authorId === userId);
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -410,6 +471,26 @@ export class DatabaseStorage implements IStorage {
       return user || undefined;
     } catch (error) {
       console.error("Error getting user by username:", error);
+      return undefined;
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      return user || undefined;
+    } catch (error) {
+      console.error("Error getting user by email:", error);
+      return undefined;
+    }
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
+      return user || undefined;
+    } catch (error) {
+      console.error("Error getting user by googleId:", error);
       return undefined;
     }
   }
@@ -538,18 +619,21 @@ export class DatabaseStorage implements IStorage {
           id: 1,
           content: "Sometimes the darkest nights produce the brightest stars ✨",
           hearts: 23,
+          authorId: null,
           createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000)
         },
         {
           id: 2,
           content: "3 AM thoughts hit different... anyone else awake?",
           hearts: 45,
+          authorId: null,
           createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000)
         },
         {
           id: 3,
           content: "The sound of rain at night is nature's lullaby 🌧️",
           hearts: 67,
+          authorId: null,
           createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000)
         }
       ];
@@ -688,6 +772,7 @@ export class DatabaseStorage implements IStorage {
           topic: "Late Night Foods",
           category: null,
           replies: 15,
+          authorId: null,
           createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000)
         },
         {
@@ -696,6 +781,7 @@ export class DatabaseStorage implements IStorage {
           topic: "Creativity",
           category: null,
           replies: 8,
+          authorId: null,
           createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000)
         },
         {
@@ -704,6 +790,7 @@ export class DatabaseStorage implements IStorage {
           topic: "Sunrise",
           category: null,
           replies: 22,
+          authorId: null,
           createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000)
         }
       ];
@@ -815,6 +902,67 @@ export class DatabaseStorage implements IStorage {
       return sessions.map(s => s.sessionId);
     } catch (error) {
       console.error("Error getting active sessions:", error);
+      return [];
+    }
+  }
+
+  // Saved Stations
+  async toggleSavedStation(userId: number, stationId: string): Promise<boolean> {
+    try {
+      const [existing] = await db
+        .select()
+        .from(savedStations)
+        .where(sql`${savedStations.userId} = ${userId} AND ${savedStations.stationId} = ${stationId}`);
+
+      if (existing) {
+        await db.delete(savedStations).where(eq(savedStations.id, existing.id));
+        return false;
+      } else {
+        await db.insert(savedStations).values({ userId, stationId });
+        return true;
+      }
+    } catch (error) {
+      console.error("Error toggling saved station:", error);
+      return false;
+    }
+  }
+
+  async getSavedStations(userId: number): Promise<string[]> {
+    try {
+      const stations = await db
+        .select()
+        .from(savedStations)
+        .where(eq(savedStations.userId, userId));
+      return stations.map(s => s.stationId);
+    } catch (error) {
+      console.error("Error getting saved stations:", error);
+      return [];
+    }
+  }
+
+  async getUserWhispers(userId: number): Promise<Whisper[]> {
+    try {
+      return await db.select().from(whispers).where(eq(whispers.authorId, userId)).orderBy(desc(whispers.createdAt));
+    } catch (error) {
+      console.error("Error getting user whispers", error);
+      return [];
+    }
+  }
+
+  async getUserCafePosts(userId: number): Promise<MidnightCafe[]> {
+    try {
+      return await db.select().from(midnightCafe).where(eq(midnightCafe.authorId, userId)).orderBy(desc(midnightCafe.createdAt));
+    } catch (error) {
+      console.error("Error getting user cafe posts", error);
+      return [];
+    }
+  }
+
+  async getUserFounders(userId: number): Promise<AmFounder[]> {
+    try {
+      return await db.select().from(amFounder).where(eq(amFounder.authorId, userId)).orderBy(desc(amFounder.createdAt));
+    } catch (error) {
+      console.error("Error getting user founder posts", error);
       return [];
     }
   }

@@ -1,11 +1,20 @@
 import { useAuth } from "@/hooks/useAuth";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FcGoogle } from "react-icons/fc";
+import { useEffect } from "react";
 
 export default function AuthPage() {
     const { user, loginMutation } = useAuth();
+    const [, setLocation] = useLocation();
+
+    // Redirect after successful login
+    useEffect(() => {
+        if (loginMutation.isSuccess && user) {
+            setLocation("/");
+        }
+    }, [loginMutation.isSuccess, user, setLocation]);
 
     if (user) {
         return <Redirect to="/" />;

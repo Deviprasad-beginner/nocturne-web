@@ -54,22 +54,47 @@ export function setupAuth(app: Express) {
             // For this bridge implementation, we trust the client-side claim to bootstrap the session.
 
             // Strategy: 
-            // 1. Try to find user by 'googleId' (we use firebase uid as googleId in schema)
-            // 2. If not found, create new user
+            // 1. Try to find user by 'googleId' (Firebase UID)
+            // 2. Try to find user by 'email'
+            // 3. If not found, create new user
 
-            let user = await storage.getUserByUsername(email || uid); // Use email as username if available
+            let user = await storage.getUserByGoogleId(uid);
+
+            if (!user && email) {
+                user = await storage.getUserByEmail(email);
+
+                // If found by email but no googleId, update the user to link googleId?
+                // For now, let's just log them in. 
+                // Ideally we should update the googleId, but IStorage doesn't have updateUser yet except upsert (which throws error in DBStorage).
+                // Let's rely on login.
+            }
 
             if (!user) {
-                // Determine username: email or uid
+                // Determine username: email or uid or possibly a slugified name?
+                // We use email || uid to be safe.
                 const username = email || uid;
 
-                // Create a random password for local strategy fallback (not used for this flow but required by schema often)
+                // Check if username is taken (rare edge case if it differs from email lookup)
+                const existingUserByName = await storage.getUserByUsername(username);
+
+                let safeUsername = username;
+                if (existingUserByName) {
+                    // This is a conflict. We found a user by username, but not by GoogleId or Email (implied).
+                    // This implies 'username' column has 'email' value, but 'email' column is empty?
+                    // Or we are trying to set username to something that exists.
+                    // Handle by appending random string
+                    const randomSuffix = randomBytes(4).toString('hex');
+                    // We modify the username to be unique
+                    safeUsername = `${username}_${randomSuffix}`;
+                }
+
+                // Create a random password for local strategy fallback
                 const randomPwd = await hashPassword(randomBytes(16).toString('hex'));
 
                 user = await storage.createUser({
-                    username,
+                    username: safeUsername!,
                     password: randomPwd,
-                    googleId: uid, // Storing Firebase UID here
+                    googleId: uid,
                     displayName: displayName || "Nocturne User",
                     email: email,
                     profileImageUrl: photoURL

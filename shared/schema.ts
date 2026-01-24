@@ -38,6 +38,7 @@ export const whispers = pgTable("whispers", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
   hearts: integer("hearts").default(0),
+  authorId: integer("author_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -66,6 +67,15 @@ export const midnightCafe = pgTable("midnight_cafe", {
   content: text("content").notNull(),
   category: varchar("category", { length: 100 }),
   replies: integer("replies").default(0),
+  authorId: integer("author_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Saved Stations for Music
+export const savedStations = pgTable("saved_stations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  stationId: text("station_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -111,6 +121,11 @@ export const insertMidnightCafeSchema = createInsertSchema(midnightCafe).omit({
   createdAt: true,
 });
 
+export const insertSavedStationSchema = createInsertSchema(savedStations).omit({
+  id: true,
+  createdAt: true
+});
+
 export type User = typeof users.$inferSelect;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -130,6 +145,9 @@ export type InsertNightCircle = z.infer<typeof insertNightCircleSchema>;
 export type MidnightCafe = typeof midnightCafe.$inferSelect;
 export type InsertMidnightCafe = z.infer<typeof insertMidnightCafeSchema>;
 
+export type SavedStation = typeof savedStations.$inferSelect;
+export type InsertSavedStation = z.infer<typeof insertSavedStationSchema>;
+
 // 3AM Founder - Anonymous thoughts for entrepreneurs and late-night innovators
 export const amFounder = pgTable("am_founder", {
   id: serial("id").primaryKey(),
@@ -137,6 +155,7 @@ export const amFounder = pgTable("am_founder", {
   category: text("category").notNull(),
   upvotes: integer("upvotes").default(0),
   comments: integer("comments").default(0),
+  authorId: integer("author_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

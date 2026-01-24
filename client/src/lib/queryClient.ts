@@ -5,7 +5,7 @@ import { getApiBaseUrl } from "./firebase-config";
 class APIError extends Error {
   status: number;
   statusText: string;
-  
+
   constructor(status: number, message: string, statusText: string) {
     super(message);
     this.status = status;
@@ -28,8 +28,18 @@ export async function apiRequest(
 ): Promise<Response> {
   try {
     const baseUrl = getApiBaseUrl();
-    const fullUrl = url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
-    
+
+    // Handle URL construction to avoid double /api prefix
+    let fullUrl: string;
+    if (url.startsWith('/api/')) {
+      const pathAfterApi = url.substring(4); // Remove '/api'
+      fullUrl = `${baseUrl}${pathAfterApi}`;
+    } else if (url.startsWith('/')) {
+      fullUrl = `${baseUrl}${url}`;
+    } else {
+      fullUrl = `${baseUrl}/${url}`;
+    }
+
     const res = await fetch(fullUrl, {
       method,
       headers: data ? { "Content-Type": "application/json" } : {},
@@ -50,29 +60,44 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey, signal }) => {
-    try {
-      const baseUrl = getApiBaseUrl();
-      const url = (queryKey[0] as string).startsWith('/api') 
-        ? (queryKey[0] as string) 
-        : `${baseUrl}${queryKey[0]}`;
-      
-      const res = await fetch(url, {
-        credentials: "include",
-        signal,
-      });
+    async ({ queryKey, signal }) => {
+      try {
+        const baseUrl = getApiBaseUrl();
+        const queryPath = queryKey[0] as string;
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
+        // If queryPath already starts with /api, we need to handle baseUrl carefully
+        // baseUrl is either:
+        // - 'http://localhost:5000/api' in development
+        // - '/api' in production/Firebase
+        // queryPath is like '/api/user' or '/api/diaries'
+
+        let url: string;
+        if (queryPath.startsWith('/api/')) {
+          // Extract the path after /api/
+          const pathAfterApi = queryPath.substring(4); // Remove '/api'
+          url = `${baseUrl}${pathAfterApi}`;
+        } else if (queryPath.startsWith('/')) {
+          url = `${baseUrl}${queryPath}`;
+        } else {
+          url = `${baseUrl}/${queryPath}`;
+        }
+
+        const res = await fetch(url, {
+          credentials: "include",
+          signal,
+        });
+
+        if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+          return null;
+        }
+
+        await throwIfResNotOk(res);
+        return await res.json();
+      } catch (error) {
+        console.error(`Query failed for ${queryKey[0]}:`, error);
+        throw error;
       }
-
-      await throwIfResNotOk(res);
-      return await res.json();
-    } catch (error) {
-      console.error(`Query failed for ${queryKey[0]}:`, error);
-      throw error;
-    }
-  };
+    };
 
 // Enhanced retry logic
 const retryFn = (failureCount: number, error: unknown) => {
@@ -80,7 +105,7 @@ const retryFn = (failureCount: number, error: unknown) => {
   if (error instanceof APIError && error.status >= 400 && error.status < 500) {
     return false;
   }
-  
+
   // Retry up to 3 times for 5xx errors and network errors
   return failureCount < 3;
 };
@@ -89,7 +114,7 @@ export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
       console.error(`Query error for ${query.queryKey}:`, error);
-      
+
       // You can add toast notifications here if needed
       // toast.error(`Failed to fetch data: ${error.message}`);
     },
@@ -97,7 +122,7 @@ export const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error, variables, context, mutation) => {
       console.error(`Mutation error:`, error);
-      
+
       // You can add toast notifications here if needed
       // toast.error(`Operation failed: ${error.message}`);
     },

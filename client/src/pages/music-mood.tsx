@@ -3,19 +3,13 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Music, Play, Pause, SkipForward, Volume2, Users, Clock } from "lucide-react";
+import { ArrowLeft, Music, Play, Pause, SkipForward, Volume2, Users, Clock, Radio, ChevronRight, Loader2, Plus, Heart } from "lucide-react";
 
-interface Playlist {
-  id: string;
-  name: string;
-  description: string;
-  mood: string;
-  listeners: number;
-  duration: string;
-  tracks: number;
-  color: string;
-  isPlaying?: boolean;
-}
+import { playlists, Playlist, Station } from "../data/playlists";
+import ReactPlayer from 'react-player';
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface LiveSession {
   id: string;
@@ -26,72 +20,44 @@ interface LiveSession {
   genre: string;
 }
 
-export default function MusicMood() {
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>("midnight-study");
 
-  const playlists: Playlist[] = [
-    {
-      id: "midnight-study",
-      name: "Midnight Study Beats",
-      description: "Lo-fi hip hop for deep focus and concentration",
-      mood: "Focus",
-      listeners: 89,
-      duration: "2h 34m",
-      tracks: 42,
-      color: "from-blue-500 to-cyan-600",
-      isPlaying: true
+export default function MusicMood() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [currentStation, setCurrentStation] = useState<Station | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
+  const [discoveredStations, setDiscoveredStations] = useState<Station[]>([]);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.5);
+
+  const { data: savedStations = [] } = useQuery<string[]>({
+    queryKey: ["/api/music/favorites"],
+    enabled: !!user,
+  });
+
+  const toggleSaveMutation = useMutation({
+    mutationFn: async (stationId: string) => {
+      const res = await apiRequest("POST", `/api/music/favorites/${stationId}`);
+      return res.json();
     },
-    {
-      id: "nocturne-ambient",
-      name: "Nocturne Ambient",
-      description: "Rain sounds mixed with gentle piano melodies",
-      mood: "Relaxation",
-      listeners: 67,
-      duration: "1h 48m",
-      tracks: 18,
-      color: "from-purple-500 to-indigo-600"
-    },
-    {
-      id: "night-jazz",
-      name: "After Hours Jazz",
-      description: "Smooth jazz for late night contemplation",
-      mood: "Contemplative",
-      listeners: 34,
-      duration: "3h 12m",
-      tracks: 56,
-      color: "from-amber-500 to-orange-600"
-    },
-    {
-      id: "synthwave-dreams",
-      name: "Synthwave Dreams",
-      description: "80s inspired electronic sounds for night drives",
-      mood: "Energetic",
-      listeners: 123,
-      duration: "2h 07m",
-      tracks: 38,
-      color: "from-pink-500 to-purple-600"
-    },
-    {
-      id: "classical-night",
-      name: "Classical Nighttime",
-      description: "Peaceful classical compositions for reflection",
-      mood: "Peaceful",
-      listeners: 45,
-      duration: "4h 23m",
-      tracks: 74,
-      color: "from-green-500 to-teal-600"
-    },
-    {
-      id: "indie-melancholy",
-      name: "Indie Melancholy",
-      description: "Introspective indie tracks for deep thoughts",
-      mood: "Melancholic",
-      listeners: 78,
-      duration: "2h 56m",
-      tracks: 47,
-      color: "from-gray-500 to-slate-600"
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/music/favorites"] });
     }
-  ];
+  });
+
+  const handleToggleSave = (e: React.MouseEvent, stationId: string) => {
+    e.stopPropagation();
+    if (!user) return; // Should show toast or auth dialog
+    toggleSaveMutation.mutate(stationId);
+  };
+
+  const isSaved = (stationId: string) => savedStations.includes(stationId);
+
+  // Find the playlist that contains the current station
+  const activePlaylist = currentStation
+    ? playlists.find(p => p.stations.some(s => s.id === currentStation.id))
+    : null;
 
   const liveSessions: LiveSession[] = [
     {
@@ -120,11 +86,36 @@ export default function MusicMood() {
     }
   ];
 
-  const handlePlayPause = (playlistId: string) => {
-    if (currentlyPlaying === playlistId) {
-      setCurrentlyPlaying(null);
+  const handlePlayStation = (station: Station) => {
+    if (currentStation?.id === station.id) {
+      setIsPlaying(!isPlaying);
     } else {
-      setCurrentlyPlaying(playlistId);
+      setCurrentStation(station);
+      setIsPlaying(true);
+    }
+  };
+
+  const handlePlaylistClick = (playlist: Playlist) => {
+    setSelectedPlaylist(playlist);
+    setDiscoveredStations([]); // Reset discovered stations when entering a playlist
+  };
+
+  const handleDiscoverMore = async () => {
+    if (!selectedPlaylist) return;
+
+    setIsDiscovering(true);
+    try {
+      const res = await fetch(`/api/music/search?query=${encodeURIComponent(selectedPlaylist.name)}`);
+      if (res.ok) {
+        const newStations = await res.json();
+        const existingIds = new Set(selectedPlaylist.stations.map(s => s.id));
+        const uniqueNewStations = newStations.filter((s: Station) => !existingIds.has(s.id));
+        setDiscoveredStations(prev => [...prev, ...uniqueNewStations]);
+      }
+    } catch (error) {
+      console.error("Failed to discover stations:", error);
+    } finally {
+      setIsDiscovering(false);
     }
   };
 
@@ -139,6 +130,18 @@ export default function MusicMood() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Hidden Player - Positioned off-screen to ensure it renders for YouTube API */}
+        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+          <ReactPlayer
+            src={currentStation?.youtubeId ? `https://www.youtube.com/watch?v=${currentStation.youtubeId}` : ""}
+            playing={isPlaying}
+            controls={false}
+            volume={volume}
+            width="100%"
+            height="100%"
+          />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
@@ -161,103 +164,229 @@ export default function MusicMood() {
         </div>
 
         {/* Now Playing Bar */}
-        {currentlyPlaying && (
-          <div className="mb-8 p-4 bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-lg border border-purple-700/50">
+        {currentStation && activePlaylist && (
+          <div className="mb-8 p-4 bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-lg border border-purple-700/50 sticky top-4 z-50 backdrop-blur-md shadow-lg shadow-purple-900/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                  <Music className="w-6 h-6 text-white" />
+                <div className={`w-12 h-12 bg-gradient-to-br ${activePlaylist.color} rounded-lg flex items-center justify-center shadow-lg`}>
+                  <Radio className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold">Now Playing</p>
-                  <p className="text-sm text-gray-300">
-                    {playlists.find(p => p.id === currentlyPlaying)?.name}
+                  <div className="flex items-center space-x-2">
+                    <p className="font-semibold text-white">{currentStation.name}</p>
+                    <Badge variant="outline" className="text-[10px] h-4 border-purple-400 text-purple-300">LIVE</Badge>
+                  </div>
+                  <p className="text-xs text-purple-200/70">
+                    {activePlaylist.name}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm">
-                  <SkipForward className="w-4 h-4" />
+              <div className="flex items-center space-x-4">
+                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+                  <Volume2 className="w-5 h-5" />
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => handlePlayPause(currentlyPlaying)}
+                <Button
+                  size="icon"
+                  className="bg-purple-600 hover:bg-purple-700 text-white rounded-full w-10 h-10 shadow-lg shadow-purple-900/50"
+                  onClick={() => setIsPlaying(!isPlaying)}
                 >
-                  <Pause className="w-4 h-4" />
+                  {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
                 </Button>
-                <Button variant="ghost" size="sm">
-                  <Volume2 className="w-4 h-4" />
-                </Button>
+                {user && (
+                  <Button variant="ghost" size="icon" className={`${isSaved(currentStation.id) ? "text-pink-500" : "text-gray-400"} hover:text-pink-500`} onClick={(e) => handleToggleSave(e, currentStation.id)}>
+                    <Heart className={`w-5 h-5 ${isSaved(currentStation.id) ? "fill-current" : ""}`} />
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Curated Playlists */}
+          {/* Main Content Area */}
           <div className="lg:col-span-2">
-            <div className="flex items-center space-x-3 mb-6">
-              <Music className="w-6 h-6 text-purple-400" />
-              <h2 className="text-2xl font-bold">Curated for Night Owls</h2>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              {playlists.map((playlist) => (
-                <Card key={playlist.id} className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all duration-300 group">
-                  <CardContent className="p-6">
-                    <div className={`w-full h-32 bg-gradient-to-br ${playlist.color} rounded-lg mb-4 flex items-center justify-center relative overflow-hidden`}>
-                      <Music className="w-12 h-12 text-white/80" />
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+
+            {/* Conditional Rendering: Playlist Detail or Grid */}
+            {selectedPlaylist ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <Button
+                  variant="ghost"
+                  className="mb-6 hover:bg-white/5 text-gray-400 hover:text-white"
+                  onClick={() => setSelectedPlaylist(null)}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Categories
+                </Button>
+
+                <div className={`p-8 rounded-2xl bg-gradient-to-br ${selectedPlaylist.color} bg-opacity-20 mb-8 relative overflow-hidden`}>
+                  <div className="relative z-10 flex flex-col md:flex-row items-start md:items-end gap-6">
+                    <div className="w-32 h-32 bg-black/20 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-xl">
+                      <Music className="w-16 h-16 text-white/90" />
                     </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <h3 className="font-semibold text-lg">{playlist.name}</h3>
-                        <p className="text-sm text-gray-400">{playlist.description}</p>
+                    <div className="flex-1">
+                      <Badge className="mb-2 bg-black/20 text-white hover:bg-black/30 border-none">{selectedPlaylist.mood}</Badge>
+                      <h2 className="text-4xl font-bold mb-2 text-white shadow-sm">{selectedPlaylist.name}</h2>
+                      <p className="text-white/80 max-w-lg">{selectedPlaylist.description}</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm font-medium text-white/80 bg-black/20 p-3 rounded-lg backdrop-blur-sm">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-4 h-4" />
+                        {selectedPlaylist.listeners} listening
                       </div>
-                      
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <span className="flex items-center space-x-1">
-                          <Users className="w-3 h-3" />
-                          <span>{playlist.listeners}</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{playlist.duration}</span>
-                        </span>
-                        <span>{playlist.tracks} tracks</span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <Badge variant="secondary" className="text-xs">
-                          {playlist.mood}
-                        </Badge>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handlePlayPause(playlist.id)}
-                          className={`${currentlyPlaying === playlist.id ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 hover:bg-gray-600'}`}
-                        >
-                          {currentlyPlaying === playlist.id ? 
-                            <Pause className="w-4 h-4" /> : 
-                            <Play className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent" />
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+                    <Radio className="w-5 h-5 text-purple-400" />
+                    Available Stations
+                  </h3>
+                  <div className="grid gap-3">
+                    {[...selectedPlaylist.stations, ...discoveredStations].map((station) => (
+                      <div
+                        key={station.id}
+                        onClick={() => handlePlayStation(station)}
+                        className={`
+                                        group flex items-center justify-between p-4 rounded-xl border transition-all duration-300 cursor-pointer
+                                        ${currentStation?.id === station.id
+                            ? 'bg-purple-900/20 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.15)]'
+                            : 'bg-gray-800/40 border-gray-700/50 hover:bg-gray-800/80 hover:border-gray-600'
                           }
-                        </Button>
+                                    `}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`
+                                            w-10 h-10 rounded-full flex items-center justify-center transition-colors
+                                            ${currentStation?.id === station.id
+                              ? 'bg-purple-500 text-white'
+                              : 'bg-gray-700 text-gray-400 group-hover:bg-gray-600 group-hover:text-white'
+                            }
+                                        `}>
+                            {currentStation?.id === station.id && isPlaying ? (
+                              <div className="flex gap-0.5 items-center h-3">
+                                <span className="w-0.5 h-full bg-white animate-[music-bar_0.5s_ease-in-out_infinite]" />
+                                <span className="w-0.5 h-2/3 bg-white animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                                <span className="w-0.5 h-full bg-white animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                              </div>
+                            ) : (
+                              <Play className="w-5 h-5 ml-0.5" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`font-medium truncate pr-4 ${currentStation?.id === station.id ? 'text-purple-300' : 'text-gray-200 group-hover:text-white'}`}>
+                              {station.name}
+                            </h4>
+                            <p className="text-xs text-gray-500 group-hover:text-gray-400">Live Radio Stream</p>
+                          </div>
+                        </div>
+
+
+                        {currentStation?.id === station.id && (
+                          <Badge variant="outline" className="border-purple-500/50 text-purple-400 bg-purple-500/10 mr-2">
+                            Playing
+                          </Badge>
+                        )}
+
+                        {user && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`
+                                    h-8 w-8 
+                                    ${isSaved(station.id) ? "text-pink-500" : "text-gray-500 hover:text-pink-500"}
+                                `}
+                            onClick={(e) => handleToggleSave(e, station.id)}
+                          >
+                            <Heart className={`w-4 h-4 ${isSaved(station.id) ? "fill-current" : ""}`} />
+                          </Button>
+                        )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    ))}
+
+                    <Button
+                      variant="outline"
+                      className="w-full mt-2 border-dashed border-gray-700 hover:border-purple-500 hover:text-purple-400 hover:bg-purple-500/10 transition-all h-12"
+                      onClick={handleDiscoverMore}
+                      disabled={isDiscovering}
+                    >
+                      {isDiscovering ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Discovering Frequencies...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Discover More Live Stations
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center space-x-3 mb-6">
+                  <Music className="w-6 h-6 text-purple-400" />
+                  <h2 className="text-2xl font-bold">Curated for Night Owls</h2>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  {playlists.map((playlist) => (
+                    <Card
+                      key={playlist.id}
+                      className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all duration-300 group cursor-pointer hover:border-purple-500/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.1)]"
+                      onClick={() => handlePlaylistClick(playlist)}
+                    >
+                      <CardContent className="p-6">
+                        <div className={`w-full h-32 bg-gradient-to-br ${playlist.color} rounded-lg mb-4 flex items-center justify-center relative overflow-hidden transition-transform duration-500 group-hover:scale-[1.02]`}>
+                          <Music className="w-12 h-12 text-white/80 drop-shadow-lg" />
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <h3 className="font-semibold text-lg group-hover:text-purple-300 transition-colors">{playlist.name}</h3>
+                            <p className="text-sm text-gray-400 line-clamp-1">{playlist.description}</p>
+                          </div>
+
+                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                            <span className="flex items-center space-x-1">
+                              <Radio className="w-3 h-3" />
+                              <span>{playlist.stations.length} stations</span>
+                            </span>
+                            <span className="flex items-center space-x-1">
+                              <Users className="w-3 h-3" />
+                              <span>{playlist.listeners}</span>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-2">
+                            <Badge variant="secondary" className="text-xs bg-gray-800 group-hover:bg-purple-900/30 transition-colors">
+                              {playlist.mood}
+                            </Badge>
+                            <div className="p-2 rounded-full bg-gray-700 text-gray-300 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                              <ChevronRight className="w-4 h-4" />
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Live Sessions */}
+          {/* Live Sessions - Sidebar */}
           <div>
             <div className="flex items-center space-x-3 mb-6">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
               <h2 className="text-2xl font-bold">Live Sessions</h2>
             </div>
-            
+
             <div className="space-y-4">
               {liveSessions.map((session) => (
                 <Card key={session.id} className="bg-gray-800/30 border-gray-700/50 hover:bg-gray-800/50 transition-colors">
@@ -272,7 +401,7 @@ export default function MusicMood() {
                         <span className="text-xs">LIVE</span>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2 mb-3">
                       <p className="text-xs text-gray-300">{session.currentTrack}</p>
                       <div className="flex items-center justify-between text-xs text-gray-500">
@@ -283,7 +412,7 @@ export default function MusicMood() {
                         </span>
                       </div>
                     </div>
-                    
+
                     <Button size="sm" variant="outline" className="w-full text-xs border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white">
                       Join Session
                     </Button>
@@ -330,6 +459,12 @@ export default function MusicMood() {
           <p>Connect your headphones and let the night inspire you</p>
         </div>
       </div>
+      <style>{`
+        @keyframes music-bar {
+          0%, 100% { height: 100%; transform: scaleY(1); }
+          50% { height: 50%; transform: scaleY(0.5); }
+        }
+      `}</style>
     </div>
   );
 }

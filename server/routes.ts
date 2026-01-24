@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import ytSearch from "yt-search";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import express from "express";
@@ -78,7 +79,10 @@ router.get("/whispers", async (req, res) => {
 
 router.post("/whispers", async (req, res) => {
   try {
-    const whisperData = insertWhisperSchema.parse(req.body);
+    const whisperData = insertWhisperSchema.parse({
+      ...req.body,
+      authorId: req.user?.id // Optional: link to user if logged in
+    });
     const whisper = await storage.createWhisper(whisperData);
     res.status(201).json(whisper);
   } catch (error) {
@@ -178,7 +182,10 @@ router.get("/midnightCafe", async (req, res) => {
 
 router.post("/midnightCafe", async (req, res) => {
   try {
-    const midnightCafeData = insertMidnightCafeSchema.parse(req.body);
+    const midnightCafeData = insertMidnightCafeSchema.parse({
+      ...req.body,
+      authorId: req.user?.id
+    });
     const midnightCafe = await storage.createMidnightCafe(midnightCafeData);
     res.status(201).json(midnightCafe);
   } catch (error) {
@@ -211,7 +218,10 @@ router.get("/amFounder", async (req, res) => {
 
 router.post("/amFounder", async (req, res) => {
   try {
-    const founderData = insertAmFounderSchema.parse(req.body);
+    const founderData = insertAmFounderSchema.parse({
+      ...req.body,
+      authorId: req.user?.id
+    });
     const founder = await storage.createAmFounder(founderData);
     res.status(201).json(founder);
   } catch (error) {
@@ -308,6 +318,70 @@ router.get("/moonMessenger", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch active sessions" });
   }
 });
+
+// Music Search route
+
+router.get("/music/search", async (req, res) => {
+  try {
+    const query = req.query.query as string;
+    if (!query) {
+      return res.status(400).json({ error: "Query parameter is required" });
+    }
+
+    const r = await ytSearch(query + " live radio");
+
+    // Access the 'live' property which contains live streams
+    // Cast to any because the types might be missing 'live' property on the main result interface
+    const liveVideos = (r as any).live || [];
+
+    const stations = liveVideos
+      .slice(0, 10)
+      .map((v: any) => ({
+        id: v.videoId,
+        name: v.title,
+        youtubeId: v.videoId
+      }));
+
+    res.json(stations);
+  } catch (error) {
+    console.error("Error searching music:", error);
+    res.status(500).json({ error: "Failed to search music" });
+  }
+});
+// Saved Stations Routes
+router.post("/music/favorites/:stationId", async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  try {
+    const saved = await storage.toggleSavedStation(req.user!.id, req.params.stationId);
+    res.json({ saved });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to toggle favorite" });
+  }
+});
+
+router.get("/music/favorites", async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  try {
+    const stations = await storage.getSavedStations(req.user!.id);
+    res.json(stations);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch favorites" });
+  }
+});
+
+// User Profile Routes
+router.get("/users/me/whispers", async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  const data = await storage.getUserWhispers(req.user!.id);
+  res.json(data);
+});
+
+router.get("/users/me/cafe", async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  const data = await storage.getUserCafePosts(req.user!.id);
+  res.json(data);
+});
+
 
 export async function registerRoutes(app: Express, httpServer: Server): Promise<Server> {
   // Setup authentication is handled in index.ts via server/auth.ts
