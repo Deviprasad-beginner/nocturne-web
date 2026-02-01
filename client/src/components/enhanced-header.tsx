@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AppMenu } from "@/components/app-menu";
-import { 
-  Search, 
-  Bell, 
-  Moon, 
-  User, 
-  Settings, 
+import { useAuth } from "@/hooks/useAuth";
+import {
+  Search,
+  Bell,
+  Moon,
+  User,
+  Settings,
   LogOut,
   Plus,
   MessageSquare,
@@ -27,14 +28,19 @@ interface EnhancedHeaderProps {
 export function EnhancedHeader({ className }: EnhancedHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const { user: authUser, logoutMutation } = useAuth();
 
   // Mock user data - in real app this would come from auth context
   const user = {
-    name: "Night Wanderer",
-    avatar: "/api/placeholder/32/32",
+    name: authUser?.displayName || "Night Wanderer",
+    avatar: authUser?.profileImageUrl || "/api/placeholder/32/32",
     level: 5,
     unreadNotifications: 3,
     isOnline: true
+  };
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   const handleSearch = () => {
@@ -57,7 +63,7 @@ export function EnhancedHeader({ className }: EnhancedHeaderProps) {
           {/* Left Section - Logo & Menu */}
           <div className="flex items-center gap-4">
             <AppMenu className="lg:hidden" />
-            
+
             <Link href="/">
               <div className="flex items-center gap-2 cursor-pointer">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -119,93 +125,104 @@ export function EnhancedHeader({ className }: EnhancedHeaderProps) {
               </Button>
             </Link>
 
-            {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-                      {user.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {user.isOnline && (
-                    <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-slate-900 rounded-full"></div>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              
-              <DropdownMenuContent className="w-64 bg-slate-800 border-slate-700" align="end">
-                <div className="flex items-center gap-3 p-3 border-b border-slate-700">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-lg">
-                      {user.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium truncate">{user.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className="bg-purple-600/30 text-purple-300 text-xs">
-                        <Crown className="h-3 w-3 mr-1" />
-                        Level {user.level}
-                      </Badge>
-                      <div className="flex items-center gap-1">
-                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-gray-400">Online</span>
+            {/* User Menu - Only show when authenticated */}
+            {authUser ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                        {user.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {user.isOnline && (
+                      <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-slate-900 rounded-full"></div>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent className="w-64 bg-slate-800 border-slate-700" align="end">
+                  <div className="flex items-center gap-3 p-3 border-b border-slate-700">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-lg">
+                        {user.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium truncate">{user.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className="bg-purple-600/30 text-purple-300 text-xs">
+                          <Crown className="h-3 w-3 mr-1" />
+                          Level {user.level}
+                        </Badge>
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                          <span className="text-xs text-gray-400">Online</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="py-1">
-                  <Link href="/profile">
+                  <div className="py-1">
+                    <Link href="/profile">
+                      <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 focus:bg-slate-700">
+                        <User className="mr-2 h-4 w-4" />
+                        My Profile
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link href="/settings">
+                      <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 focus:bg-slate-700">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link href="/notifications">
+                      <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 focus:bg-slate-700">
+                        <Bell className="mr-2 h-4 w-4" />
+                        Notifications
+                        {user.unreadNotifications > 0 && (
+                          <Badge className="ml-auto bg-red-600 text-white text-xs">
+                            {user.unreadNotifications}
+                          </Badge>
+                        )}
+                      </DropdownMenuItem>
+                    </Link>
+                  </div>
+
+                  <DropdownMenuSeparator className="bg-slate-700" />
+
+                  <div className="py-1">
                     <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 focus:bg-slate-700">
-                      <User className="mr-2 h-4 w-4" />
-                      My Profile
+                      <Moon className="mr-2 h-4 w-4" />
+                      Night Mode
+                      <Badge className="ml-auto bg-green-600 text-white text-xs">ON</Badge>
                     </DropdownMenuItem>
-                  </Link>
-                  
-                  <Link href="/settings">
-                    <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 focus:bg-slate-700">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
+                  </div>
+
+                  <DropdownMenuSeparator className="bg-slate-700" />
+
+                  <div className="py-1">
+                    <DropdownMenuItem
+                      className="text-red-400 hover:bg-red-900/20 focus:bg-red-900/20 cursor-pointer"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
                     </DropdownMenuItem>
-                  </Link>
-
-                  <Link href="/notifications">
-                    <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 focus:bg-slate-700">
-                      <Bell className="mr-2 h-4 w-4" />
-                      Notifications
-                      {user.unreadNotifications > 0 && (
-                        <Badge className="ml-auto bg-red-600 text-white text-xs">
-                          {user.unreadNotifications}
-                        </Badge>
-                      )}
-                    </DropdownMenuItem>
-                  </Link>
-                </div>
-
-                <DropdownMenuSeparator className="bg-slate-700" />
-
-                <div className="py-1">
-                  <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 focus:bg-slate-700">
-                    <Moon className="mr-2 h-4 w-4" />
-                    Night Mode
-                    <Badge className="ml-auto bg-green-600 text-white text-xs">ON</Badge>
-                  </DropdownMenuItem>
-                </div>
-
-                <DropdownMenuSeparator className="bg-slate-700" />
-
-                <div className="py-1">
-                  <DropdownMenuItem className="text-red-400 hover:bg-red-900/20 focus:bg-red-900/20">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link href="/auth">
+                <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700">
+                  Sign In
+                </Button>
+              </Link>
+            )}
 
             {/* Desktop Menu Toggle */}
             <div className="hidden lg:block">

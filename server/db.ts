@@ -14,6 +14,15 @@ if (process.env.DATABASE_URL) {
     ssl: { rejectUnauthorized: false },
   });
   dbInstance = drizzle(pool, { schema });
+} else {
+  console.error("❌ DATABASE_URL is not set. Database operations will fail.");
+  console.error("Please set DATABASE_URL in your .env file");
 }
 
-export const db = dbInstance as unknown as ReturnType<typeof drizzle>;
+// Export db with proper null check
+export const db = dbInstance!;
+
+// Check if db is properly initialized
+if (!db) {
+  throw new Error("Database not initialized. Please set DATABASE_URL environment variable.");
+}

@@ -20,7 +20,7 @@ export function useAuth() {
   const { data: user, isLoading: isUserLoading, refetch } = useQuery<User | null>({
     queryKey: ["/api/user"],
     retry: false,
-    staleTime: Infinity,
+    staleTime: 0, // Allow refetching when invalidated
     refetchOnWindowFocus: false,
   });
 
@@ -71,15 +71,10 @@ export function useAuth() {
         }
       } else {
         // User is logged out of Firebase.
-        // Ensure backend session is cleared.
-        // We only do this if we previously had a user, to avoid loops on initial load if clean.
-        if (queryClient.getQueryData(["/api/user"])) {
-          try {
-            await apiRequest("POST", "/api/logout");
-            queryClient.setQueryData(["/api/user"], null);
-          } catch (error) {
-            console.error("Logout error:", error);
-          }
+        // Clear the query cache if not already cleared
+        const currentBackendUser = queryClient.getQueryData(["api/user"]);
+        if (currentBackendUser) {
+          queryClient.setQueryData(["/api/user"], null);
         }
         lastSyncedUid.current = null;
       }
@@ -154,18 +149,40 @@ export function useAuth() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
+      try {
+        // Clear backend session first
+        await apiRequest("POST", "/api/logout");
+      } catch (error) {
+        console.error("Backend logout error:", error);
+        // Continue with Firebase logout even if backend fails
+      }
+
+      // Sign out from Firebase
       await signOut(auth);
-      // The useEffect will handle backend logout
+
+      // Invalidate and remove specific queries
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.removeQueries({ queryKey: ["/api/user"] });
     },
-    onSuccess: () => {
-      setLocation("/");
+    onSuccess: async () => {
       toast({
         title: "Logged Out",
         description: "See you next time in the night circle.",
       });
+
+      // Add a small delay to ensure state updates propagate before redirect
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Navigate to auth page for clean logout
+      setLocation("/auth");
     },
     onError: (error: any) => {
       console.error("Logout failed:", error);
+      toast({
+        title: "Logout Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive"
+      });
     }
   });
 

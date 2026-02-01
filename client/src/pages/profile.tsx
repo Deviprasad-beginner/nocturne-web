@@ -32,17 +32,17 @@ export default function Profile() {
 
   // Fetch real data
   const { data: whispers, isLoading: whispersLoading } = useQuery<Whisper[]>({
-    queryKey: ["/api/users/me/whispers"],
+    queryKey: ["/api/v1/users/me/whispers"],
     enabled: !!user
   });
 
   const { data: cafePosts, isLoading: cafeLoading } = useQuery<MidnightCafe[]>({
-    queryKey: ["/api/users/me/cafe"],
+    queryKey: ["/api/v1/users/me/cafe"],
     enabled: !!user
   });
 
   const { data: savedStations, isLoading: stationsLoading } = useQuery<string[]>({
-    queryKey: ["/api/music/favorites"],
+    queryKey: ["/api/v1/users/me/favorites"],
     enabled: !!user
   });
 

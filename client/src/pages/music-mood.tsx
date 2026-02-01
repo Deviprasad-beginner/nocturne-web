@@ -33,17 +33,17 @@ export default function MusicMood() {
   const [volume, setVolume] = useState(0.5);
 
   const { data: savedStations = [] } = useQuery<string[]>({
-    queryKey: ["/api/music/favorites"],
+    queryKey: ["/api/v1/music/favorites"],
     enabled: !!user,
   });
 
   const toggleSaveMutation = useMutation({
     mutationFn: async (stationId: string) => {
-      const res = await apiRequest("POST", `/api/music/favorites/${stationId}`);
+      const res = await apiRequest("POST", `/api/v1/music/favorites/${stationId}`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/music/favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/music/favorites"] });
     }
   });
 
@@ -53,7 +53,7 @@ export default function MusicMood() {
     toggleSaveMutation.mutate(stationId);
   };
 
-  const isSaved = (stationId: string) => savedStations.includes(stationId);
+  const isSaved = (stationId: string) => savedStations?.includes(stationId);
 
   // Find the playlist that contains the current station
   const activePlaylist = currentStation
@@ -106,7 +106,7 @@ export default function MusicMood() {
 
     setIsDiscovering(true);
     try {
-      const res = await fetch(`/api/music/search?query=${encodeURIComponent(selectedPlaylist.name)}`);
+      const res = await fetch(`/api/v1/music/search?query=${encodeURIComponent(selectedPlaylist.name)}`);
       if (res.ok) {
         const newStations = await res.json();
         const existingIds = new Set(selectedPlaylist.stations.map(s => s.id));

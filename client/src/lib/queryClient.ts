@@ -92,7 +92,14 @@ export const getQueryFn: <T>(options: {
         }
 
         await throwIfResNotOk(res);
-        return await res.json();
+        const json = await res.json();
+
+        // Unwrap v1 API responses that have {success: true, data: ...} format
+        if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
+          return json.data;
+        }
+
+        return json;
       } catch (error) {
         console.error(`Query failed for ${queryKey[0]}:`, error);
         throw error;
@@ -132,7 +139,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "returnNull" }),
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 0, // Always consider data stale to allow immediate refetch after mutations
       retry: retryFn,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },

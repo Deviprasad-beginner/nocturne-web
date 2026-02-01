@@ -187,8 +187,17 @@ export function setupAuth(app: Express) {
         });
     });
 
-    app.get("/api/user", (req, res) => {
-        if (!req.isAuthenticated()) return res.sendStatus(401);
-        res.json(req.user);
+    app.get("/api/user", async (req, res) => {
+        if (!req.isAuthenticated() || !req.user) return res.sendStatus(401);
+
+        try {
+            // Fetch fresh user data from database instead of using cached session data
+            const freshUser = await storage.getUser(req.user.id);
+            res.json(freshUser);
+        } catch (error) {
+            console.error("Error fetching user:", error);
+            // Fallback to session user if database fetch fails
+            res.json(req.user);
+        }
     });
 }

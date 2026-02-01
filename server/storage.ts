@@ -450,7 +450,16 @@ export class DatabaseStorage implements IStorage {
   constructor() {
     this.sessionStore = new PostgresSessionStore({
       pool,
-      createTableIfMissing: true,
+      createTableIfMissing: true, // Session table doesn't exist yet, let it be created
+      errorLog: (error: Error) => {
+        // Suppress "index/table already exists" errors (code 42P07)
+        // These are harmless - it means the session infrastructure is already set up
+        if ('code' in error && error.code === '42P07') {
+          return; // Silently ignore
+        }
+        // Log all other errors
+        console.error('Session store error:', error);
+      }
     });
   }
   private memStorage = new MemoryStorage();
@@ -970,5 +979,12 @@ export class DatabaseStorage implements IStorage {
 
 // Choose storage implementation based on environment
 // If no DATABASE_URL is provided, use in-memory storage for local development.
-const useDatabase = Boolean(process.env.DATABASE_URL);
+const useDatabase = Boolean(process.env.DATABASE_URL && db);
+
+if (useDatabase) {
+  console.log("Using DatabaseStorage");
+} else {
+  console.log("Using MemoryStorage (DATABASE_URL not set or db connection failed)");
+}
+
 export const storage = useDatabase ? new DatabaseStorage() : new MemoryStorage();

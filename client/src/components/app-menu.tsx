@@ -4,20 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Menu, 
-  Home, 
-  BookOpen, 
-  MessageSquare, 
-  Brain, 
-  Users, 
-  Coffee, 
-  Music, 
-  MessageCircle, 
-  NotebookPen, 
-  Heart, 
-  Lightbulb, 
-  Mic, 
+import { useAuth } from "@/hooks/useAuth";
+import {
+  Menu,
+  Home,
+  BookOpen,
+  MessageSquare,
+  Brain,
+  Users,
+  Coffee,
+  Music,
+  MessageCircle,
+  NotebookPen,
+  Heart,
+  Lightbulb,
+  Mic,
   Moon,
   Settings,
   User,
@@ -35,6 +36,12 @@ interface AppMenuProps {
 export function AppMenu({ className }: AppMenuProps) {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const { logoutMutation } = useAuth();
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+    setIsOpen(false);
+  };
 
   const mainNavItems = [
     { href: "/", label: "Home", icon: Home, badge: null },
@@ -69,23 +76,21 @@ export function AppMenu({ className }: AppMenuProps) {
     <Link href={href}>
       <Button
         variant={isActive(href) ? "secondary" : "ghost"}
-        className={`w-full justify-start text-left h-auto p-3 ${
-          isActive(href) 
-            ? "bg-purple-600/20 text-purple-300 border-l-2 border-purple-400" 
+        className={`w-full justify-start text-left h-auto p-3 ${isActive(href)
+            ? "bg-purple-600/20 text-purple-300 border-l-2 border-purple-400"
             : "text-gray-300 hover:text-white hover:bg-slate-700/50"
-        }`}
+          }`}
         onClick={() => setIsOpen(false)}
       >
         <Icon className="mr-3 h-5 w-5" />
         <span className="flex-1">{label}</span>
         {badge && (
-          <Badge 
-            variant={badge === "Live" ? "destructive" : "secondary"} 
-            className={`ml-2 text-xs ${
-              badge === "Live" 
-                ? "bg-red-600 text-white animate-pulse" 
+          <Badge
+            variant={badge === "Live" ? "destructive" : "secondary"}
+            className={`ml-2 text-xs ${badge === "Live"
+                ? "bg-red-600 text-white animate-pulse"
                 : "bg-purple-600/30 text-purple-300"
-            }`}
+              }`}
           >
             {badge}
           </Badge>
@@ -97,8 +102,8 @@ export function AppMenu({ className }: AppMenuProps) {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           className={`bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700 ${className}`}
         >
@@ -106,9 +111,9 @@ export function AppMenu({ className }: AppMenuProps) {
           Menu
         </Button>
       </SheetTrigger>
-      
-      <SheetContent 
-        side="left" 
+
+      <SheetContent
+        side="left"
         className="w-80 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 border-slate-700 overflow-y-auto"
       >
         <SheetHeader className="text-left">
@@ -178,18 +183,18 @@ export function AppMenu({ className }: AppMenuProps) {
           <div className="space-y-2">
             <h3 className="text-gray-400 text-sm font-medium mb-3 px-1">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="bg-slate-800/50 border-slate-600 text-gray-300 hover:bg-slate-700"
                 onClick={() => setIsOpen(false)}
               >
                 <MessageSquare className="h-4 w-4 mr-1" />
                 New Post
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="bg-slate-800/50 border-slate-600 text-gray-300 hover:bg-slate-700"
                 onClick={() => setIsOpen(false)}
               >
@@ -201,10 +206,10 @@ export function AppMenu({ className }: AppMenuProps) {
 
           {/* Logout */}
           <div className="pt-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full bg-slate-800/50 border-slate-600 text-gray-300 hover:bg-red-700/20 hover:border-red-600 hover:text-red-300"
-              onClick={() => setIsOpen(false)}
+              onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out

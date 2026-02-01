@@ -17,23 +17,16 @@ export default function MindMazePage() {
   const [type, setType] = useState<"puzzle" | "philosophy">("philosophy");
 
   const { data: mindMaze = [], isLoading } = useQuery<MindMaze[]>({
-    queryKey: ['/api/mindMaze'],
+    queryKey: ['/api/v1/mind-maze'],
   });
 
   const createMindMazeMutation = useMutation({
     mutationFn: async (newMindMaze: InsertMindMaze) => {
-      const response = await fetch('/api/mindMaze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newMindMaze),
-      });
-      if (!response.ok) throw new Error('Failed to create mind maze');
+      const response = await apiRequest("POST", "/api/v1/mind-maze", newMindMaze);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/mindMaze'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/mind-maze'] });
       setContent("");
       setType("philosophy");
       setIsCreating(false);
@@ -42,14 +35,11 @@ export default function MindMazePage() {
 
   const respondMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/mindMaze/${id}/responses`, {
-        method: 'PATCH',
-      });
-      if (!response.ok) throw new Error('Failed to respond');
+      const response = await apiRequest("PATCH", `/api/v1/mind-maze/${id}/respond`);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/mindMaze'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/mind-maze'] });
     },
   });
 

@@ -19,10 +19,11 @@ export default function MoonMessengerPage() {
   const queryClient = useQueryClient();
 
   const { data: messages = [] } = useQuery<MoonMessenger[]>({
-    queryKey: ["/api/moonMessenger", currentSessionId],
+    queryKey: ["/api/v1/messenger", currentSessionId],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/moonMessenger?sessionId=${currentSessionId}`);
-      return res.json();
+      const res = await apiRequest("GET", `/api/v1/messenger/${currentSessionId}`);
+      const json = await res.json();
+      return json.success ? json.data : json;
     },
     enabled: !!currentSessionId,
   });
@@ -36,7 +37,7 @@ export default function MoonMessengerPage() {
     } else if (message.type === 'random_waiting') {
       setIsSearching(true);
     } else if (message.type === 'message_received') {
-      queryClient.invalidateQueries({ queryKey: ["/api/moonMessenger", currentSessionId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/messenger", currentSessionId] });
     } else if (message.type === 'partner_disconnected') {
       setIsConnected(false);
       setCurrentSessionId(null);
@@ -45,11 +46,11 @@ export default function MoonMessengerPage() {
 
   const createMessageMutation = useMutation({
     mutationFn: async (newMessage: InsertMoonMessenger) => {
-      const response = await apiRequest("POST", "/api/moonMessenger", newMessage);
+      const response = await apiRequest("POST", "/api/v1/messenger", newMessage);
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/moonMessenger", currentSessionId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/messenger", currentSessionId] });
     },
   });
 

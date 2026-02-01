@@ -5,15 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, TrendingUp, MessageCircle, ArrowUp, Brain, Clock, Rocket, Coffee, Zap, Star, Moon, Flame, Target, Gem, Crown, Award } from "lucide-react";
+import { Lightbulb, TrendingUp, MessageCircle, ArrowUp, Brain, Clock, Rocket, Coffee, Zap, Star, Moon, Flame, Target, Gem, Crown, Award, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { AmFounder, InsertAmFounder } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function AmFounderPage() {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -22,28 +26,40 @@ export default function AmFounderPage() {
   }, []);
 
   const { data: founders = [], isLoading } = useQuery<AmFounder[]>({
-    queryKey: ["/api/amFounder"],
+    queryKey: ["/api/v1/founder"],
   });
 
   const createFounderMutation = useMutation({
     mutationFn: async (newFounder: InsertAmFounder) => {
-      const response = await apiRequest("POST", "/api/amFounder", newFounder);
+      const response = await apiRequest("POST", "/api/v1/founder", newFounder);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/amFounder"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/founder"] });
       setContent("");
       setCategory("");
       setIsTyping(false);
+      toast({
+        title: "Insight Shared",
+        description: "Your 3AM revelation has been recorded.",
+        style: { background: 'linear-gradient(to right, #f97316, #ef4444)', color: 'white' }
+      });
     },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Failed to share",
+        description: "Your thoughts were too fast for our servers. Try again!",
+      });
+    }
   });
 
   const upvoteFounderMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("PATCH", `/api/amFounder/${id}/upvotes`);
+      await apiRequest("PATCH", `/api/v1/founder/${id}/upvote`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/amFounder"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/founder"] });
     },
   });
 
@@ -102,13 +118,24 @@ export default function AmFounderPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white p-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-8">
           <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-700 rounded w-1/3"></div>
-            <div className="h-32 bg-gray-700 rounded"></div>
-            <div className="space-y-4">
+            <div className="flex justify-center space-x-4">
+              <Skeleton className="h-16 w-16 rounded-full bg-gray-700/50" />
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-48 bg-gray-700/50" />
+                <Skeleton className="h-4 w-32 bg-gray-700/50" />
+              </div>
+            </div>
+            <Skeleton className="h-48 rounded bg-gray-700/30" />
+            <div className="grid grid-cols-3 gap-6">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-24 bg-gray-700 rounded"></div>
+                <Skeleton key={i} className="h-24 bg-gray-700/20 rounded" />
+              ))}
+            </div>
+            <div className="space-y-6">
+              {[...Array(2)].map((_, i) => (
+                <Skeleton key={i} className="h-40 bg-gray-700/20 rounded" />
               ))}
             </div>
           </div>
@@ -307,59 +334,73 @@ export default function AmFounderPage() {
           </div>
 
           <div className="grid gap-6">
-            {founders.map((founder: AmFounder) => (
-              <Card key={founder.id} className="bg-gradient-to-r from-gray-800/30 to-gray-900/30 border-gray-600 backdrop-blur-sm hover:from-gray-800/50 hover:to-gray-900/50 transition-all duration-500 group shadow-lg hover:shadow-2xl">
-                <CardContent className="p-8">
-                  <div className="flex items-start justify-between mb-6">
-                    <Badge className={`${getCategoryColor(founder.category)} border transition-all duration-300 group-hover:scale-105`}>
-                      {getCategoryLabel(founder.category)}
-                    </Badge>
-                    <div className="flex items-center space-x-3 text-sm text-gray-400">
-                      <Clock className="w-4 h-4" />
-                      <span>{new Date(founder.createdAt || new Date()).toLocaleString()}</span>
-                      {new Date(founder.createdAt || new Date()).getHours() >= 0 && new Date(founder.createdAt || new Date()).getHours() <= 5 && (
-                        <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs">
-                          🌙 3AM Drop
+            <AnimatePresence>
+              {founders.map((founder, index) => (
+                <motion.div
+                  key={founder.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="bg-gradient-to-r from-gray-800/30 to-gray-900/30 border-gray-600 backdrop-blur-sm hover:from-gray-800/50 hover:to-gray-900/50 transition-all duration-500 group shadow-lg hover:shadow-2xl overflow-hidden relative">
+                    {/* Visual accent */}
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
+                      <Zap className="w-24 h-24 text-orange-500" />
+                    </div>
+
+                    <CardContent className="p-8 relative z-10">
+                      <div className="flex items-start justify-between mb-6">
+                        <Badge className={`${getCategoryColor(founder.category)} border transition-all duration-300 group-hover:scale-105 shadow-lg shadow-black/20`}>
+                          {getCategoryLabel(founder.category)}
                         </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <blockquote className="text-gray-100 mb-6 leading-relaxed text-lg italic border-l-4 border-orange-500/50 pl-6 group-hover:border-orange-400 transition-colors">
-                    "{founder.content}"
-                  </blockquote>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-6">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleUpvote(founder.id)}
-                        className="flex items-center space-x-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 transition-all duration-300 group/button"
-                      >
-                        <ArrowUp className="w-5 h-5 group-hover/button:animate-bounce" />
-                        <span className="font-medium">{founder.upvotes}</span>
-                        <span className="text-xs">upvotes</span>
-                      </Button>
-
-                      <div className="flex items-center space-x-2 text-gray-400">
-                        <MessageCircle className="w-5 h-5" />
-                        <span className="font-medium">{founder.comments}</span>
-                        <span className="text-xs">replies</span>
+                        <div className="flex items-center space-x-3 text-sm text-gray-400">
+                          <Clock className="w-4 h-4" />
+                          <span>{new Date(founder.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          {new Date(founder.createdAt || new Date()).getHours() >= 0 && new Date(founder.createdAt || new Date()).getHours() <= 5 && (
+                            <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs shadow-sm shadow-blue-500/10">
+                              🌙 3AM Drop
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2 text-sm text-gray-400">
-                        <div className="w-2.5 h-2.5 bg-orange-400 rounded-full animate-pulse"></div>
-                        <span className="font-medium">Anonymous Founder</span>
+                      <blockquote className="text-gray-100 mb-6 leading-relaxed text-xl italic border-l-4 border-orange-500/50 pl-6 group-hover:border-orange-400 transition-colors">
+                        "{founder.content}"
+                      </blockquote>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-6">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUpvote(founder.id)}
+                            className="flex items-center space-x-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 transition-all duration-300 group/button rounded-full px-4"
+                          >
+                            <ArrowUp className={`w-5 h-5 group-hover/button:animate-bounce ${founder.upvotes ? 'text-orange-500' : ''}`} />
+                            <span className={`font-bold ${founder.upvotes ? 'text-orange-400' : ''}`}>{founder.upvotes}</span>
+                            <span className="text-xs opacity-60 font-medium">UPVOTES</span>
+                          </Button>
+
+                          <div className="flex items-center space-x-2 text-gray-500 group-hover:text-gray-400 transition-colors">
+                            <MessageCircle className="w-5 h-5" />
+                            <span className="font-bold">{founder.comments}</span>
+                            <span className="text-xs opacity-50 font-medium uppercase tracking-tighter">REPLIES</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
+                          <div className="hidden sm:flex items-center space-x-2 text-[10px] text-gray-600 font-mono tracking-widest">
+                            <div className="w-1.5 h-1.5 bg-orange-600/50 rounded-full"></div>
+                            <span>VERIFIED-FOUNDER-#{founder.id.toString(16).toUpperCase()}</span>
+                          </div>
+                          <Crown className="w-5 h-5 text-yellow-500/30 group-hover:text-yellow-400 transition-all group-hover:rotate-12" />
+                        </div>
                       </div>
-                      <Crown className="w-5 h-5 text-yellow-400" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
 

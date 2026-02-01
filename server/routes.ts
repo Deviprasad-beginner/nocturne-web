@@ -9,7 +9,7 @@ import { insertDiarySchema, insertWhisperSchema, insertMindMazeSchema, insertNig
 const router = express.Router();
 
 // Diaries routes
-router.get("/diaries", async (req, res) => {
+router.get("/v1/diaries", async (req, res) => {
   try {
     const diaries = await storage.getDiaries(true); // Filter public only
     res.json(diaries);
@@ -19,7 +19,7 @@ router.get("/diaries", async (req, res) => {
   }
 });
 
-router.post("/diaries", async (req, res) => {
+router.post("/v1/diaries", async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -30,14 +30,14 @@ router.post("/diaries", async (req, res) => {
       authorId: req.user!.id
     });
     const diary = await storage.createDiary(diaryData);
-    res.status(201).json(diary);
+    res.status(201).json({ success: true, data: diary });
   } catch (error) {
     console.error("Error creating diary:", error);
     res.status(400).json({ error: "Invalid diary data" });
   }
 });
 
-router.delete("/diaries/:id", async (req, res) => {
+router.delete("/v1/diaries/:id", async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -67,31 +67,31 @@ router.delete("/diaries/:id", async (req, res) => {
 });
 
 // Whispers routes
-router.get("/whispers", async (req, res) => {
+router.get("/v1/whispers", async (req, res) => {
   try {
     const whispers = await storage.getWhispers();
-    res.json(whispers);
+    res.json({ success: true, data: whispers });
   } catch (error) {
     console.error("Error getting whispers:", error);
     res.status(500).json({ error: "Failed to fetch whispers" });
   }
 });
 
-router.post("/whispers", async (req, res) => {
+router.post("/v1/whispers", async (req, res) => {
   try {
     const whisperData = insertWhisperSchema.parse({
       ...req.body,
       authorId: req.user?.id // Optional: link to user if logged in
     });
     const whisper = await storage.createWhisper(whisperData);
-    res.status(201).json(whisper);
+    res.status(201).json({ success: true, data: whisper });
   } catch (error) {
     console.error("Error creating whisper:", error);
     res.status(400).json({ error: "Invalid whisper data" });
   }
 });
 
-router.patch("/whispers/:id/hearts", async (req, res) => {
+router.patch("/v1/whispers/:id/hearts", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await storage.incrementWhisperHearts(id);
@@ -103,7 +103,7 @@ router.patch("/whispers/:id/hearts", async (req, res) => {
 });
 
 // Mind Maze routes
-router.get("/mindMaze", async (req, res) => {
+router.get("/v1/mind-maze", async (req, res) => {
   try {
     const mindMaze = await storage.getMindMaze();
     res.json(mindMaze);
@@ -113,7 +113,7 @@ router.get("/mindMaze", async (req, res) => {
   }
 });
 
-router.post("/mindMaze", async (req, res) => {
+router.post("/v1/mind-maze", async (req, res) => {
   try {
     const mindMazeData = insertMindMazeSchema.parse(req.body);
     const mindMaze = await storage.createMindMaze(mindMazeData);
@@ -124,7 +124,7 @@ router.post("/mindMaze", async (req, res) => {
   }
 });
 
-router.patch("/mindMaze/:id/responses", async (req, res) => {
+router.patch("/v1/mind-maze/:id/responses", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await storage.incrementMindMazeResponses(id);
@@ -136,7 +136,7 @@ router.patch("/mindMaze/:id/responses", async (req, res) => {
 });
 
 // Night Circles routes
-router.get("/nightCircles", async (req, res) => {
+router.get("/v1/circles", async (req, res) => {
   try {
     const nightCircles = await storage.getNightCircles();
     res.json(nightCircles);
@@ -146,7 +146,7 @@ router.get("/nightCircles", async (req, res) => {
   }
 });
 
-router.post("/nightCircles", async (req, res) => {
+router.post("/v1/circles", async (req, res) => {
   try {
     const nightCircleData = insertNightCircleSchema.parse(req.body);
     const nightCircle = await storage.createNightCircle(nightCircleData);
@@ -157,7 +157,7 @@ router.post("/nightCircles", async (req, res) => {
   }
 });
 
-router.patch("/nightCircles/:id/members", async (req, res) => {
+router.patch("/v1/circles/:id/members", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { members } = req.body;
@@ -170,7 +170,7 @@ router.patch("/nightCircles/:id/members", async (req, res) => {
 });
 
 // Midnight Cafe routes
-router.get("/midnightCafe", async (req, res) => {
+router.get("/v1/cafe", async (req, res) => {
   try {
     const midnightCafe = await storage.getMidnightCafe();
     res.json(midnightCafe);
@@ -180,21 +180,21 @@ router.get("/midnightCafe", async (req, res) => {
   }
 });
 
-router.post("/midnightCafe", async (req, res) => {
+router.post("/v1/cafe", async (req, res) => {
   try {
     const midnightCafeData = insertMidnightCafeSchema.parse({
       ...req.body,
       authorId: req.user?.id
     });
     const midnightCafe = await storage.createMidnightCafe(midnightCafeData);
-    res.status(201).json(midnightCafe);
+    res.status(201).json({ success: true, data: midnightCafe });
   } catch (error) {
     console.error("Error creating midnight cafe post:", error);
     res.status(400).json({ error: "Invalid midnight cafe data" });
   }
 });
 
-router.patch("/midnightCafe/:id/replies", async (req, res) => {
+router.patch("/v1/cafe/:id/reply", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await storage.incrementCafeReplies(id);
@@ -206,7 +206,7 @@ router.patch("/midnightCafe/:id/replies", async (req, res) => {
 });
 
 // 3AM Founder routes
-router.get("/amFounder", async (req, res) => {
+router.get("/v1/founder", async (req, res) => {
   try {
     const founders = await storage.getAmFounder();
     res.json(founders);
@@ -216,21 +216,21 @@ router.get("/amFounder", async (req, res) => {
   }
 });
 
-router.post("/amFounder", async (req, res) => {
+router.post("/v1/founder", async (req, res) => {
   try {
     const founderData = insertAmFounderSchema.parse({
       ...req.body,
       authorId: req.user?.id
     });
     const founder = await storage.createAmFounder(founderData);
-    res.status(201).json(founder);
+    res.status(201).json({ success: true, data: founder });
   } catch (error) {
     console.error("Error creating 3AM founder:", error);
     res.status(400).json({ error: "Invalid 3AM founder data" });
   }
 });
 
-router.patch("/amFounder/:id/upvotes", async (req, res) => {
+router.patch("/v1/founder/:id/upvote", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await storage.incrementFounderUpvotes(id);
@@ -241,7 +241,7 @@ router.patch("/amFounder/:id/upvotes", async (req, res) => {
   }
 });
 
-router.patch("/amFounder/:id/comments", async (req, res) => {
+router.patch("/v1/founder/:id/comments", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await storage.incrementFounderComments(id);
@@ -253,7 +253,7 @@ router.patch("/amFounder/:id/comments", async (req, res) => {
 });
 
 // Starlit Speaker routes
-router.get("/starlitSpeaker", async (req, res) => {
+router.get("/v1/speaker", async (req, res) => {
   try {
     const speakers = await storage.getStarlitSpeaker();
     res.json(speakers);
@@ -263,7 +263,7 @@ router.get("/starlitSpeaker", async (req, res) => {
   }
 });
 
-router.post("/starlitSpeaker", async (req, res) => {
+router.post("/v1/speaker", async (req, res) => {
   try {
     const speakerData = insertStarlitSpeakerSchema.parse(req.body);
     const speaker = await storage.createStarlitSpeaker(speakerData);
@@ -274,7 +274,7 @@ router.post("/starlitSpeaker", async (req, res) => {
   }
 });
 
-router.patch("/starlitSpeaker/:id/participants", async (req, res) => {
+router.patch("/v1/speaker/:id/participants", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { participants } = req.body;
@@ -287,7 +287,7 @@ router.patch("/starlitSpeaker/:id/participants", async (req, res) => {
 });
 
 // Moon Messenger routes
-router.get("/moonMessenger/:sessionId", async (req, res) => {
+router.get("/v1/messenger/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params;
     const messages = await storage.getMoonMessages(sessionId);
@@ -298,7 +298,7 @@ router.get("/moonMessenger/:sessionId", async (req, res) => {
   }
 });
 
-router.post("/moonMessenger", async (req, res) => {
+router.post("/v1/messenger", async (req, res) => {
   try {
     const messageData = insertMoonMessengerSchema.parse(req.body);
     const message = await storage.createMoonMessage(messageData);
@@ -309,7 +309,7 @@ router.post("/moonMessenger", async (req, res) => {
   }
 });
 
-router.get("/moonMessenger", async (req, res) => {
+router.get("/v1/messenger", async (req, res) => {
   try {
     const sessions = await storage.getActiveSessions();
     res.json(sessions);

@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   displayName: text("display_name"),
   email: text("email").unique(),
   profileImageUrl: text("profile_image_url"),
+  hasSeenOnboarding: boolean("has_seen_onboarding").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

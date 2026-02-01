@@ -5,6 +5,9 @@ import { AuthButton } from "@/components/auth-button";
 import { CategoryCard } from "@/components/category-card";
 import { HeroSection } from "@/components/hero-section";
 import { EnhancedHeader } from "@/components/enhanced-header";
+import { LiveActivityFeed } from "@/components/live-activity-feed";
+import { UserProfileCard } from "@/components/user-profile-card";
+import { TrendingTopics } from "@/components/trending-topics";
 import { useLocation } from "wouter";
 import { Footer } from "@/components/footer";
 import {
@@ -39,27 +42,27 @@ export default function Home() {
 
   // Data fetching with React Query from our backend API
   const { data: diaries = [], isLoading: diariesLoading } = useQuery<Diary[]>({
-    queryKey: ['/api/diaries'],
+    queryKey: ['/api/v1/diaries'],
     enabled: true,
   });
 
   const { data: whispers = [], isLoading: whispersLoading } = useQuery<Whisper[]>({
-    queryKey: ['/api/whispers'],
+    queryKey: ['/api/v1/whispers'],
     enabled: true,
   });
 
   const { data: mindMaze = [], isLoading: mindMazeLoading } = useQuery<MindMaze[]>({
-    queryKey: ['/api/mindMaze'],
+    queryKey: ['/api/v1/mind-maze'],
     enabled: true,
   });
 
   const { data: nightCircles = [], isLoading: nightCirclesLoading } = useQuery<NightCircle[]>({
-    queryKey: ['/api/nightCircles'],
+    queryKey: ['/api/v1/circles'],
     enabled: true,
   });
 
   const { data: midnightCafe = [], isLoading: midnightCafeLoading } = useQuery<MidnightCafe[]>({
-    queryKey: ['/api/midnightCafe'],
+    queryKey: ['/api/v1/cafe'],
     enabled: true,
   });
 
@@ -71,27 +74,7 @@ export default function Home() {
     logoutMutation.mutate();
   };
 
-  // Placeholder components for new features. Replace with actual implementations.
-  const LiveActivityFeed = () => (
-    <div className="bg-gray-800 p-4 rounded-lg">
-      <h4 className="text-lg font-semibold mb-2">Live Activity</h4>
-      <p className="text-gray-400">Real-time updates and notifications will appear here.</p>
-    </div>
-  );
-
-  const UserProfileCard = () => (
-    <div className="bg-gray-800 p-4 rounded-lg">
-      <h4 className="text-lg font-semibold mb-2">Your Profile</h4>
-      <p className="text-gray-400">User profile information and settings.</p>
-    </div>
-  );
-
-  const TrendingTopics = () => (
-    <div className="bg-gray-800 p-4 rounded-lg">
-      <h4 className="text-lg font-semibold mb-2">Trending Topics</h4>
-      <p className="text-gray-400">See what's buzzing in the Nocturne community.</p>
-    </div>
-  );
+  // Real components are now imported from @/components
 
   const QuickActions = () => (
     <div className="max-w-7xl mx-auto px-6 py-6">

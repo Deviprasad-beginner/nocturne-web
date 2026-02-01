@@ -25,6 +25,7 @@ import Help from "@/pages/help";
 import NotFound from "@/pages/not-found";
 
 import AuthPage from "@/pages/auth-page";
+import FirstNight from "@/pages/first-night";
 
 function Landing() {
   return (
@@ -51,7 +52,12 @@ function Landing() {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  // Show First Night onboarding for authenticated users who haven't seen it
+  if (isAuthenticated && user && !user.hasSeenOnboarding) {
+    return <FirstNight />;
+  }
 
   // For development, show the app regardless of auth status
   // In production, uncomment the auth check

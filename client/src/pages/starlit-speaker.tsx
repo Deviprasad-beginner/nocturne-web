@@ -23,19 +23,15 @@ export default function StarlitSpeakerPage() {
 
   // Query to fetch starlit speakers
   const { data: speakers = [] } = useQuery<StarlitSpeaker[]>({
-    queryKey: ["/api/starlitSpeaker"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/starlitSpeaker");
-      return res.json();
-    },
+    queryKey: ["/api/v1/speaker"],
   });
 
   // Mutation to create new speaker session
   const createSpeakerMutation = useMutation({
     mutationFn: (speakerData: InsertStarlitSpeaker) =>
-      apiRequest("POST", "/api/starlitSpeaker", speakerData),
+      apiRequest("POST", "/api/v1/speaker", speakerData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/starlitSpeaker"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/speaker"] });
       setSpeechText("");
       setTopic("");
     },

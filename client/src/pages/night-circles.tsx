@@ -28,23 +28,16 @@ export default function NightCircles() {
   }, [user]);
 
   const { data: nightCircles = [], isLoading } = useQuery<NightCircle[]>({
-    queryKey: ['/api/nightCircles'],
+    queryKey: ['/api/v1/circles'],
   });
 
   const createCircleMutation = useMutation({
     mutationFn: async (newCircle: InsertNightCircle) => {
-      const response = await fetch('/api/nightCircles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newCircle),
-      });
-      if (!response.ok) throw new Error('Failed to create night circle');
+      const response = await apiRequest("POST", "/api/v1/circles", newCircle);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/nightCircles'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/circles'] });
       setName("");
       setIsCreating(false);
     },
