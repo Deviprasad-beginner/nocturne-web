@@ -24,8 +24,17 @@ export class WebSocketManager {
   private waitingForRandom: WebSocket[] = [];
 
   constructor(server: Server) {
-    this.wss = new WebSocketServer({ server, path: '/ws' });
+    this.wss = new WebSocketServer({ noServer: true });
     this.setupWebSocket();
+
+    server.on('upgrade', (request, socket, head) => {
+      // Only handle upgrades for the /ws path
+      if (request.url === '/ws') {
+        this.wss.handleUpgrade(request, socket, head, (ws) => {
+          this.wss.emit('connection', ws, request);
+        });
+      }
+    });
   }
 
   private setupWebSocket() {
@@ -81,11 +90,11 @@ export class WebSocketManager {
     if (this.waitingForRandom.length > 0) {
       const otherWs = this.waitingForRandom.shift()!;
       const otherConnection = this.connections.get(otherWs);
-      
+
       if (otherConnection && otherWs.readyState === WebSocket.OPEN) {
         // Create a room for both users
         const roomId = `random_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         const room: Room = {
           id: roomId,
           participants: new Set([ws, otherWs]),
@@ -144,7 +153,7 @@ export class WebSocketManager {
 
   private handleJoinRoom(ws: WebSocket, roomId: string, username: string) {
     let room = this.rooms.get(roomId);
-    
+
     if (!room) {
       room = {
         id: roomId,

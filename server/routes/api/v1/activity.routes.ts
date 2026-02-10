@@ -11,7 +11,7 @@ router.get("/recent", async (req, res) => {
         // Fetch recent activities from different sources
         const recentActivities = await db.execute(sql`
             -- Recent diary posts
-            SELECT 
+            (SELECT 
                 'post' as type,
                 d.id,
                 COALESCE(u.display_name, 'Anonymous') as username,
@@ -23,12 +23,12 @@ router.get("/recent", async (req, res) => {
             LEFT JOIN ${users} u ON d.author_id = u.id
             WHERE d.created_at > NOW() - INTERVAL '2 hours'
             ORDER BY d.created_at DESC
-            LIMIT 5
+            LIMIT 5)
 
             UNION ALL
 
             -- Recent whispers
-            SELECT 
+            (SELECT 
                 'whisper' as type,
                 w.id,
                 'Anonymous' as username,
@@ -39,12 +39,12 @@ router.get("/recent", async (req, res) => {
             FROM ${whispers} w
             WHERE w.created_at > NOW() - INTERVAL '2 hours'
             ORDER BY w.created_at DESC
-            LIMIT 5
+            LIMIT 5)
 
             UNION ALL
 
             -- Recent cafe posts
-            SELECT 
+            (SELECT 
                 'comment' as type,
                 m.id,
                 COALESCE(u.display_name, 'Night Wanderer') as username,
@@ -56,7 +56,7 @@ router.get("/recent", async (req, res) => {
             LEFT JOIN ${users} u ON m.author_id = u.id
             WHERE m.created_at > NOW() - INTERVAL '2 hours'
             ORDER BY m.created_at DESC
-            LIMIT 5
+            LIMIT 5)
 
             -- Order all activities by timestamp
             ORDER BY timestamp DESC

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { User, Star, Trophy, Moon, Flame, Heart, Loader2, ChevronDown, ChevronUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -74,172 +73,181 @@ export function UserProfileCard() {
     return icons[iconName] || <Star className="w-3 h-3" />;
   };
 
-  const getAchievementColorClass = (color: string) => {
-    const colors: Record<string, string> = {
-      purple: 'bg-purple-500/10 border-purple-500/20 text-purple-300',
-      pink: 'bg-pink-500/10 border-pink-500/20 text-pink-300',
-      red: 'bg-red-500/10 border-red-500/20 text-red-300',
-      blue: 'bg-blue-500/10 border-blue-500/20 text-blue-300',
-      yellow: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-300',
-      gold: 'bg-yellow-600/10 border-yellow-600/20 text-yellow-400',
-    };
-    return colors[color] || 'bg-gray-500/10 border-gray-500/20 text-gray-300';
-  };
-
   const isLoading = isLoadingStats || isLoadingAchievements;
 
   if (!user) {
     return (
-      <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30 rounded-2xl">
-        <CardContent className="py-8">
-          <div className="text-center text-gray-400">
-            <User className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-xs mb-3">Sign in to track progress</p>
-            <Link href="/auth">
-              <button className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs transition-all duration-200">
-                Sign In
-              </button>
-            </Link>
+      <div className="bg-black/20 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden animate-in fade-in duration-500">
+        <div className="p-6 text-center">
+          <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mx-auto mb-3 transition-all duration-300 hover:bg-white/10 hover:scale-105">
+            <User className="w-6 h-6 text-gray-500" />
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-xs text-gray-500 mb-3">Sign in to track progress</p>
+          <Link href="/auth">
+            <button className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg text-xs transition-all duration-200 border border-purple-500/30 hover:scale-105">
+              Sign In
+            </button>
+          </Link>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30">
-      <CardHeader className="pb-3">
-        <CardTitle
-          className="flex items-center justify-between cursor-pointer group"
+    <>
+      <div className="bg-black/20 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden">
+        <div
+          className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-white/5 transition-all duration-200"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-400 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500/30 to-blue-500/30 rounded-xl flex items-center justify-center flex-shrink-0 border border-purple-500/20 transition-all duration-200 hover:scale-105">
               {user.profileImageUrl ? (
-                <img src={user.profileImageUrl} alt={user.displayName || 'User'} className="w-full h-full rounded-full" />
+                <img src={user.profileImageUrl} alt={user.displayName || 'User'} className="w-full h-full rounded-xl object-cover" />
               ) : (
-                <User className="w-4 h-4 text-white" />
+                <User className="w-4 h-4 text-purple-300" />
               )}
             </div>
             <div className="min-w-0">
-              <div className="text-sm text-white truncate">{user.displayName || 'Night Wanderer'}</div>
-              <div className="flex items-center space-x-1">
-                <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 text-xs px-1.5 py-0">
+              <div className="text-sm text-white truncate font-medium">{user.displayName || 'Night Wanderer'}</div>
+              <div className="flex items-center space-x-1.5">
+                <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 text-xs px-1.5 py-0 border border-purple-500/30 transition-all duration-200 hover:bg-purple-500/30">
                   Lvl {userStats.nightOwlLevel}
                 </Badge>
-                <span className="text-xs text-gray-400 truncate">{getLevelTitle(userStats.nightOwlLevel)}</span>
+                <span className="text-xs text-gray-500 truncate">{getLevelTitle(userStats.nightOwlLevel)}</span>
               </div>
             </div>
           </div>
           <button className="text-gray-400 hover:text-white transition-colors">
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <ChevronUp className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-0' : 'rotate-180'}`} />
           </button>
-        </CardTitle>
-      </CardHeader>
+        </div>
 
-      {isExpanded && (
-        <CardContent className="pt-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {/* Progress Bar */}
-              <div>
-                <div className="flex justify-between text-xs text-gray-400 mb-1">
-                  <span>Level {userStats.nightOwlLevel + 1}</span>
-                  <span>{Math.round(progressPercent)}%</span>
-                </div>
-                <div className="w-full bg-gray-700 rounded-full h-1.5">
-                  <div
-                    className="bg-gradient-to-r from-purple-400 to-blue-400 h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(progressPercent, 100)}%` }}
-                  />
-                </div>
+        <div
+          className="transition-all duration-500 ease-in-out overflow-hidden"
+          style={{
+            maxHeight: isExpanded ? '600px' : '0px',
+            opacity: isExpanded ? 1 : 0
+          }}
+        >
+          <div className="px-4 pb-3">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
               </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-4 gap-2">
-                <div className="text-center p-2 bg-red-500/10 rounded-xl border border-red-500/20">
-                  <Heart className="w-4 h-4 text-red-400 mx-auto mb-0.5" />
-                  <div className="text-sm font-bold text-red-300">{userStats.totalHearts}</div>
-                  <div className="text-xs text-gray-400">Hearts</div>
-                </div>
-
-                <div className="text-center p-2 bg-orange-500/10 rounded-xl border border-orange-500/20">
-                  <Flame className="w-4 h-4 text-orange-400 mx-auto mb-0.5" />
-                  <div className="text-sm font-bold text-orange-300">{userStats.streakDays}</div>
-                  <div className="text-xs text-gray-400">Streak</div>
-                </div>
-
-                <div className="text-center p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                  <Moon className="w-4 h-4 text-blue-400 mx-auto mb-0.5" />
-                  <div className="text-sm font-bold text-blue-300">{userStats.postsShared}</div>
-                  <div className="text-xs text-gray-400">Posts</div>
-                </div>
-
-                <div className="text-center p-2 bg-green-500/10 rounded-xl border border-green-500/20">
-                  <Trophy className="w-4 h-4 text-green-400 mx-auto mb-0.5" />
-                  <div className="text-sm font-bold text-green-300">{userStats.conversationsJoined}</div>
-                  <div className="text-xs text-gray-400">Chats</div>
-                </div>
-              </div>
-
-              {/* Achievements */}
-              {achievements.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-400 mb-2">Achievements</h4>
-                  <div className="space-y-1">
-                    {achievements.slice(0, 2).map((achievement) => (
-                      <div
-                        key={achievement.id}
-                        className={`flex items-center space-x-2 p-1.5 rounded-lg border ${getAchievementColorClass(achievement.color)}`}
-                      >
-                        {getAchievementIcon(achievement.icon)}
-                        <span className="text-xs font-medium truncate">{achievement.title}</span>
-                      </div>
-                    ))}
+            ) : (
+              <div className="space-y-3">
+                {/* Progress Bar */}
+                <div style={{ animation: isExpanded ? 'fadeSlideIn 0.3s ease-out 0s both' : 'none' }}>
+                  <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                    <span>Level {userStats.nightOwlLevel + 1}</span>
+                    <span>{Math.round(progressPercent)}%</span>
                   </div>
-                  {achievements.length > 2 && (
-                    <Link href="/profile">
-                      <button className="w-full mt-2 text-xs text-purple-400 hover:text-purple-300 transition-all duration-200">
-                        +{achievements.length - 2} more →
-                      </button>
-                    </Link>
-                  )}
+                  <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-purple-400 to-blue-400 h-1.5 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: isExpanded ? `${Math.min(progressPercent, 100)}%` : '0%' }}
+                    />
+                  </div>
                 </div>
-              )}
 
-              {achievements.length === 0 && (
-                <div className="text-center py-3 text-gray-400">
-                  <Trophy className="w-6 h-6 mx-auto mb-1 opacity-30" />
-                  <p className="text-xs">Start sharing to earn!</p>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { icon: Heart, value: userStats.totalHearts, label: 'Hearts', color: 'red', delay: 0.05 },
+                    { icon: Flame, value: userStats.streakDays, label: 'Streak', color: 'orange', delay: 0.1 },
+                    { icon: Moon, value: userStats.postsShared, label: 'Posts', color: 'blue', delay: 0.15 },
+                    { icon: Trophy, value: userStats.conversationsJoined, label: 'Chats', color: 'green', delay: 0.2 }
+                  ].map(({ icon: Icon, value, label, color, delay }) => (
+                    <div
+                      key={label}
+                      className={`text-center p-2 bg-white/5 rounded-xl border border-${color}-500/20 hover:bg-white/10 transition-all duration-200 hover:scale-105 cursor-default`}
+                      style={{ animation: isExpanded ? `fadeSlideIn 0.3s ease-out ${delay}s both` : 'none' }}
+                    >
+                      <Icon className={`w-4 h-4 text-${color}-400 mx-auto mb-0.5`} />
+                      <div className={`text-sm font-bold text-${color}-300`}>{value}</div>
+                      <div className="text-xs text-gray-500">{label}</div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      )}
 
-      {!isExpanded && (
-        <CardContent className="pt-0">
-          <div className="flex justify-around text-center py-2">
-            <div>
-              <div className="text-sm font-bold text-purple-300">{userStats.postsShared}</div>
-              <div className="text-xs text-gray-500">Posts</div>
-            </div>
-            <div>
-              <div className="text-sm font-bold text-red-300">{userStats.totalHearts}</div>
-              <div className="text-xs text-gray-500">Hearts</div>
-            </div>
-            <div>
-              <div className="text-sm font-bold text-orange-300">{userStats.streakDays}d</div>
-              <div className="text-xs text-gray-500">Streak</div>
+                {/* Achievements */}
+                {achievements.length > 0 && (
+                  <div style={{ animation: isExpanded ? 'fadeSlideIn 0.3s ease-out 0.25s both' : 'none' }}>
+                    <h4 className="text-xs font-semibold text-gray-500 mb-2">Achievements</h4>
+                    <div className="space-y-1.5">
+                      {achievements.slice(0, 2).map((achievement, index) => (
+                        <div
+                          key={achievement.id}
+                          className="flex items-center space-x-2 p-2 rounded-lg bg-white/5 border border-purple-500/20 hover:bg-white/10 transition-all duration-200 hover:scale-[1.02]"
+                          style={{ animation: isExpanded ? `fadeSlideIn 0.3s ease-out ${0.3 + (index * 0.05)}s both` : 'none' }}
+                        >
+                          <div className="text-purple-400">
+                            {getAchievementIcon(achievement.icon)}
+                          </div>
+                          <span className="text-xs font-medium text-purple-300 truncate">{achievement.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {achievements.length > 2 && (
+                      <Link href="/profile">
+                        <button className="w-full mt-2 text-xs text-purple-400 hover:text-purple-300 transition-all duration-200 hover:scale-105">
+                          +{achievements.length - 2} more →
+                        </button>
+                      </Link>
+                    )}
+                  </div>
+                )}
+
+                {achievements.length === 0 && (
+                  <div className="text-center py-4 text-gray-500" style={{ animation: isExpanded ? 'fadeSlideIn 0.3s ease-out 0.25s both' : 'none' }}>
+                    <Trophy className="w-6 h-6 mx-auto mb-1 opacity-30" />
+                    <p className="text-xs">Start sharing to earn!</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div
+          className="transition-all duration-300 ease-in-out overflow-hidden"
+          style={{
+            maxHeight: !isExpanded ? '60px' : '0px',
+            opacity: !isExpanded ? 1 : 0
+          }}
+        >
+          <div className="px-4 pb-3">
+            <div className="flex justify-around text-center py-1">
+              <div className="transition-transform duration-200 hover:scale-110">
+                <div className="text-sm font-bold text-purple-300">{userStats.postsShared}</div>
+                <div className="text-xs text-gray-600">Posts</div>
+              </div>
+              <div className="transition-transform duration-200 hover:scale-110">
+                <div className="text-sm font-bold text-red-300">{userStats.totalHearts}</div>
+                <div className="text-xs text-gray-600">Hearts</div>
+              </div>
+              <div className="transition-transform duration-200 hover:scale-110">
+                <div className="text-sm font-bold text-orange-300">{userStats.streakDays}d</div>
+                <div className="text-xs text-gray-600">Streak</div>
+              </div>
             </div>
           </div>
-        </CardContent>
-      )}
-    </Card>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fadeSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </>
   );
 }

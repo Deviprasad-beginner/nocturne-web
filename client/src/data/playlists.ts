@@ -1,7 +1,7 @@
 export interface Station {
     id: string;
     name: string;
-    youtubeId: string;
+    streamUrl: string;
 }
 
 export interface Playlist {
@@ -19,19 +19,19 @@ export interface Playlist {
 export const playlists: Playlist[] = [
     {
         id: "midnight-study",
-        name: "Midnight Study Beats",
-        description: "Lo-fi hip hop for deep focus and concentration",
+        name: "Midnight Study Beats (SoundCloud)",
+        description: "Lo-fi hip hop for deep focus - Powered by SoundCloud",
         mood: "Focus",
         listeners: 89,
         duration: "Live",
         tracks: 999,
-        color: "from-blue-500 to-cyan-600",
+        color: "from-slate-600 to-slate-700",
         stations: [
-            { id: "lofi-girl", name: "Lofi Girl", youtubeId: "jfKfPfyJRdk" },
-            { id: "chillhop", name: "Chillhop Raccoon", youtubeId: "5yx6BWlEVcY" },
-            { id: "steezy", name: "STEEZYASFUCK", youtubeId: "TURbeWK2wwg" },
-            { id: "lofi-sleep", name: "Lofi Sleep / Rain", youtubeId: "DWcJFNfaw9c" },
-            { id: "college-music", name: "College Music", youtubeId: "MCkTebktHVc" }
+            { id: "lofi-girl-sc", name: "Lofi Hip Hop Radio", streamUrl: "https://soundcloud.com/lofi-girl/sets/lofi-hip-hop-music-beats" },
+            { id: "chillhop-sc", name: "Chillhop Essentials", streamUrl: "https://soundcloud.com/chillhopdotcom/sets/lofi-hip-hop-instrumentals" },
+            { id: "jazz-vibes-sc", name: "Jazz Vibes", streamUrl: "https://soundcloud.com/jazz-vibes/sets/lofi-hip-hop-1" },
+            { id: "sleepy-fish", name: "Sleepy Fish Discography", streamUrl: "https://soundcloud.com/sleepyfish/sets/sleepy-fish-discography" },
+            { id: "college-music", name: "College Music", streamUrl: "https://soundcloud.com/collegemusic/sets/college-music-releases" }
         ]
     },
     {
@@ -42,12 +42,12 @@ export const playlists: Playlist[] = [
         listeners: 67,
         duration: "Live",
         tracks: 18,
-        color: "from-purple-500 to-indigo-600",
+        color: "from-slate-600 to-slate-700",
         stations: [
-            { id: "space-ambient", name: "Space Ambient", youtubeId: "S4fyD158KqU" },
-            { id: "rain-sounds", name: "Thunderstorm & Rain", youtubeId: "mPZkdNFkNps" },
-            { id: "yellow-brick", name: "Healing/Sleep Music", youtubeId: "1ZYbU82GVz4" },
-            { id: "dreamy-vibes", name: "Dreamy Vibes", youtubeId: "77ZtG628qQo" }
+            { id: "space-ambient", name: "Space Ambient", streamUrl: "https://www.youtube.com/watch?v=S4fyD158KqU" },
+            { id: "rain-sounds", name: "Thunderstorm & Rain", streamUrl: "https://www.youtube.com/watch?v=mPZkdNFkNps" },
+            { id: "yellow-brick", name: "Healing/Sleep Music", streamUrl: "https://www.youtube.com/watch?v=1ZYbU82GVz4" },
+            { id: "dreamy-vibes", name: "Dreamy Vibes", streamUrl: "https://www.youtube.com/watch?v=77ZtG628qQo" }
         ]
     },
     {
@@ -58,12 +58,12 @@ export const playlists: Playlist[] = [
         listeners: 34,
         duration: "Live",
         tracks: 56,
-        color: "from-amber-500 to-orange-600",
+        color: "from-slate-600 to-slate-700",
         stations: [
-            { id: "relaxing-jazz", name: "Relaxing Jazz Radio", youtubeId: "Dx5qFacha3o" },
-            { id: "coffee-jazz", name: "Coffee Shop Jazz", youtubeId: "-5KAN9_CzSA" },
-            { id: "jazz-cafe", name: "Jazz Cafe", youtubeId: "6uddGul0oAc" },
-            { id: "night-jazz-bgm", name: "Night Jazz BGM", youtubeId: "21r7L8D8idI" }
+            { id: "relaxing-jazz", name: "Relaxing Jazz Radio", streamUrl: "https://www.youtube.com/watch?v=Dx5qFacha3o" },
+            { id: "coffee-jazz", name: "Coffee Shop Jazz", streamUrl: "https://www.youtube.com/watch?v=-5KAN9_CzSA" },
+            { id: "jazz-cafe", name: "Jazz Cafe", streamUrl: "https://www.youtube.com/watch?v=6uddGul0oAc" },
+            { id: "night-jazz-bgm", name: "Night Jazz BGM", streamUrl: "https://www.youtube.com/watch?v=21r7L8D8idI" }
         ]
     },
     {
@@ -74,11 +74,11 @@ export const playlists: Playlist[] = [
         listeners: 123,
         duration: "Live",
         tracks: 38,
-        color: "from-pink-500 to-purple-600",
+        color: "from-slate-600 to-slate-700",
         stations: [
-            { id: "synthwave-radio", name: "Synthwave Radio", youtubeId: "4xDzrJKXOOY" },
-            { id: "retrowave", name: "Retrowave / Outrun", youtubeId: "Jv_C529-5R0" },
-            { id: "night-drive", name: "Night Drive", youtubeId: "02q9pX2L4e0" }
+            { id: "synthwave-radio", name: "Synthwave Radio", streamUrl: "https://www.youtube.com/watch?v=4xDzrJKXOOY" },
+            { id: "retrowave", name: "Retrowave / Outrun", streamUrl: "https://www.youtube.com/watch?v=Jv_C529-5R0" },
+            { id: "night-drive", name: "Night Drive", streamUrl: "https://www.youtube.com/watch?v=02q9pX2L4e0" }
         ]
     },
     {
@@ -89,11 +89,11 @@ export const playlists: Playlist[] = [
         listeners: 45,
         duration: "Live",
         tracks: 74,
-        color: "from-green-500 to-teal-600",
+        color: "from-slate-600 to-slate-700",
         stations: [
-            { id: "classical-radio", name: "Classical Radio", youtubeId: "4tC77iFqZpY" },
-            { id: "mozart", name: "Mozart Radio", youtubeId: "Rb0UmZRQX4I" },
-            { id: "baroque", name: "Baroque Music", youtubeId: "2gOhtS1a9nc" }
+            { id: "classical-radio", name: "Classical Radio", streamUrl: "https://www.youtube.com/watch?v=4tC77iFqZpY" },
+            { id: "mozart", name: "Mozart Radio", streamUrl: "https://www.youtube.com/watch?v=Rb0UmZRQX4I" },
+            { id: "baroque", name: "Baroque Music", streamUrl: "https://www.youtube.com/watch?v=2gOhtS1a9nc" }
         ]
     },
     {
@@ -104,11 +104,11 @@ export const playlists: Playlist[] = [
         listeners: 78,
         duration: "Live",
         tracks: 47,
-        color: "from-gray-500 to-slate-600",
+        color: "from-slate-600 to-slate-700",
         stations: [
-            { id: "indie-radio", name: "Indie / Chill / Pop", youtubeId: "BiZG8d92tqA" },
-            { id: "bedroom-pop", name: "Bedroom Pop", youtubeId: "0TvWJZ3k3Ls" },
-            { id: "nice-guys", name: "Nice Guys Chill", youtubeId: "oViO2q2k18g" }
+            { id: "indie-radio", name: "Indie / Chill / Pop", streamUrl: "https://www.youtube.com/watch?v=BiZG8d92tqA" },
+            { id: "bedroom-pop", name: "Bedroom Pop", streamUrl: "https://www.youtube.com/watch?v=0TvWJZ3k3Ls" },
+            { id: "nice-guys", name: "Nice Guys Chill", streamUrl: "https://www.youtube.com/watch?v=oViO2q2k18g" }
         ]
     }
 ];

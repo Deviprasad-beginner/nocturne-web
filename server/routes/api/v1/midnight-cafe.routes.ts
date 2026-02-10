@@ -4,7 +4,7 @@
  */
 
 import { Router } from "express";
-import { midnightCafeController } from "../../../controllers/midnight-cafe.controller";
+import { MidnightCafeController } from "../../../controllers/midnight-cafe.controller";
 import { optionalAuth } from "../../../middleware/auth.middleware";
 import { validate } from "../../../middleware/validation.middleware";
 import { insertMidnightCafeSchema } from "@shared/schema";
@@ -13,13 +13,13 @@ import { z } from "zod";
 const router = Router();
 
 // GET /api/v1/cafe - Get all cafe posts
-router.get("/", midnightCafeController.getAll);
+router.get("/", MidnightCafeController.getAll);
 
 // GET /api/v1/cafe/:id - Get cafe post by ID
 router.get(
     "/:id",
     validate(z.object({ id: z.string().regex(/^\d+$/) }), "params"),
-    midnightCafeController.getById
+    MidnightCafeController.getById
 );
 
 // POST /api/v1/cafe - Create new cafe post
@@ -27,14 +27,19 @@ router.post(
     "/",
     optionalAuth,
     validate(insertMidnightCafeSchema),
-    midnightCafeController.create
+    MidnightCafeController.create
 );
 
 // POST /api/v1/cafe/:id/reply - Increment reply count
 router.post(
     "/:id/reply",
     validate(z.object({ id: z.string().regex(/^\d+$/) }), "params"),
-    midnightCafeController.reply
+    MidnightCafeController.reply
 );
+
+// New Routes
+router.get("/:id/replies", MidnightCafeController.getReplies);
+router.post("/replies", MidnightCafeController.createReply);
+router.delete("/:id", MidnightCafeController.deletePost);
 
 export default router;

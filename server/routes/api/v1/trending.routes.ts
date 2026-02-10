@@ -15,37 +15,37 @@ router.get("/topics", async (req, res) => {
             WITH hashtag_counts AS (
                 -- Extract hashtags from diaries
                 SELECT 
-                    LOWER(REGEXP_MATCHES(content, '#([a-zA-Z0-9_]+)', 'g'))[1] as hashtag,
+                    LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)')) as hashtag,
                     COUNT(*) as post_count,
                     MAX(created_at) as last_used,
                     'diaries' as source
                 FROM ${diaries}
                 WHERE content ~ '#[a-zA-Z0-9_]+'
-                GROUP BY LOWER(REGEXP_MATCHES(content, '#([a-zA-Z0-9_]+)', 'g'))[1]
+                GROUP BY LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)'))
                 
                 UNION ALL
                 
                 -- Extract hashtags from whispers
                 SELECT 
-                    LOWER(REGEXP_MATCHES(content, '#([a-zA-Z0-9_]+)', 'g'))[1] as hashtag,
+                    LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)')) as hashtag,
                     COUNT(*) as post_count,
                     MAX(created_at) as last_used,
                     'whispers' as source
                 FROM ${whispers}
                 WHERE content ~ '#[a-zA-Z0-9_]+'
-                GROUP BY LOWER(REGEXP_MATCHES(content, '#([a-zA-Z0-9_]+)', 'g'))[1]
+                GROUP BY LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)'))
                 
                 UNION ALL
                 
                 -- Extract hashtags from cafe topics
                 SELECT 
-                    LOWER(REGEXP_MATCHES(content, '#([a-zA-Z0-9_]+)', 'g'))[1] as hashtag,
+                    LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)')) as hashtag,
                     COUNT(*) as post_count,
                     MAX(created_at) as last_used,
                     'cafe' as source
                 FROM ${midnightCafe}
                 WHERE content ~ '#[a-zA-Z0-9_]+'
-                GROUP BY LOWER(REGEXP_MATCHES(content, '#([a-zA-Z0-9_]+)', 'g'))[1]
+                GROUP BY LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)'))
             ),
             aggregated AS (
                 SELECT 

@@ -1,8 +1,11 @@
 import { Switch, Route, Link } from "wouter";
+import { Loader2 } from "lucide-react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import "@/styles/animations.css";
 import { useAuth } from "@/hooks/useAuth";
 import Home from "@/pages/home";
 import Diaries from "@/pages/diaries";
@@ -17,6 +20,7 @@ import MindfulSpaces from "@/pages/mindful-spaces";
 import AmFounder from "@/pages/3am-founder";
 import StarlitSpeaker from "@/pages/starlit-speaker";
 import MoonMessenger from "@/pages/moon-messenger";
+import NightlyReflection from "@/pages/nightly-reflection";
 import Settings from "@/pages/settings";
 import Profile from "@/pages/profile";
 import Privacy from "@/pages/privacy";
@@ -26,6 +30,11 @@ import NotFound from "@/pages/not-found";
 
 import AuthPage from "@/pages/auth-page";
 import FirstNight from "@/pages/first-night";
+import NightThoughts from "@/pages/night-thoughts";
+import ReadCard from "@/pages/read-card";
+import ReadAlone from "@/pages/read-alone";
+import Reader from "@/pages/reader";
+import ReadTonight from "@/pages/read-tonight";
 
 function Landing() {
   return (
@@ -59,66 +68,66 @@ function Router() {
     return <FirstNight />;
   }
 
-  // For development, show the app regardless of auth status
-  // In production, uncomment the auth check
   return (
     <Switch>
+      {/* Auth Routes */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={AuthPage} />
-      <Route path="/" component={Home} />
+
+      {/* Feature Routes - Support Guest Access */}
       <Route path="/diaries" component={Diaries} />
       <Route path="/whispers" component={Whispers} />
       <Route path="/mind-maze" component={MindMaze} />
       <Route path="/night-circles" component={NightCircles} />
       <Route path="/midnight-cafe" component={MidnightCafe} />
       <Route path="/music-mood" component={MusicMood} />
+      <Route path="/nightly-reflection" component={NightlyReflection} />
       <Route path="/night-conversations" component={NightConversations} />
       <Route path="/digital-journals" component={DigitalJournals} />
       <Route path="/mindful-spaces" component={MindfulSpaces} />
       <Route path="/3am-founder" component={AmFounder} />
       <Route path="/starlit-speaker" component={StarlitSpeaker} />
       <Route path="/moon-messenger" component={MoonMessenger} />
+      <Route path="/night-thoughts" component={NightThoughts} />
+      <Route path="/read-card" component={ReadCard} />
+      <Route path="/read-alone" component={ReadAlone} />
+      <Route path="/reader/:id" component={Reader} />
+      <Route path="/read-tonight" component={ReadTonight} />
+
+      {/* Protected / User Specific */}
       <Route path="/settings" component={Settings} />
       <Route path="/profile" component={Profile} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/help" component={Help} />
-      <Route component={NotFound} />
-    </Switch>
-  );
 
-  // Production auth flow (enable when deploying):
-  /*
-  return (
-    <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/diaries" component={Diaries} />
-          <Route path="/whispers" component={Whispers} />
-          <Route path="/mind-maze" component={MindMaze} />
-          <Route path="/night-circles" component={NightCircles} />
-          <Route path="/midnight-cafe" component={MidnightCafe} />
-          <Route path="/music-mood" component={MusicMood} />
-        </>
-      )}
+      {/* Root Route - Landing for Guest, Home for User */}
+      <Route path="/">
+        {!isAuthenticated ? <Landing /> : <Home />}
+      </Route>
+
+      {/* 404 Fallback */}
       <Route component={NotFound} />
     </Switch>
   );
-  */
 }
+
+import { MusicProvider } from "@/context/MusicContext";
+import { GlobalPlayer } from "@/components/music/GlobalPlayer";
+
+// ... existing imports
 
 function App() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
-          <div className="text-white text-lg">Loading your night sanctuary...</div>
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center flex-col text-white">
+        <div className="mb-4">
+          <Loader2 className="h-12 w-12 animate-spin text-indigo-500" />
+        </div>
+        <div className="text-lg font-light tracking-wide text-indigo-200/80 animate-pulse">
+          Entering the sanctuary...
         </div>
       </div>
     );
@@ -127,9 +136,19 @@ function App() {
   // Allow access without authentication (guest mode)
   // This makes the app work regardless of auth status
   return (
-    <div className="min-h-screen bg-gray-950">
-      <Router />
-    </div>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <MusicProvider>
+            <div className="min-h-screen bg-gray-950">
+              <Router />
+            </div>
+            <GlobalPlayer />
+            <Toaster />
+          </MusicProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

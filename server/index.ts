@@ -2,15 +2,25 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import cors from "cors";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { WebSocketManager } from "./websocket";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware";
+import { apiLimiter } from "./middleware/rateLimiter";
 import apiV1Routes from "./routes/api/v1/index";
 import { testDatabaseConnection } from "./config/database";
 import { logger } from "./utils/logger";
 
 const app = express();
+
+// Security headers with helmet
+app.use(helmet({
+  contentSecurityPolicy: false, // Disabled for development, configure for production
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false, // Allow communication with popups (Firebase Auth)
+  originAgentCluster: false, // Required for some cross-origin interactions
+}));
 
 // CORS configuration for production
 const isProduction = process.env.NODE_ENV === "production";
@@ -22,6 +32,9 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
 }));
+
+// Apply rate limiting to all API routes
+app.use("/api", apiLimiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

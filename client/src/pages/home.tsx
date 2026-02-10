@@ -20,7 +20,8 @@ import {
   Music,
   Heart,
   Lightbulb,
-  Star as StarIcon
+  Star as StarIcon,
+  BookOpen
 } from "lucide-react";
 
 // Star component for background
@@ -74,24 +75,6 @@ export default function Home() {
     logoutMutation.mutate();
   };
 
-  // Real components are now imported from @/components
-
-  const QuickActions = () => (
-    <div className="max-w-7xl mx-auto px-6 py-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-800 p-4 rounded-lg text-center">
-          <p className="text-gray-400">Quick Action 1</p>
-        </div>
-        <div className="bg-gray-800 p-4 rounded-lg text-center">
-          <p className="text-gray-400">Quick Action 2</p>
-        </div>
-        <div className="bg-gray-800 p-4 rounded-lg text-center">
-          <p className="text-gray-400">Quick Action 3</p>
-        </div>
-      </div>
-    </div>
-  );
-
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white relative overflow-hidden">
@@ -128,7 +111,12 @@ export default function Home() {
       {/* Category Grid */}
       <section className="relative z-10 px-6 pb-20">
         <div className="max-w-6xl mx-auto">
-          <h3 className="text-3xl font-bold text-center mb-12 text-white">Explore Nocturne Communities</h3>
+          <h3 className="text-3xl font-bold text-center mb-4 text-white">Explore Nocturne</h3>
+
+          {/* Guiding Sentence */}
+          <h2 className="text-lg text-center text-gray-400 font-light mb-12 italic tracking-wide animate-pulse-slow">
+            "Choose one place. You don't need to stay."
+          </h2>
 
           {/* Top Section - Activity & Profile */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -141,284 +129,305 @@ export default function Home() {
           </div>
 
           {/* Trending Section */}
-          <div className="mb-8">
+          <div className="mb-12">
             <TrendingTopics />
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* SECTION 1: Your Sanctuary - Solo Activities */}
+          <div className="mb-16">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-px bg-gradient-to-r from-transparent via-indigo-400/30 to-transparent flex-1"></div>
+              <h4 className="text-xl font-semibold text-indigo-300 uppercase tracking-wider">Your Sanctuary</h4>
+              <div className="h-px bg-gradient-to-r from-transparent via-indigo-400/30 to-transparent flex-1"></div>
+            </div>
+            <p className="text-center text-gray-400 text-sm mb-6 italic">Solo spaces for reflection and creation</p>
 
-            {/* Night Diaries */}
-            <CategoryCard
-              title="Night Diaries"
-              description="Private and public journals for your midnight musings and daily reflections."
-              icon={Notebook}
-              iconColor="bg-gradient-to-br from-yellow-400 to-orange-500"
-              count={diaries.length}
-              countLabel="entries"
-              countColor="bg-yellow-500/20 text-yellow-300"
-              onClick={() => setLocation('/diaries')}
-            >
-              <div className="space-y-3">
-                {diariesLoading ? (
-                  <div className="text-gray-400 text-sm">Loading entries...</div>
-                ) : diaries.length === 0 ? (
-                  <div className="text-gray-400 text-sm">No diary entries yet. Be the first to share your thoughts!</div>
-                ) : (
-                  diaries.slice(0, 2).map((diary: Diary) => (
-                    <div key={diary.id} className="bg-black/30 p-3 rounded-lg">
-                      <p className="text-sm text-gray-300">"{diary.content.substring(0, 60)}..."</p>
-                      <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                        {/* <span>{diary.author}</span> */} {/* author is not in Diary type based on schema, authorId is. Schema: authorId. Assuming author logic is elsewhere or simplified here. Wait, schema has authorId. Code uses diary.author. If diary.author is missing, we might have another issue. Let's stick to fixing the date first, but I should check if author exists. Schema says authorId. Let's keep existing structure primarily but fix date. */}
-                        {/* Actually, looking at schema, Diary has authorId. 'author' property might be joined. But standard getDiaries usually returns flat table. Let's check storage.getDiaries */}
-                        <span>Anoymous</span>
-                        <span>{new Date(diary.createdAt || new Date()).toLocaleTimeString()}</span>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Night Diaries */}
+              <CategoryCard
+                title="Night Diaries"
+                description="Private and public journals for your midnight musings and daily reflections."
+                icon={Notebook}
+                iconColor="bg-gradient-to-br from-yellow-400 to-orange-500"
+                count={diaries.length}
+                countLabel="entries"
+                countColor="bg-yellow-500/20 text-yellow-300"
+                onClick={() => setLocation('/diaries')}
+              >
+                <div className="space-y-3">
+                  {diariesLoading ? (
+                    <div className="text-gray-400 text-sm">Loading entries...</div>
+                  ) : diaries.length === 0 ? (
+                    <div className="text-gray-400 text-sm">No diary entries yet. Be the first to share your thoughts!</div>
+                  ) : (
+                    diaries.slice(0, 2).map((diary: Diary) => (
+                      <div key={diary.id} className="bg-black/30 p-3 rounded-lg">
+                        <p className="text-sm text-gray-300">"{diary.content.substring(0, 60)}..."</p>
+                        <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                          <span>Anoymous</span>
+                          <span>{new Date(diary.createdAt || new Date()).toLocaleTimeString()}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CategoryCard>
+                    ))
+                  )}
+                </div>
+              </CategoryCard>
 
-            {/* Whispers */}
-            <CategoryCard
-              title="Whispers"
-              description="Anonymous thoughts and confessions shared in the safety of darkness."
-              icon={MessageCircle}
-              iconColor="bg-gradient-to-br from-indigo-400 to-purple-500"
-              count={whispers.length}
-              countLabel="whispers"
-              countColor="bg-indigo-500/20 text-indigo-300"
-              onClick={() => setLocation('/whispers')}
-            >
-              <div className="space-y-3">
-                {whispersLoading ? (
-                  <div className="text-gray-400 text-sm">Loading whispers...</div>
-                ) : whispers.length === 0 ? (
-                  <div className="text-gray-400 text-sm">No whispers yet. Share your anonymous thoughts!</div>
-                ) : (
-                  whispers.slice(0, 2).map((whisper: Whisper) => (
-                    <div key={whisper.id} className="bg-black/30 p-3 rounded-lg">
-                      <p className="text-sm text-gray-300">"{whisper.content.substring(0, 60)}..."</p>
-                      <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                        <span className="flex items-center space-x-1">
-                          <Heart className="w-3 h-3" />
-                          <span>{whisper.hearts}</span>
-                        </span>
-                        <span>{new Date(whisper.createdAt || new Date()).toLocaleTimeString()}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CategoryCard>
-
-            {/* Mind Maze */}
-            <CategoryCard
-              title="Mind Maze"
-              description="Brain teasers, philosophy, and deep questions to stimulate late-night thinking."
-              icon={Brain}
-              iconColor="bg-gradient-to-br from-green-400 to-blue-500"
-              count={mindMaze.length}
-              countLabel="puzzles"
-              countColor="bg-green-500/20 text-green-300"
-              onClick={() => setLocation('/mind-maze')}
-            >
-              <div className="space-y-3">
-                {mindMazeLoading ? (
-                  <div className="text-gray-400 text-sm">Loading puzzles...</div>
-                ) : mindMaze.length === 0 ? (
-                  <div className="text-gray-400 text-sm">No puzzles yet. Share a thought-provoking question!</div>
-                ) : (
-                  mindMaze.slice(0, 2).map((puzzle: any) => (
-                    <div key={puzzle.id} className="bg-black/30 p-3 rounded-lg">
-                      <p className="text-sm text-gray-300 font-medium">
-                        {puzzle.type === 'puzzle' ? '🧩' : '💭'} {puzzle.type === 'puzzle' ? "Tonight's Puzzle:" : "Philosophy Corner:"}
-                      </p>
-                      <p className="text-sm text-gray-400 mt-1">"{puzzle.content.substring(0, 60)}..."</p>
-                      <div className="mt-2 text-xs text-gray-500">
-                        <span>{puzzle.responses} responses</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CategoryCard>
-
-            {/* Night Circles */}
-            <CategoryCard
-              title="Night Circles"
-              description="Small group discussions for intimate conversations and mutual support."
-              icon={Users}
-              iconColor="bg-gradient-to-br from-pink-400 to-red-500"
-              count={nightCircles.filter((circle: any) => circle.active).length}
-              countLabel="active"
-              countColor="bg-pink-500/20 text-pink-300"
-              onClick={() => setLocation('/night-circles')}
-            >
-              <div className="space-y-3">
-                {nightCirclesLoading ? (
-                  <div className="text-gray-400 text-sm">Loading circles...</div>
-                ) : nightCircles.length === 0 ? (
-                  <div className="text-gray-400 text-sm">No circles yet. Create the first night circle!</div>
-                ) : (
-                  nightCircles.slice(0, 2).map((circle: any) => (
-                    <div key={circle.id} className="bg-black/30 p-3 rounded-lg">
-                      <img
-                        src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=100"
-                        alt="People in deep conversation"
-                        className="w-full h-16 object-cover rounded mb-2"
-                      />
-                      <p className="text-sm text-gray-300 font-medium">🌙 {circle.name}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {circle.members} members • {circle.active ? 'Active now' : `${circle.online} online`}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CategoryCard>
-
-            {/* Midnight Cafe */}
-            <CategoryCard
-              title="Midnight Cafe"
-              description="Casual hangout space for light conversations and virtual companionship."
-              icon={Coffee}
-              iconColor="bg-gradient-to-br from-amber-400 to-orange-500"
-              count={midnightCafe.length}
-              countLabel="online"
-              countColor="bg-amber-500/20 text-amber-300"
-              onClick={() => setLocation('/midnight-cafe')}
-            >
-              <div className="space-y-3">
-                {midnightCafeLoading ? (
-                  <div className="text-gray-400 text-sm">Loading cafe...</div>
-                ) : midnightCafe.length === 0 ? (
-                  <div className="text-gray-400 text-sm">No one in the cafe yet. Join the conversation!</div>
-                ) : (
-                  midnightCafe.slice(0, 2).map((post: any) => (
-                    <div key={post.id} className="bg-black/30 p-3 rounded-lg">
-                      <img
-                        src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=100"
-                        alt="Cozy cafe interior"
-                        className="w-full h-16 object-cover rounded mb-2"
-                      />
-                      <p className="text-sm text-gray-300">"{post.content.substring(0, 60)}..."</p>
-                      <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                        <span>{post.author}</span>
-                        <span>{post.replies} replies</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CategoryCard>
-
-            {/* Music & Mood */}
-            <CategoryCard
-              title="Music & Mood"
-              description="Curated playlists and ambient sounds for different night moods and activities."
-              icon={Music}
-              iconColor="bg-gradient-to-br from-purple-400 to-pink-500"
-              count={156}
-              countLabel="listening"
-              countColor="bg-purple-500/20 text-purple-300"
-              onClick={() => setLocation('/music-mood')}
-            >
-              <div className="space-y-3">
-                <div className="bg-black/30 p-3 rounded-lg">
-                  <img
-                    src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=100"
-                    alt="People enjoying music under the stars"
-                    className="w-full h-16 object-cover rounded mb-2"
-                  />
-                  <p className="text-sm text-gray-300 font-medium">🎵 Currently Playing</p>
-                  <p className="text-xs text-gray-400 mt-1">"Midnight Study Beats" • Lo-fi Hip Hop</p>
-                  <div className="flex items-center mt-2 text-xs text-gray-500">
-                    <span>89 listening now</span>
+              {/* Nightly Reflection */}
+              <CategoryCard
+                title="Inspection"
+                description="Deep self-analysis protocols. Examine your thoughts and patterns with daily AI-guided inspection."
+                icon={Moon}
+                iconColor="bg-gradient-to-br from-indigo-400 to-purple-500"
+                count="Still Drifting"
+                countLabel=""
+                countColor="bg-indigo-500/20 text-indigo-300"
+                onClick={() => setLocation('/nightly-reflection')}
+              >
+                <div className="space-y-3">
+                  <div className="bg-black/30 p-3 rounded-lg">
+                    <p className="text-sm text-gray-300 font-medium mb-2">✨ Today's Thinking</p>
+                    <p className="text-xs text-gray-400">
+                      Receive a daily AI-generated prompt designed to encourage introspection. No judgments, just reflection.
+                    </p>
                   </div>
                 </div>
-                <div className="bg-black/30 p-3 rounded-lg">
-                  <p className="text-sm text-gray-300 font-medium">🌙 Nocturne Ambient</p>
-                  <p className="text-xs text-gray-400 mt-1">Rain sounds mixed with gentle piano</p>
-                  <div className="flex items-center mt-2 text-xs text-gray-500">
-                    <span>67 listening now</span>
+              </CategoryCard>
+
+              {/* Music & Mood */}
+              <CategoryCard
+                title="Music & Mood"
+                description="Curated playlists and ambient sounds for different night moods and activities."
+                icon={Music}
+                iconColor="bg-gradient-to-br from-purple-400 to-pink-500"
+                count="After Midnight"
+                countLabel=""
+                countColor="bg-purple-500/20 text-purple-300"
+                glow={true}
+                onClick={() => setLocation('/music-mood')}
+              >
+                <div className="space-y-3">
+                  <div className="bg-black/30 p-3 rounded-lg">
+                    <img
+                      src="https://images.unsplash.com/photo-1546435770-a3e426bf472b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                      alt="Headphones in dark ambient lighting"
+                      className="w-full h-16 object-cover rounded mb-2 opacity-80"
+                    />
+                    <p className="text-sm text-gray-300 font-medium">🎵 Currently Playing</p>
+                    <p className="text-xs text-gray-400 mt-1">"Midnight Study Beats" • Lo-fi Hip Hop</p>
                   </div>
                 </div>
-              </div>
-            </CategoryCard>
+              </CategoryCard>
 
-            {/* New Categories */}
-            <CategoryCard
-              title="3AM Founder"
-              description="Anonymous thoughts and insights from midnight entrepreneurs. Share your raw startup ideas and struggles without judgment."
-              icon={Lightbulb}
-              iconColor="text-orange-400"
-              count={23}
-              countLabel="founder insights"
-              countColor="text-orange-300"
-              onClick={() => setLocation("/3am-founder")}
-            >
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Ideas shared</span>
-                  <span className="text-orange-300">12</span>
+              {/* Read Card */}
+              <CategoryCard
+                title="Read Card"
+                description="Private reading sanctuary. Upload texts, track progress, read with intention."
+                icon={BookOpen}
+                iconColor="bg-gradient-to-br from-emerald-400 to-teal-500"
+                count="Quiet"
+                countLabel=""
+                countColor="bg-emerald-500/20 text-emerald-300"
+                onClick={() => setLocation('/read-card')}
+              >
+                <div className="space-y-3">
+                  <div className="bg-black/30 p-3 rounded-lg">
+                    <p className="text-sm text-gray-300 font-medium mb-2">📖 Read with Purpose</p>
+                    <p className="text-xs text-gray-400">
+                      Upload texts and read privately. Choose your intention: learn, feel, think, or sleep.
+                    </p>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Upvotes today</span>
-                  <span className="text-orange-300">45</span>
-                </div>
-              </div>
-            </CategoryCard>
+              </CategoryCard>
+            </div>
+          </div>
 
-            <CategoryCard
-              title="Starlit Speaker"
-              description="Voice chat rooms for intimate audio conversations. Connect through spoken words under the digital stars."
-              icon={StarIcon}
-              iconColor="text-purple-400"
-              count={8}
-              countLabel="active rooms"
-              countColor="text-purple-300"
-              onClick={() => setLocation("/starlit-speaker")}
-            >
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Live speakers</span>
-                  <span className="text-purple-300">24</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Topics active</span>
-                  <span className="text-purple-300">6</span>
-                </div>
-              </div>
-            </CategoryCard>
+          {/* SECTION 2: Connect - Social Features */}
+          <div className="mb-16">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-px bg-gradient-to-r from-transparent via-pink-400/30 to-transparent flex-1"></div>
+              <h4 className="text-xl font-semibold text-pink-300 uppercase tracking-wider">Connect</h4>
+              <div className="h-px bg-gradient-to-r from-transparent via-pink-400/30 to-transparent flex-1"></div>
+            </div>
+            <p className="text-center text-gray-400 text-sm mb-6 italic">Find others wandering the night</p>
 
-            <CategoryCard
-              title="Moon Messenger"
-              description="Random text pairing for anonymous conversations. Connect with strangers through thoughtful messages in the night."
-              icon={MessageCircle}
-              iconColor="text-blue-400"
-              count={156}
-              countLabel="active chats"
-              countColor="text-blue-300"
-              onClick={() => setLocation("/moon-messenger")}
-            >
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Paired today</span>
-                  <span className="text-blue-300">89</span>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Whispers */}
+              <CategoryCard
+                title="Whispers"
+                description="Anonymous thoughts and confessions shared in the safety of darkness."
+                icon={MessageCircle}
+                iconColor="bg-gradient-to-br from-indigo-400 to-purple-500"
+                count={whispers.length}
+                countLabel="whispers"
+                countColor="bg-indigo-500/20 text-indigo-300"
+                onClick={() => setLocation('/whispers')}
+              >
+                <div className="space-y-3">
+                  {whispersLoading ? (
+                    <div className="text-gray-400 text-sm">Loading whispers...</div>
+                  ) : whispers.length === 0 ? (
+                    <div className="text-gray-400 text-sm">No whispers yet. Share your anonymous thoughts!</div>
+                  ) : (
+                    whispers.slice(0, 2).map((whisper: Whisper) => (
+                      <div key={whisper.id} className="bg-black/30 p-3 rounded-lg">
+                        <p className="text-sm text-gray-300 italic">"{whisper.content.substring(0, 60)}..."</p>
+                        <div className="text-xs text-gray-500 mt-1">{new Date(whisper.createdAt || new Date()).toLocaleTimeString()}</div>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Messages sent</span>
-                  <span className="text-blue-300">234</span>
+              </CategoryCard>
+
+              {/* Night Circles */}
+              <CategoryCard
+                title="Night Circles"
+                description="Small group discussions for intimate conversations and mutual support."
+                icon={Users}
+                iconColor="bg-gradient-to-br from-pink-500 to-rose-500"
+                count={nightCircles.length}
+                countLabel="circles"
+                countColor="bg-pink-500/20 text-pink-300"
+                onClick={() => setLocation('/night-circles')}
+              >
+                <div className="space-y-3">
+                  {nightCirclesLoading ? (
+                    <div className="text-gray-400 text-sm">Loading circles...</div>
+                  ) : nightCircles.length === 0 ? (
+                    <div className="text-gray-400 text-sm">No circles yet. Create the first night circle!</div>
+                  ) : (
+                    nightCircles.slice(0, 2).map((circle: NightCircle) => (
+                      <div key={circle.id} className="bg-black/30 p-3 rounded-lg">
+                        <p className="text-sm text-pink-300 font-medium">{circle.name}</p>
+                        <p className="text-xs text-gray-500 mt-1">{circle.currentMembers || 0} members • {circle.isActive ? 'Active' : 'Quiet'}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
-              </div>
-            </CategoryCard>
+              </CategoryCard>
+
+              {/* Midnight Cafe */}
+              <CategoryCard
+                title="Midnight Cafe"
+                description="Casual hangout space for light conversations and virtual companionship."
+                icon={Coffee}
+                iconColor="bg-gradient-to-br from-amber-500 to-orange-500"
+                count={midnightCafe.length}
+                countLabel="voices"
+                countColor="bg-amber-500/20 text-amber-300"
+                onClick={() => setLocation('/midnight-cafe')}
+              >
+                <div className="space-y-3">
+                  {midnightCafeLoading ? (
+                    <div className="text-gray-400 text-sm">Loading cafe...</div>
+                  ) : midnightCafe.length === 0 ? (
+                    <div className="text-gray-400 text-sm">The cafe is quiet tonight...</div>
+                  ) : (
+                    midnightCafe.slice(0, 2).map((post: MidnightCafe) => (
+                      <div key={post.id} className="bg-black/30 p-3 rounded-lg">
+                        <p className="text-sm text-gray-300">"{post.content.substring(0, 50)}..."</p>
+                        <div className="text-xs text-gray-500 mt-1">{post.replies || 0} replies</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CategoryCard>
+
+              {/* Moon Messenger */}
+              <CategoryCard
+                title="Moon Messenger"
+                description="Random text pairing for anonymous conversations with strangers in the night."
+                icon={MessageCircle}
+                iconColor="bg-gradient-to-br from-blue-500 to-cyan-500"
+                count="156"
+                countLabel="active chats"
+                countColor="bg-blue-500/20 text-blue-300"
+                onClick={() => setLocation('/moon-messenger')}
+              >
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Paired today</span>
+                    <span className="text-blue-300">89</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Messages sent</span>
+                    <span className="text-blue-300">234</span>
+                  </div>
+                </div>
+              </CategoryCard>
+            </div>
+          </div>
+
+          {/* SECTION 3: Explore - Experimental Features */}
+          <div className="mb-16">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent flex-1"></div>
+              <h4 className="text-xl font-semibold text-amber-300 uppercase tracking-wider">Explore</h4>
+              <div className="h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent flex-1"></div>
+            </div>
+            <p className="text-center text-gray-400 text-sm mb-6 italic">Experimental spaces for the curious</p>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Mind Maze */}
+              <CategoryCard
+                title="Mind Maze"
+                description="Brain teasers, philosophy, and deep questions to stimulate late-night thinking."
+                icon={Brain}
+                iconColor="bg-gradient-to-br from-fuchsia-500 to-purple-600"
+                count={mindMaze.length}
+                countLabel="puzzles"
+                countColor="bg-fuchsia-500/20 text-fuchsia-300"
+                onClick={() => setLocation('/mind-maze')}
+              >
+                <div className="space-y-3">
+                  {mindMazeLoading ? (
+                    <div className="text-gray-400 text-sm">Loading puzzles...</div>
+                  ) : mindMaze.length === 0 ? (
+                    <div className="text-gray-400 text-sm">No puzzles yet. Share a thought-provoking question!</div>
+                  ) : (
+                    mindMaze.slice(0, 2).map((maze: MindMaze) => (
+                      <div key={maze.id} className="bg-black/30 p-3 rounded-lg">
+                        <p className="text-sm text-gray-300">"{maze.content.substring(0, 60)}..."</p>
+                        <div className="text-xs text-gray-500 mt-1">{maze.responses || 0} responses</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CategoryCard>
+
+              {/* 3AM Founder */}
+              <CategoryCard
+                title="3AM Founder"
+                description="Anonymous thoughts and insights from midnight entrepreneurs."
+                icon={Lightbulb}
+                iconColor="text-orange-400"
+                count="Awake"
+                countLabel=""
+                countColor="text-orange-300"
+                onClick={() => setLocation('/3am-founder')}
+              >
+                <div className="h-16"></div>
+              </CategoryCard>
+
+              {/* Starlit Speaker */}
+              <CategoryCard
+                title="Starlit Speaker"
+                description="Voice chat rooms for intimate audio conversations."
+                icon={StarIcon}
+                iconColor="text-purple-400"
+                count="Live"
+                countLabel=""
+                countColor="text-purple-300"
+                onClick={() => setLocation('/starlit-speaker')}
+              >
+                <div className="h-16"></div>
+              </CategoryCard>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <QuickActions />
       <Footer />
     </div>
   );

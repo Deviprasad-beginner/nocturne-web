@@ -334,73 +334,67 @@ export default function AmFounderPage() {
           </div>
 
           <div className="grid gap-6">
-            <AnimatePresence>
-              {founders.map((founder, index) => (
-                <motion.div
-                  key={founder.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card className="bg-gradient-to-r from-gray-800/30 to-gray-900/30 border-gray-600 backdrop-blur-sm hover:from-gray-800/50 hover:to-gray-900/50 transition-all duration-500 group shadow-lg hover:shadow-2xl overflow-hidden relative">
-                    {/* Visual accent */}
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
-                      <Zap className="w-24 h-24 text-orange-500" />
+            {founders.map((founder, index) => (
+              <Card
+                key={founder.id}
+                className="bg-gradient-to-r from-gray-800/30 to-gray-900/30 border-gray-600 backdrop-blur-sm hover:from-gray-800/50 hover:to-gray-900/50 transition-all duration-500 group shadow-lg hover:shadow-2xl overflow-hidden relative"
+              >
+                {/* Visual accent */}
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
+                  <Zap className="w-24 h-24 text-orange-500" />
+                </div>
+
+                <CardContent className="p-8 relative z-10">
+                  <div className="flex items-start justify-between mb-6">
+                    <Badge className={`${getCategoryColor(founder.category)} border transition-all duration-300 group-hover:scale-105 shadow-lg shadow-black/20`}>
+                      {getCategoryLabel(founder.category)}
+                    </Badge>
+                    <div className="flex items-center space-x-3 text-sm text-gray-400">
+                      <Clock className="w-4 h-4" />
+                      <span>{new Date(founder.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {new Date(founder.createdAt || new Date()).getHours() >= 0 && new Date(founder.createdAt || new Date()).getHours() <= 5 && (
+                        <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs shadow-sm shadow-blue-500/10">
+                          🌙 3AM Drop
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <blockquote className="text-gray-100 mb-6 leading-relaxed text-xl italic border-l-4 border-orange-500/50 pl-6 group-hover:border-orange-400 transition-colors">
+                    "{founder.content}"
+                  </blockquote>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-6">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleUpvote(founder.id)}
+                        className="flex items-center space-x-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 transition-all duration-300 group/button rounded-full px-4"
+                      >
+                        <ArrowUp className={`w-5 h-5 group-hover/button:animate-bounce ${founder.upvotes ? 'text-orange-500' : ''}`} />
+                        <span className={`font-bold ${founder.upvotes ? 'text-orange-400' : ''}`}>{founder.upvotes}</span>
+                        <span className="text-xs opacity-60 font-medium">UPVOTES</span>
+                      </Button>
+
+                      <div className="flex items-center space-x-2 text-gray-500 group-hover:text-gray-400 transition-colors">
+                        <MessageCircle className="w-5 h-5" />
+                        <span className="font-bold">{founder.comments}</span>
+                        <span className="text-xs opacity-50 font-medium uppercase tracking-tighter">REPLIES</span>
+                      </div>
                     </div>
 
-                    <CardContent className="p-8 relative z-10">
-                      <div className="flex items-start justify-between mb-6">
-                        <Badge className={`${getCategoryColor(founder.category)} border transition-all duration-300 group-hover:scale-105 shadow-lg shadow-black/20`}>
-                          {getCategoryLabel(founder.category)}
-                        </Badge>
-                        <div className="flex items-center space-x-3 text-sm text-gray-400">
-                          <Clock className="w-4 h-4" />
-                          <span>{new Date(founder.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          {new Date(founder.createdAt || new Date()).getHours() >= 0 && new Date(founder.createdAt || new Date()).getHours() <= 5 && (
-                            <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs shadow-sm shadow-blue-500/10">
-                              🌙 3AM Drop
-                            </Badge>
-                          )}
-                        </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="hidden sm:flex items-center space-x-2 text-[10px] text-gray-600 font-mono tracking-widest">
+                        <div className="w-1.5 h-1.5 bg-orange-600/50 rounded-full"></div>
+                        <span>VERIFIED-FOUNDER-#{founder.id.toString(16).toUpperCase()}</span>
                       </div>
-
-                      <blockquote className="text-gray-100 mb-6 leading-relaxed text-xl italic border-l-4 border-orange-500/50 pl-6 group-hover:border-orange-400 transition-colors">
-                        "{founder.content}"
-                      </blockquote>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-6">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleUpvote(founder.id)}
-                            className="flex items-center space-x-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 transition-all duration-300 group/button rounded-full px-4"
-                          >
-                            <ArrowUp className={`w-5 h-5 group-hover/button:animate-bounce ${founder.upvotes ? 'text-orange-500' : ''}`} />
-                            <span className={`font-bold ${founder.upvotes ? 'text-orange-400' : ''}`}>{founder.upvotes}</span>
-                            <span className="text-xs opacity-60 font-medium">UPVOTES</span>
-                          </Button>
-
-                          <div className="flex items-center space-x-2 text-gray-500 group-hover:text-gray-400 transition-colors">
-                            <MessageCircle className="w-5 h-5" />
-                            <span className="font-bold">{founder.comments}</span>
-                            <span className="text-xs opacity-50 font-medium uppercase tracking-tighter">REPLIES</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center space-x-3">
-                          <div className="hidden sm:flex items-center space-x-2 text-[10px] text-gray-600 font-mono tracking-widest">
-                            <div className="w-1.5 h-1.5 bg-orange-600/50 rounded-full"></div>
-                            <span>VERIFIED-FOUNDER-#{founder.id.toString(16).toUpperCase()}</span>
-                          </div>
-                          <Crown className="w-5 h-5 text-yellow-500/30 group-hover:text-yellow-400 transition-all group-hover:rotate-12" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                      <Crown className="w-5 h-5 text-yellow-500/30 group-hover:text-yellow-400 transition-all group-hover:rotate-12" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
 

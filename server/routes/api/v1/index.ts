@@ -18,6 +18,8 @@ import onboardingRoutes from "./onboarding.routes";
 import trendingRoutes from "./trending.routes";
 import activityRoutes from "./activity.routes";
 import profileRoutes from "./profile.routes";
+import nightThoughtsRoutes from "./night-thoughts.routes";
+import readsRoutes from "./reads.routes";
 
 const router = Router();
 
@@ -36,6 +38,8 @@ router.use("/onboarding", onboardingRoutes);
 router.use("/trending", trendingRoutes);
 router.use("/activity", activityRoutes);
 router.use("/profile", profileRoutes);
+router.use("/thoughts", nightThoughtsRoutes);
+router.use("/reads", readsRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

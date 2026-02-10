@@ -103,7 +103,20 @@ export function useAuth() {
         const result = await Promise.race([firebasePromise, timeoutPromise]) as any;
         return result.user;
       } catch (firebaseError: any) {
-        console.warn("Firebase auth failed or timed out, using mock fallback...", firebaseError);
+        // Detailed error logging
+        console.error("Firebase auth error details:", {
+          code: firebaseError.code,
+          message: firebaseError.message,
+          name: firebaseError.name
+        });
+
+        if (firebaseError.message === 'Firebase timeout') {
+          console.warn("Auth timed out - user might have closed popup or network is slow.");
+          // Optional: You could choose to throw here to show "Login Timed Out" instead of guest fallback
+          // throw new Error("Login timed out. Please try again.");
+        }
+
+        console.warn("Firebase auth failed, attempting mock fallback...", firebaseError);
 
         // Manually trigger the sync endpoint
         try {

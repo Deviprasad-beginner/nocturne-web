@@ -6,9 +6,13 @@ import {
   mindMaze,
   nightCircles,
   midnightCafe,
+  cafeReplies,
   amFounder,
   starlitSpeaker,
   moonMessenger,
+  nightlyPrompts,
+  userReflections,
+  personalReflections,
   type User,
   type UpsertUser,
   type InsertUser,
@@ -28,12 +32,21 @@ import {
   type InsertStarlitSpeaker,
   type MoonMessenger,
   type InsertMoonMessenger,
+  type NightlyPrompt,
+  type InsertNightlyPrompt,
+  type UserReflection,
+  type InsertUserReflection,
+  type PersonalReflection,
+  type InsertPersonalReflection,
   type SavedStation,
   type InsertSavedStation,
-  savedStations
+  type CafeReply,
+  type InsertCafeReply,
+  savedStations,
+
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, asc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -48,6 +61,7 @@ export interface IStorage {
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserOnboarding(userId: number, completed: boolean): Promise<void>;
 
   // Diary operations
   createDiary(diary: InsertDiary): Promise<Diary>;
@@ -74,6 +88,10 @@ export interface IStorage {
   createMidnightCafe(midnightCafe: InsertMidnightCafe): Promise<MidnightCafe>;
   getMidnightCafe(): Promise<MidnightCafe[]>;
   incrementCafeReplies(id: number): Promise<void>;
+  createCafeReply(reply: InsertCafeReply): Promise<CafeReply>;
+  getCafeReplies(cafeId: number): Promise<CafeReply[]>;
+  deleteCafePost(id: number): Promise<void>;
+  deleteCafeReply(id: number): Promise<void>;
 
   // 3AM Founder operations
   createAmFounder(amFounder: InsertAmFounder): Promise<AmFounder>;
@@ -99,7 +117,17 @@ export interface IStorage {
   // User specific getters
   getUserWhispers(userId: number): Promise<Whisper[]>;
   getUserCafePosts(userId: number): Promise<MidnightCafe[]>;
+  getUserDiaries(userId: number): Promise<Diary[]>;
   getUserFounders(userId: number): Promise<AmFounder[]>;
+
+  // Nightly Reflection operations
+  createNightlyPrompt(prompt: InsertNightlyPrompt): Promise<NightlyPrompt>;
+  getActivePrompt(): Promise<NightlyPrompt | undefined>; // Get non-expired prompt
+  getNightlyPrompt(id: number): Promise<NightlyPrompt | undefined>;
+  createUserReflection(reflection: InsertUserReflection, aiEvaluation: any): Promise<UserReflection>;
+  getUserReflections(userId: number, limit?: number): Promise<UserReflection[]>;
+  createPersonalReflection(reflection: InsertPersonalReflection, aiReflection: string): Promise<PersonalReflection>;
+  getPersonalReflections(userId: number, limit?: number): Promise<PersonalReflection[]>;
 }
 
 // In-memory storage implementation
@@ -125,6 +153,7 @@ export class MemoryStorage implements IStorage {
     this.mindMazes = [];
     this.nightCircles = [];
     this.midnightCafes = [];
+    this.amFounders = [];
     this.amFounders = [];
     this.starlitSpeakers = [];
     this.moonMessages = [];
@@ -157,6 +186,7 @@ export class MemoryStorage implements IStorage {
       displayName: insertUser.displayName || null,
       email: insertUser.email || null,
       profileImageUrl: insertUser.profileImageUrl || null,
+      hasSeenOnboarding: insertUser.hasSeenOnboarding ?? null,
       createdAt: new Date()
     };
     this.users.push(user);
@@ -165,6 +195,13 @@ export class MemoryStorage implements IStorage {
 
   async upsertUser(user: UpsertUser): Promise<User> {
     throw new Error("Upsert not implemented for MemoryStorage");
+  }
+
+  async updateUserOnboarding(userId: number, completed: boolean): Promise<void> {
+    const user = this.users.find(u => u.id === userId);
+    if (user) {
+      user.hasSeenOnboarding = completed;
+    }
   }
 
   // Diary operations
@@ -299,6 +336,32 @@ export class MemoryStorage implements IStorage {
     if (cafe && cafe.replies !== null) {
       cafe.replies++;
     }
+  }
+
+  async createCafeReply(reply: InsertCafeReply): Promise<CafeReply> {
+    const id = this.nextId++;
+    const newReply: CafeReply = {
+      ...reply,
+      id,
+      authorId: reply.authorId || null,
+      createdAt: new Date()
+    };
+    return newReply;
+  }
+
+  async getCafeReplies(cafeId: number): Promise<CafeReply[]> {
+    return []; // Mock
+  }
+
+  async deleteCafePost(id: number): Promise<void> {
+    const index = this.midnightCafes.findIndex(c => c.id === id);
+    if (index !== -1) {
+      this.midnightCafes.splice(index, 1);
+    }
+  }
+
+  async deleteCafeReply(id: number): Promise<void> {
+    // No-op
   }
 
   // 3AM Founder operations
@@ -439,8 +502,65 @@ export class MemoryStorage implements IStorage {
     return this.midnightCafes.filter(c => c.authorId === userId);
   }
 
+  async getUserDiaries(userId: number): Promise<Diary[]> {
+    return this.diaries.filter(diary => diary.authorId === userId).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
   async getUserFounders(userId: number): Promise<AmFounder[]> {
     return this.amFounders.filter(f => f.authorId === userId);
+  }
+
+  // Nightly Reflection operations
+  async createNightlyPrompt(prompt: InsertNightlyPrompt): Promise<NightlyPrompt> {
+    const newPrompt: NightlyPrompt = {
+      id: this.nextId++,
+      ...prompt,
+      createdAt: new Date()
+    };
+    // Note: MemoryStorage doesn't persist between restarts, for testing only
+    return newPrompt;
+  }
+
+  async getActivePrompt(): Promise<NightlyPrompt | undefined> {
+    const now = new Date();
+    // In memory storage doesn't actually store prompts, so return undefined
+    // This will trigger generation of new prompts
+    return undefined;
+  }
+
+  async getNightlyPrompt(id: number): Promise<NightlyPrompt | undefined> {
+    // For memory storage, not implemented
+    return undefined;
+  }
+
+  async createUserReflection(reflection: InsertUserReflection, aiEvaluation: any): Promise<UserReflection> {
+    const newReflection: UserReflection = {
+      id: this.nextId++,
+      ...reflection,
+      aiEvaluation,
+      createdAt: new Date()
+    };
+    return newReflection;
+  }
+
+  async getUserReflections(userId: number, limit = 20): Promise<UserReflection[]> {
+    // In memory storage doesn't persist reflections
+    return [];
+  }
+
+  async createPersonalReflection(reflection: InsertPersonalReflection, aiReflection: string): Promise<PersonalReflection> {
+    const newReflection: PersonalReflection = {
+      id: this.nextId++,
+      ...reflection,
+      aiReflection,
+      createdAt: new Date()
+    };
+    return newReflection;
+  }
+
+  async getPersonalReflections(userId: number, limit = 20): Promise<PersonalReflection[]> {
+    // In memory storage doesn't persist personal reflections
+    return [];
   }
 }
 
@@ -511,6 +631,13 @@ export class DatabaseStorage implements IStorage {
 
   async upsertUser(user: UpsertUser): Promise<User> {
     throw new Error("Upsert not implemented for standard auth");
+  }
+
+  async updateUserOnboarding(userId: number, completed: boolean): Promise<void> {
+    await db
+      .update(users)
+      .set({ hasSeenOnboarding: completed })
+      .where(eq(users.id, userId));
   }
 
 
@@ -967,11 +1094,133 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getUserDiaries(userId: number): Promise<Diary[]> {
+    try {
+      return await db.select().from(diaries).where(eq(diaries.authorId, userId)).orderBy(desc(diaries.createdAt));
+    } catch (error) {
+      console.error("Error getting user diaries", error);
+      return [];
+    }
+  }
+
   async getUserFounders(userId: number): Promise<AmFounder[]> {
     try {
       return await db.select().from(amFounder).where(eq(amFounder.authorId, userId)).orderBy(desc(amFounder.createdAt));
     } catch (error) {
       console.error("Error getting user founder posts", error);
+      return [];
+    }
+  }
+
+  // Nightly Reflection operations
+  async createNightlyPrompt(prompt: InsertNightlyPrompt): Promise<NightlyPrompt> {
+    try {
+      const [newPrompt] = await db.insert(nightlyPrompts).values(prompt).returning();
+      return newPrompt;
+    } catch (error) {
+      console.error("Error creating nightly prompt:", error);
+      throw error;
+    }
+  }
+
+  async getActivePrompt(): Promise<NightlyPrompt | undefined> {
+    try {
+      const now = new Date();
+      const [activePrompt] = await db
+        .select()
+        .from(nightlyPrompts)
+        .where(sql`${nightlyPrompts.expiresAt} > ${now}`)
+        .orderBy(desc(nightlyPrompts.createdAt))
+        .limit(1);
+      return activePrompt || undefined;
+    } catch (error) {
+      console.error("Error getting active prompt:", error);
+      return undefined;
+    }
+  }
+
+  async getNightlyPrompt(id: number): Promise<NightlyPrompt | undefined> {
+    try {
+      const [prompt] = await db.select().from(nightlyPrompts).where(eq(nightlyPrompts.id, id));
+      return prompt || undefined;
+    } catch (error) {
+      console.error("Error getting nightly prompt:", error);
+      return undefined;
+    }
+  }
+
+  async createUserReflection(reflection: InsertUserReflection, aiEvaluation: any): Promise<UserReflection> {
+    try {
+      const [newReflection] = await db
+        .insert(userReflections)
+        .values({ ...reflection, aiEvaluation })
+        .returning();
+      return newReflection;
+    } catch (error) {
+      console.error("Error creating user reflection:", error);
+      throw error;
+    }
+  }
+
+  async createCafeReply(reply: InsertCafeReply): Promise<CafeReply> {
+    const [newReply] = await db.insert(cafeReplies).values(reply).returning();
+    return newReply;
+  }
+
+  async getCafeReplies(cafeId: number): Promise<CafeReply[]> {
+    return await db.select()
+      .from(cafeReplies)
+      .where(eq(cafeReplies.cafeId, cafeId))
+      .orderBy(asc(cafeReplies.createdAt));
+  }
+
+  async deleteCafePost(id: number): Promise<void> {
+    // Delete replies first (cascade normally handles this but explicit safe here)
+    await db.delete(cafeReplies).where(eq(cafeReplies.cafeId, id));
+    await db.delete(midnightCafe).where(eq(midnightCafe.id, id));
+  }
+
+  async deleteCafeReply(id: number): Promise<void> {
+    await db.delete(cafeReplies).where(eq(cafeReplies.id, id));
+  }
+
+  async getUserReflections(userId: number, limit = 20): Promise<UserReflection[]> {
+    try {
+      return await db
+        .select()
+        .from(userReflections)
+        .where(eq(userReflections.userId, userId))
+        .orderBy(desc(userReflections.createdAt))
+        .limit(limit);
+    } catch (error) {
+      console.error("Error getting user reflections:", error);
+      return [];
+    }
+  }
+
+  async createPersonalReflection(reflection: InsertPersonalReflection, aiReflection: string): Promise<PersonalReflection> {
+    try {
+      const [newReflection] = await db
+        .insert(personalReflections)
+        .values({ ...reflection, aiReflection })
+        .returning();
+      return newReflection;
+    } catch (error) {
+      console.error("Error creating personal reflection:", error);
+      throw error;
+    }
+  }
+
+  async getPersonalReflections(userId: number, limit = 20): Promise<PersonalReflection[]> {
+    try {
+      return await db
+        .select()
+        .from(personalReflections)
+        .where(eq(personalReflections.userId, userId))
+        .orderBy(desc(personalReflections.createdAt))
+        .limit(limit);
+    } catch (error) {
+      console.error("Error getting personal reflections:", error);
       return [];
     }
   }

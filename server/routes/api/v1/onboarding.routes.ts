@@ -1,7 +1,5 @@
 import { Router } from "express";
-import { db } from "../../../db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { storage } from "../../../storage";
 
 const router = Router();
 
@@ -18,10 +16,8 @@ router.post("/complete", async (req, res) => {
         const userId = req.user.id;
 
         // Update user's hasSeenOnboarding to true
-        await db
-            .update(users)
-            .set({ hasSeenOnboarding: true })
-            .where(eq(users.id, userId));
+        // Abstracted to storage to support MemoryStorage fallback
+        await storage.updateUserOnboarding(userId, true);
 
         res.json({
             success: true,

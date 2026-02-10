@@ -58,10 +58,11 @@
 }
 
 .glassmorphism {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   background: rgba(31, 41, 55, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  will-change: transform;
 }
 
 .category-card {
@@ -74,29 +75,36 @@
 }
 
 @keyframes float {
-  0%, 100% { 
-    transform: translateY(0px); 
+
+  0%,
+  100% {
+    transform: translateY(0px);
   }
-  50% { 
-    transform: translateY(-10px); 
+
+  50% {
+    transform: translateY(-10px);
   }
 }
 
 @keyframes twinkle {
-  0%, 100% { 
-    opacity: 0.3; 
+
+  0%,
+  100% {
+    opacity: 0.3;
   }
-  50% { 
-    opacity: 1; 
+
+  50% {
+    opacity: 1;
   }
 }
 
 @keyframes pulse-glow {
-  0% { 
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); 
+  0% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
   }
-  100% { 
-    box-shadow: 0 0 40px rgba(99, 102, 241, 0.6); 
+
+  100% {
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
   }
 }
 
