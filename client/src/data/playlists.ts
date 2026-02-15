@@ -27,11 +27,11 @@ export const playlists: Playlist[] = [
         tracks: 999,
         color: "from-slate-600 to-slate-700",
         stations: [
-            { id: "lofi-girl-sc", name: "Lofi Hip Hop Radio", streamUrl: "https://soundcloud.com/lofi-girl/sets/lofi-hip-hop-music-beats" },
-            { id: "chillhop-sc", name: "Chillhop Essentials", streamUrl: "https://soundcloud.com/chillhopdotcom/sets/lofi-hip-hop-instrumentals" },
-            { id: "jazz-vibes-sc", name: "Jazz Vibes", streamUrl: "https://soundcloud.com/jazz-vibes/sets/lofi-hip-hop-1" },
-            { id: "sleepy-fish", name: "Sleepy Fish Discography", streamUrl: "https://soundcloud.com/sleepyfish/sets/sleepy-fish-discography" },
-            { id: "college-music", name: "College Music", streamUrl: "https://soundcloud.com/collegemusic/sets/college-music-releases" }
+            { id: "lofi-girl", name: "Lofi Girl Radio", streamUrl: "https://www.youtube.com/watch?v=jfKfPfyJRdk" },
+            { id: "chillhop", name: "Chillhop Raccoon", streamUrl: "https://www.youtube.com/watch?v=5yx6BWlEVcY" },
+            { id: "coffee-shop", name: "Coffee Shop Vibes", streamUrl: "https://www.youtube.com/watch?v=lP26UCnoHg4" },
+            { id: "synth-focus", name: "Synthwave Focus", streamUrl: "https://www.youtube.com/watch?v=4xDzrJKXOOY" },
+            { id: "deep-focus", name: "Deep Focus", streamUrl: "https://www.youtube.com/watch?v=8XzxWhk3Wgs" }
         ]
     },
     {

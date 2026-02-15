@@ -14,7 +14,9 @@ export class DiariesController {
      * Get all public diaries
      */
     getAll = asyncHandler(async (req: Request, res: Response) => {
-        const diaries = await diariesService.getAllDiaries();
+        const userId = req.user?.id;
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+        const diaries = await diariesService.getAllDiaries(userId, limit);
         res.json(successResponse(diaries));
     });
 

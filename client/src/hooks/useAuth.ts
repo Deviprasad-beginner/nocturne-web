@@ -58,7 +58,19 @@ export function useAuth() {
 
           // Update local user state from backend
           await refetch();
-        } catch (error) {
+        } catch (error: any) {
+          // Check for 401 Unauthorized (Session invalid)
+          if (error.status === 401) {
+            console.warn("Backend session invalid, logging out of Firebase");
+            await signOut(auth);
+            toast({
+              title: "Session Expired",
+              description: "Please sign in again.",
+              variant: "default"
+            });
+            return;
+          }
+
           console.error("Failed to sync firebase user with backend", error);
           toast({
             title: "Sync Error",
@@ -199,17 +211,61 @@ export function useAuth() {
     }
   });
 
+  const loginLocalMutation = useMutation({
+    mutationFn: async (credentials: any) => {
+      const res = await apiRequest("POST", "/api/login", credentials);
+      return await res.json();
+    },
+    onSuccess: (user: User) => {
+      queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Welcome back!",
+        description: `Signed in as ${user.displayName || user.username}`,
+      });
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: async (credentials: any) => {
+      const res = await apiRequest("POST", "/api/register", credentials);
+      return await res.json();
+    },
+    onSuccess: (user: User) => {
+      queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Welcome to Nocturne",
+        description: "Your journey begins now.",
+      });
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Combine loading states
-  const isLoading = isUserLoading || isSyncing || loginMutation.isPending;
+  const isLoading = isUserLoading || isSyncing || loginMutation.isPending || loginLocalMutation.isPending || registerMutation.isPending;
 
   return {
     user: user || null,
     isLoading,
     error: null,
     loginMutation,
+    loginLocalMutation,
     logoutMutation,
-    // No register mutation needed for Google Auth
-    registerMutation: loginMutation,
+    registerMutation,
     isAuthenticated: !!user && !isSyncing
   };
 }

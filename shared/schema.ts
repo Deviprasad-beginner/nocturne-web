@@ -23,8 +23,18 @@ export const users = pgTable("users", {
   email: text("email").unique(),
   profileImageUrl: text("profile_image_url"),
   hasSeenOnboarding: boolean("has_seen_onboarding").default(false),
+  currentStreak: integer("current_streak").default(0),
+  lastEntryDate: timestamp("last_entry_date"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+  // Profile System Fields
+  nightStreak: integer("night_streak").default(0),
+  meaningfulReplies: integer("meaningful_replies").default(0),
+  reportCount: integer("report_count").default(0),
+  trustScore: integer("trust_score").default(100),
+  lastActiveTime: timestamp("last_active_time"),
+}, (table) => [
+  index("idx_users_last_active_time").on(table.lastActiveTime),
+]);
 
 export const diaries = pgTable("diaries", {
   id: serial("id").primaryKey(),
@@ -33,7 +43,14 @@ export const diaries = pgTable("diaries", {
   mood: varchar("mood", { length: 100 }),
   authorId: integer("author_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-});
+  // Emotional Analysis
+  detectedEmotion: varchar("detected_emotion", { length: 50 }),
+  sentimentScore: integer("sentiment_score"), // multiplied by 100 to store as int or use real/double precision if supported by driver, but drizzle pg-core usually supports real. Let's use real.
+  reflectionDepth: integer("reflection_depth"), // scaled 0-100
+}, (table) => [
+  index("idx_diaries_author_id").on(table.authorId),
+  index("idx_diaries_created_at").on(table.createdAt),
+]);
 
 export const whispers = pgTable("whispers", {
   id: serial("id").primaryKey(),
@@ -41,7 +58,14 @@ export const whispers = pgTable("whispers", {
   hearts: integer("hearts").default(0),
   authorId: integer("author_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-});
+  // Emotional Analysis
+  detectedEmotion: varchar("detected_emotion", { length: 50 }),
+  sentimentScore: integer("sentiment_score"),
+  reflectionDepth: integer("reflection_depth"),
+}, (table) => [
+  index("idx_whispers_author_id").on(table.authorId),
+  index("idx_whispers_created_at").on(table.createdAt),
+]);
 
 export const mindMaze = pgTable("mind_maze", {
   id: serial("id").primaryKey(),
@@ -88,6 +112,15 @@ export const savedStations = pgTable("saved_stations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Mood Analytics Logs
+export const moodLogs = pgTable("mood_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  emotion: varchar("emotion", { length: 50 }).notNull(),
+  sentimentScore: integer("sentiment_score").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Upsert user schema for auth systems
 export const upsertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -98,6 +131,11 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 }).extend({
   id: z.number().optional(),
+  nightStreak: z.number().optional(),
+  meaningfulReplies: z.number().optional(),
+  reportCount: z.number().optional(),
+  trustScore: z.number().optional(),
+  lastActiveTime: z.date().optional(),
 });
 
 export const insertDiarySchema = createInsertSchema(diaries).omit({
@@ -201,6 +239,15 @@ export const amFounder = pgTable("am_founder", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// 3AM Founder Replies - Conversations around founder posts
+export const amFounderReplies = pgTable("am_founder_replies", {
+  id: serial("id").primaryKey(),
+  founderId: integer("founder_id").references(() => amFounder.id).notNull(),
+  content: text("content").notNull(),
+  authorId: integer("author_id").references(() => users.id), // Nullable for anonymous
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Starlit Speaker - Voice chat rooms for audio conversations
 export const starlitSpeaker = pgTable("starlit_speaker", {
   id: serial("id").primaryKey(),
@@ -256,6 +303,11 @@ export const insertAmFounderSchema = createInsertSchema(amFounder).omit({
   createdAt: true,
 });
 
+export const insertAmFounderReplySchema = createInsertSchema(amFounderReplies).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertStarlitSpeakerSchema = createInsertSchema(starlitSpeaker).omit({
   id: true,
   currentParticipants: true,
@@ -271,6 +323,11 @@ export const insertMoonMessengerSchema = createInsertSchema(moonMessenger).omit(
 
 export type AmFounder = typeof amFounder.$inferSelect;
 export type InsertAmFounder = z.infer<typeof insertAmFounderSchema>;
+
+export type AmFounderReply = typeof amFounderReplies.$inferSelect;
+export type InsertAmFounderReply = z.infer<typeof insertAmFounderReplySchema>;
+
+
 
 export type StarlitSpeaker = typeof starlitSpeaker.$inferSelect;
 export type InsertStarlitSpeaker = z.infer<typeof insertStarlitSpeakerSchema>;

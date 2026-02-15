@@ -10,7 +10,8 @@ export class MidnightCafeController {
      */
     static async getAll(req: Request, res: Response) {
         try {
-            const posts = await midnightCafeService.getAllPosts();
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+            const posts = await midnightCafeService.getAllPosts(limit);
             res.json(posts);
         } catch (error) {
             logger.error("Error fetching all cafe posts", error);

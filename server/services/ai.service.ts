@@ -6,14 +6,56 @@ export type ShiftMode =
     | "silence_variable"   // inaction caused change
     | "assumption_test"    // false belief caused outcome
     | "skipped_detail"     // minor factor mattered
-    | "two_futures";       // two plausible outcomes, one real
+    | "two_futures"       // two plausible outcomes, one real
+    | "diary";            // open-ended, atmospheric
 
 interface AIConfig {
     apiKey: string;
     model: string;
 }
 
-export class AIService {
+export interface IAIService {
+    generateNightlyPrompt(shiftMode: ShiftMode): Promise<string>;
+    evaluateUserResponse(promptText: string, userResponse: string): Promise<string>;
+    generatePersonalReflection(query: string): Promise<string>;
+}
+
+export class MockAIService implements IAIService {
+    async generateNightlyPrompt(shiftMode: ShiftMode): Promise<string> {
+        const prompts = [
+            "What is a silence you are keeping that is actually speaking louder than words?",
+            "If you could send a message to your younger self, what one belief would you ask them to question?",
+            "Reflect on a small detail you ignored today that might be more significant than it seems.",
+            "Imagine two futures: one where you stay the same, and one where you change one small habit. Which feels lighter?",
+            "Look at where you are right now. Trace it back to a single decision you made three years ago."
+        ];
+        return prompts[Math.floor(Math.random() * prompts.length)];
+    }
+
+    async evaluateUserResponse(promptText: string, userResponse: string): Promise<string> {
+        const responses = [
+            "Your perspective holds a quiet truth. It is often in the spaces between our thoughts that clarity emerges.",
+            "There is a weight to your words that suggests you have carried this thought for some time. Acknowledging it is the first step.",
+            "The way you connect these ideas shows a deep self-awareness. Trust that inner voice; it speaks with reason.",
+            "It is interesting how we frame our own narratives. Your reflection suggests a willingness to see beyond the surface.",
+            "There is a calmness in your reasoning. Sometimes, just naming the feeling is enough to understand it."
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    async generatePersonalReflection(query: string): Promise<string> {
+        const responses = [
+            "The question itself often holds the map to the answer. Allow yourself to sit with the uncertainty a little longer.",
+            "Consider if what you are seeking is a solution, or simply permission to feel what you are already feeling.",
+            "Sometimes the path forward is not about adding more, but about stripping away what is no longer true for you.",
+            "Your curiosity is a compass. Follow it gently, without the need to arrive at a destination immediately.",
+            "What would happen if you let go of the need to know the answer right now? There is wisdom in waiting."
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+}
+
+export class AIService implements IAIService {
     private genAI: GoogleGenerativeAI;
     private model: any;
 
@@ -116,34 +158,60 @@ Output only your reflection, nothing else.`;
      */
     private getShiftModePrompt(mode: ShiftMode): string {
         const prompts: Record<ShiftMode, string> = {
-            reverse_causality: "Create a prompt where the outcome is presented first, and the user must think backward to the cause. Frame it as if looking at the end result and wondering what led there.",
+            reverse_causality: "Create a prompt that asks the user to inspect a specific recent event where the outcome is known, and trace it back to a single moment of cause. Focus on the internal decision, not external events.",
 
-            silence_variable: "Create a prompt where inaction or the absence of something caused a change or outcome. Focus on what didn't happen, what was left unsaid, or what was avoided.",
+            silence_variable: "Create a prompt that asks the user to inspect a moment of silence or inaction from today. What was felt but not said? What action was avoided?",
 
-            assumption_test: "Create a prompt where a false belief or assumption led to an unexpected outcome. Make the user question what they thought was true.",
+            assumption_test: "Create a prompt that asks the user to inspect a belief they held today that might be wrong. Ask them to look at the evidence against their own assumption.",
 
-            skipped_detail: "Create a prompt where a seemingly minor or overlooked detail turned out to matter significantly. Draw attention to the small things.",
+            skipped_detail: "Create a prompt that asks the user to inspect a small, specific detail from today that they initially ignored. Why did it matter?",
 
-            two_futures: "Create a prompt presenting two plausible outcomes or paths, where the user must reflect on which one actually happened or which they would choose."
+            two_futures: "Create a prompt that asks the user to inspect their current trajectory versus a slightly different one. Focus on the feeling of the path, not just the result.",
+
+            diary: "Create a wide, open-ended prompt about the feeling of the night itself. Focus on the atmosphere, the silence, or the act of keeping a secret. It should feel like an invitation to unload a burden."
         };
 
         return prompts[mode];
     }
+
+    /**
+     * Analyze the sentiment of a text
+     * @param text The user's reflection text
+     * @returns A short sentiment tag (e.g. "Reflective", "Anxious", "Calm")
+     */
+    async analyzeSentiment(text: string): Promise<string> {
+        const prompt = `Analyze the sentiment/tone of this reflection:
+"${text}"
+
+Output ONLY a single word or short phrase descriptions of the tone (e.g., "Reflective", "Heavy", "Hopeful", "Scattered", "Calm"). 
+Choose the most accurate one.
+No explanation.`;
+
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        return response.text().trim();
+    }
 }
 
 // Export a singleton instance
-let aiServiceInstance: AIService | null = null;
+let aiServiceInstance: IAIService | null = null;
 
-export function getAIService(): AIService {
+export function getAIService(): IAIService {
     if (!aiServiceInstance) {
         const apiKey = process.env.GEMINI_API_KEY || "";
         const model = process.env.GEMINI_MODEL || "gemini-pro";
 
-        if (!apiKey) {
-            throw new Error("GEMINI_API_KEY environment variable is required");
+        if (!apiKey || apiKey === "AIzaSyC63MxbNeB7v-umfmOdp4RTTNGVIMDSSdM") {
+            console.warn("⚠️ No valid GEMINI_API_KEY found. Using Mock AI Service.");
+            aiServiceInstance = new MockAIService();
+        } else {
+            try {
+                aiServiceInstance = new AIService({ apiKey, model });
+            } catch (error) {
+                console.error("Failed to initialize AI service, falling back to mock:", error);
+                aiServiceInstance = new MockAIService();
+            }
         }
-
-        aiServiceInstance = new AIService({ apiKey, model });
     }
 
     return aiServiceInstance;

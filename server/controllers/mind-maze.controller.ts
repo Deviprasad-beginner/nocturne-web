@@ -12,7 +12,8 @@ export class MindMazeController {
      * GET /api/v1/mind-maze
      */
     getAll = asyncHandler(async (req: Request, res: Response) => {
-        const questions = await mindMazeService.getAllQuestions();
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+        const questions = await mindMazeService.getAllQuestions(limit);
         res.json(successResponse(questions));
     });
 

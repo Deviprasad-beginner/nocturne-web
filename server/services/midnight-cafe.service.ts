@@ -12,9 +12,9 @@ export class MidnightCafeService {
     /**
      * Get all cafe posts
      */
-    async getAllPosts(): Promise<MidnightCafe[]> {
+    async getAllPosts(limit?: number): Promise<MidnightCafe[]> {
         logger.debug("Fetching all midnight cafe posts");
-        return await storage.getMidnightCafe();
+        return await storage.getMidnightCafe(limit);
     }
 
     /**

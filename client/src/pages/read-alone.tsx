@@ -19,10 +19,11 @@ export default function ReadAlone() {
     const intention = params.get("intention") || "think";
 
     // Fetch user's reads
-    const { data: reads = [], isLoading } = useQuery<Read[]>({
+    const { data, isLoading } = useQuery<Read[]>({
         queryKey: ["/api/v1/reads/mine"],
         enabled: !!user,
     });
+    const reads = data ?? [];
 
     // Create read mutation with file upload support
     const createReadMutation = useMutation({

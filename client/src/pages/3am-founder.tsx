@@ -5,18 +5,110 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, TrendingUp, MessageCircle, ArrowUp, Brain, Clock, Rocket, Coffee, Zap, Star, Moon, Flame, Target, Gem, Crown, Award, Loader2 } from "lucide-react";
+import { Lightbulb, TrendingUp, MessageCircle, ArrowUp, Brain, Clock, Rocket, Coffee, Zap, Star, Moon, Flame, Target, Gem, Crown, Award, Loader2, Send } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import type { AmFounder, InsertAmFounder } from "@shared/schema";
+import type { AmFounder, InsertAmFounder, AmFounderReply } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "@/components/ui/input";
+
+function ReplyList({ founderId }: { founderId: number }) {
+  const [replyContent, setReplyContent] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: replies = [], isLoading } = useQuery<AmFounderReply[]>({
+    queryKey: [`/api/v1/founder/${founderId}/replies`],
+  });
+
+  const createReplyMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const response = await apiRequest("POST", `/api/v1/founder/${founderId}/replies`, { content });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/v1/founder/${founderId}/replies`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/founder"] }); // Refresh comment count
+      setReplyContent("");
+      toast({
+        title: "Reply Shared",
+        description: "Your voice has been added to the conversation.",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Failed to reply",
+        description: "Could not send your reply. Please try again.",
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (replyContent.trim()) {
+      createReplyMutation.mutate(replyContent.trim());
+    }
+  };
+
+  return (
+    <div className="mt-6 pt-6 border-t border-gray-700/50 space-y-4">
+      <h4 className="text-sm font-semibold text-gray-400 flex items-center gap-2">
+        <MessageCircle className="w-4 h-4" />
+        Discussion ({replies.length})
+      </h4>
+
+      <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full bg-gray-700/30" />
+            <Skeleton className="h-10 w-3/4 bg-gray-700/30" />
+          </div>
+        ) : replies.length === 0 ? (
+          <p className="text-sm text-gray-500 italic">No replies yet. Be the first to insights!</p>
+        ) : (
+          replies.map((reply) => (
+            <div key={reply.id} className="bg-gray-800/30 rounded p-3 text-sm border border-gray-700/50">
+              <p className="text-gray-300">{reply.content}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {new Date(reply.createdAt || new Date()).toLocaleString()}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input
+          value={replyContent}
+          onChange={(e) => setReplyContent(e.target.value)}
+          placeholder="Add your thoughts..."
+          className="bg-gray-800/50 border-gray-600 text-white focus:border-orange-400"
+        />
+        <Button
+          type="submit"
+          size="icon"
+          disabled={!replyContent.trim() || createReplyMutation.isPending}
+          className="bg-orange-500 hover:bg-orange-600"
+        >
+          {createReplyMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
+        </Button>
+      </form>
+    </div>
+  );
+}
 
 export default function AmFounderPage() {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [expandedFounderId, setExpandedFounderId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -75,6 +167,10 @@ export default function AmFounderPage() {
 
   const handleUpvote = (id: number) => {
     upvoteFounderMutation.mutate(id);
+  };
+
+  const toggleReplies = (id: number) => {
+    setExpandedFounderId(expandedFounderId === id ? null : id);
   };
 
   const categoryOptions = [
@@ -377,11 +473,16 @@ export default function AmFounderPage() {
                         <span className="text-xs opacity-60 font-medium">UPVOTES</span>
                       </Button>
 
-                      <div className="flex items-center space-x-2 text-gray-500 group-hover:text-gray-400 transition-colors">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleReplies(founder.id)}
+                        className={`flex items-center space-x-2 transition-colors ${expandedFounderId === founder.id ? 'text-orange-400 bg-orange-500/10' : 'text-gray-500 hover:text-gray-400'}`}
+                      >
                         <MessageCircle className="w-5 h-5" />
                         <span className="font-bold">{founder.comments}</span>
                         <span className="text-xs opacity-50 font-medium uppercase tracking-tighter">REPLIES</span>
-                      </div>
+                      </Button>
                     </div>
 
                     <div className="flex items-center space-x-3">
@@ -392,6 +493,19 @@ export default function AmFounderPage() {
                       <Crown className="w-5 h-5 text-yellow-500/30 group-hover:text-yellow-400 transition-all group-hover:rotate-12" />
                     </div>
                   </div>
+
+                  <AnimatePresence>
+                    {expandedFounderId === founder.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <ReplyList founderId={founder.id} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </CardContent>
               </Card>
             ))}

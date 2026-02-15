@@ -45,6 +45,30 @@ export class AmFounderService {
         logger.info(`Incrementing comments for founder post: ${id}`);
         await storage.incrementFounderComments(id);
     }
+    /**
+     * Create a reply to a founder post
+     */
+    async createReply(founderId: number, content: string, userId?: number): Promise<void> {
+        logger.info(`Creating reply for founder post: ${founderId}`, { userId });
+
+        // optimize: parallelize
+        await Promise.all([
+            storage.createAmFounderReply({
+                founderId,
+                content,
+                authorId: userId,
+            }),
+            storage.incrementFounderComments(founderId)
+        ]);
+    }
+
+    /**
+     * Get replies for a founder post
+     */
+    async getReplies(founderId: number) {
+        logger.debug(`Fetching replies for founder post: ${founderId}`);
+        return await storage.getAmFounderReplies(founderId);
+    }
 }
 
 // Singleton instance

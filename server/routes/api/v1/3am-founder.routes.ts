@@ -36,4 +36,20 @@ router.post(
     amFounderController.comment
 );
 
+// GET /api/v1/founder/:id/replies - Get replies for a post
+router.get(
+    "/:id/replies",
+    validate(z.object({ id: z.string().regex(/^\d+$/) }), "params"),
+    amFounderController.getReplies
+);
+
+// POST /api/v1/founder/:id/replies - Create a reply
+router.post(
+    "/:id/replies",
+    optionalAuth,
+    validate(z.object({ id: z.string().regex(/^\d+$/) }), "params"),
+    validate(z.object({ content: z.string().min(1) })),
+    amFounderController.createReply
+);
+
 export default router;

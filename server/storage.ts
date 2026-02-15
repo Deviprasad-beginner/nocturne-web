@@ -43,10 +43,13 @@ import {
   type CafeReply,
   type InsertCafeReply,
   savedStations,
+  amFounderReplies,
+  type AmFounderReply,
+  type InsertAmFounderReply,
 
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, sql } from "drizzle-orm";
+import { eq, desc, asc, sql, or, and, ne } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -65,28 +68,28 @@ export interface IStorage {
 
   // Diary operations
   createDiary(diary: InsertDiary): Promise<Diary>;
-  getDiaries(filterPublic?: boolean): Promise<Diary[]>;
+  getDiaries(viewerId?: number, limit?: number): Promise<Diary[]>;
   getDiary(id: number): Promise<Diary | undefined>;
   deleteDiary(id: number): Promise<boolean>;
 
   // Whisper operations
   createWhisper(whisper: InsertWhisper): Promise<Whisper>;
-  getWhispers(): Promise<Whisper[]>;
+  getWhispers(limit?: number): Promise<Whisper[]>;
   incrementWhisperHearts(id: number): Promise<void>;
 
   // Mind Maze operations
   createMindMaze(mindMaze: InsertMindMaze): Promise<MindMaze>;
-  getMindMaze(): Promise<MindMaze[]>;
+  getMindMaze(limit?: number): Promise<MindMaze[]>;
   incrementMindMazeResponses(id: number): Promise<void>;
 
   // Night Circle operations
   createNightCircle(nightCircle: InsertNightCircle): Promise<NightCircle>;
-  getNightCircles(): Promise<NightCircle[]>;
+  getNightCircles(limit?: number): Promise<NightCircle[]>;
   updateNightCircleMembers(id: number, members: number): Promise<void>;
 
   // Midnight Cafe operations
   createMidnightCafe(midnightCafe: InsertMidnightCafe): Promise<MidnightCafe>;
-  getMidnightCafe(): Promise<MidnightCafe[]>;
+  getMidnightCafe(limit?: number): Promise<MidnightCafe[]>;
   incrementCafeReplies(id: number): Promise<void>;
   createCafeReply(reply: InsertCafeReply): Promise<CafeReply>;
   getCafeReplies(cafeId: number): Promise<CafeReply[]>;
@@ -98,6 +101,9 @@ export interface IStorage {
   getAmFounder(): Promise<AmFounder[]>;
   incrementFounderUpvotes(id: number): Promise<void>;
   incrementFounderComments(id: number): Promise<void>;
+  createAmFounderReply(reply: InsertAmFounderReply): Promise<AmFounderReply>;
+  getAmFounderReplies(founderId: number): Promise<AmFounderReply[]>;
+
 
   // Starlit Speaker operations
   createStarlitSpeaker(starlitSpeaker: InsertStarlitSpeaker): Promise<StarlitSpeaker>;
@@ -122,7 +128,7 @@ export interface IStorage {
 
   // Nightly Reflection operations
   createNightlyPrompt(prompt: InsertNightlyPrompt): Promise<NightlyPrompt>;
-  getActivePrompt(): Promise<NightlyPrompt | undefined>; // Get non-expired prompt
+  getActivePrompt(type?: 'diary' | 'inspection'): Promise<NightlyPrompt | undefined>; // Get non-expired prompt
   getNightlyPrompt(id: number): Promise<NightlyPrompt | undefined>;
   createUserReflection(reflection: InsertUserReflection, aiEvaluation: any): Promise<UserReflection>;
   getUserReflections(userId: number, limit?: number): Promise<UserReflection[]>;
@@ -140,6 +146,7 @@ export class MemoryStorage implements IStorage {
   nightCircles: NightCircle[];
   midnightCafes: MidnightCafe[];
   amFounders: AmFounder[];
+  amFounderReplies: AmFounderReply[];
   starlitSpeakers: StarlitSpeaker[];
   moonMessages: MoonMessenger[];
   savedStations: SavedStation[];
@@ -154,7 +161,7 @@ export class MemoryStorage implements IStorage {
     this.nightCircles = [];
     this.midnightCafes = [];
     this.amFounders = [];
-    this.amFounders = [];
+    this.amFounderReplies = [];
     this.starlitSpeakers = [];
     this.moonMessages = [];
     this.savedStations = [];
@@ -187,6 +194,13 @@ export class MemoryStorage implements IStorage {
       email: insertUser.email || null,
       profileImageUrl: insertUser.profileImageUrl || null,
       hasSeenOnboarding: insertUser.hasSeenOnboarding ?? null,
+      currentStreak: 0,
+      lastEntryDate: null,
+      nightStreak: insertUser.nightStreak ?? 0,
+      meaningfulReplies: 0,
+      reportCount: 0,
+      trustScore: 100,
+      lastActiveTime: null,
       createdAt: new Date()
     };
     this.users.push(user);
@@ -212,18 +226,47 @@ export class MemoryStorage implements IStorage {
       isPublic: diary.isPublic || false,
       mood: diary.mood || null,
       authorId: diary.authorId || null,
+      detectedEmotion: diary.detectedEmotion || null,
+      sentimentScore: diary.sentimentScore || null,
+      reflectionDepth: diary.reflectionDepth || null,
       createdAt: new Date()
     };
     this.diaries.push(newDiary);
+
+    // Update streak (Memory)
+    if (diary.authorId) {
+      const user = this.users.find(u => u.id === diary.authorId);
+      if (user) {
+        const now = new Date();
+        const lastEntry = user.lastEntryDate ? new Date(user.lastEntryDate) : null;
+
+        if (!lastEntry) {
+          user.currentStreak = 1;
+        } else {
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const last = new Date(lastEntry.getFullYear(), lastEntry.getMonth(), lastEntry.getDate());
+          const diffTime = Math.abs(today.getTime() - last.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays === 1) {
+            user.currentStreak = (user.currentStreak || 0) + 1;
+          } else if (diffDays > 1) {
+            user.currentStreak = 1;
+          }
+        }
+        user.lastEntryDate = now;
+      }
+    }
+
     return newDiary;
   }
 
-  async getDiaries(filterPublic = false): Promise<Diary[]> {
-    let result = [...this.diaries];
-    if (filterPublic) {
-      result = result.filter(diary => diary.isPublic);
-    }
-    return result.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  async getDiaries(viewerId?: number, limit?: number): Promise<Diary[]> {
+    const diaries = Array.from(this.diaries.values())
+      .filter((diary) => diary.isPublic || (viewerId && diary.authorId === viewerId))
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+
+    return limit ? diaries.slice(0, limit) : diaries;
   }
 
   async getDiary(id: number): Promise<Diary | undefined> {
@@ -244,14 +287,18 @@ export class MemoryStorage implements IStorage {
       content: whisper.content,
       hearts: 0,
       authorId: whisper.authorId || null,
+      detectedEmotion: whisper.detectedEmotion || null,
+      sentimentScore: whisper.sentimentScore || null,
+      reflectionDepth: whisper.reflectionDepth || null,
       createdAt: new Date()
     };
     this.whispers.push(newWhisper);
     return newWhisper;
   }
 
-  async getWhispers(): Promise<Whisper[]> {
-    return [...this.whispers].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  async getWhispers(limit?: number): Promise<Whisper[]> {
+    const whispers = [...this.whispers].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    return limit ? whispers.slice(0, limit) : whispers;
   }
 
   async incrementWhisperHearts(id: number): Promise<void> {
@@ -275,8 +322,9 @@ export class MemoryStorage implements IStorage {
     return newMindMaze;
   }
 
-  async getMindMaze(): Promise<MindMaze[]> {
-    return [...this.mindMazes].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  async getMindMaze(limit?: number): Promise<MindMaze[]> {
+    const mindMazes = [...this.mindMazes].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    return limit ? mindMazes.slice(0, limit) : mindMazes;
   }
 
   async incrementMindMazeResponses(id: number): Promise<void> {
@@ -301,8 +349,9 @@ export class MemoryStorage implements IStorage {
     return newNightCircle;
   }
 
-  async getNightCircles(): Promise<NightCircle[]> {
-    return [...this.nightCircles].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  async getNightCircles(limit?: number): Promise<NightCircle[]> {
+    const circles = [...this.nightCircles].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    return limit ? circles.slice(0, limit) : circles;
   }
 
   async updateNightCircleMembers(id: number, members: number): Promise<void> {
@@ -327,8 +376,9 @@ export class MemoryStorage implements IStorage {
     return newMidnightCafe;
   }
 
-  async getMidnightCafe(): Promise<MidnightCafe[]> {
-    return [...this.midnightCafes].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  async getMidnightCafe(limit?: number): Promise<MidnightCafe[]> {
+    const cafes = [...this.midnightCafes].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    return limit ? cafes.slice(0, limit) : cafes;
   }
 
   async incrementCafeReplies(id: number): Promise<void> {
@@ -446,6 +496,23 @@ export class MemoryStorage implements IStorage {
     }
   }
 
+  async createAmFounderReply(reply: InsertAmFounderReply): Promise<AmFounderReply> {
+    const newReply: AmFounderReply = {
+      id: this.nextId++,
+      ...reply,
+      authorId: reply.authorId ?? null,
+      createdAt: new Date()
+    };
+    this.amFounderReplies.push(newReply);
+    return newReply;
+  }
+
+  async getAmFounderReplies(founderId: number): Promise<AmFounderReply[]> {
+    return this.amFounderReplies
+      .filter(r => r.founderId === founderId)
+      .sort((a, b) => a.createdAt!.getTime() - b.createdAt!.getTime());
+  }
+
   // Moon Messenger operations
   async createMoonMessage(moonMessage: InsertMoonMessenger): Promise<MoonMessenger> {
     const newMessage: MoonMessenger = {
@@ -510,6 +577,8 @@ export class MemoryStorage implements IStorage {
     return this.amFounders.filter(f => f.authorId === userId);
   }
 
+
+
   // Nightly Reflection operations
   async createNightlyPrompt(prompt: InsertNightlyPrompt): Promise<NightlyPrompt> {
     const newPrompt: NightlyPrompt = {
@@ -521,7 +590,7 @@ export class MemoryStorage implements IStorage {
     return newPrompt;
   }
 
-  async getActivePrompt(): Promise<NightlyPrompt | undefined> {
+  async getActivePrompt(type?: 'diary' | 'inspection'): Promise<NightlyPrompt | undefined> {
     const now = new Date();
     // In memory storage doesn't actually store prompts, so return undefined
     // This will trigger generation of new prompts
@@ -529,8 +598,23 @@ export class MemoryStorage implements IStorage {
   }
 
   async getNightlyPrompt(id: number): Promise<NightlyPrompt | undefined> {
-    // For memory storage, not implemented
-    return undefined;
+    // For memory storage, return a fixed prompt for testing
+    const prompts = [
+      "Something you felt today but didn't say.",
+      "A moment that stayed with you today.",
+      "What are you avoiding right now?",
+      "What felt heavy today?"
+    ];
+    // Deterministic rotation based on day
+    const dayIndex = new Date().getDate() % prompts.length;
+
+    return {
+      id: 1,
+      content: prompts[dayIndex],
+      shiftMode: "silence_variable",
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    };
   }
 
   async createUserReflection(reflection: InsertUserReflection, aiEvaluation: any): Promise<UserReflection> {
@@ -644,6 +728,41 @@ export class DatabaseStorage implements IStorage {
   // Diary operations
   async createDiary(diary: InsertDiary): Promise<Diary> {
     const [newDiary] = await db.insert(diaries).values(diary).returning();
+
+    // Update streak logic
+    if (diary.authorId) {
+      try {
+        const user = await this.getUser(diary.authorId);
+        if (user) {
+          const now = new Date();
+          const lastEntry = user.lastEntryDate ? new Date(user.lastEntryDate) : null;
+          let newStreak = user.currentStreak || 0;
+
+          if (!lastEntry) {
+            newStreak = 1;
+          } else {
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const last = new Date(lastEntry.getFullYear(), lastEntry.getMonth(), lastEntry.getDate());
+
+            const diffTime = Math.abs(today.getTime() - last.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+              newStreak++;
+            } else if (diffDays > 1) {
+              newStreak = 1;
+            }
+          }
+
+          await db.update(users)
+            .set({ currentStreak: newStreak, lastEntryDate: now })
+            .where(eq(users.id, diary.authorId));
+        }
+      } catch (error) {
+        console.error("Error updating user streak:", error);
+      }
+    }
+
     return newDiary;
   }
 
@@ -657,72 +776,53 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getDiaries(filterPublic = false): Promise<Diary[]> {
+  async getDiaries(viewerId?: number, limit?: number): Promise<Diary[]> {
     try {
-      let result = await db.select().from(diaries).orderBy(desc(diaries.createdAt));
+      // FIX: Use LEFT JOIN to include author info (prevents N+1 queries)
+      if (viewerId) {
+        // Authenticated: Public OR Own Private
+        const results = await db
+          .select({
+            diary: diaries,
+            author: users
+          })
+          .from(diaries)
+          .leftJoin(users, eq(diaries.authorId, users.id))
+          .where(
+            or(
+              eq(diaries.isPublic, true),
+              eq(diaries.authorId, viewerId)
+            )
+          )
+          .orderBy(desc(diaries.createdAt))
+          .limit(limit || 1000);
 
-      if (filterPublic) {
-        return result.filter(diary => diary.isPublic);
+        // Flatten and add author info to diary objects
+        return results.map(r => ({
+          ...r.diary,
+          author: r.author || undefined
+        })) as any;
+      } else {
+        // Guest: Public Only
+        const results = await db
+          .select({
+            diary: diaries,
+            author: users
+          })
+          .from(diaries)
+          .leftJoin(users, eq(diaries.authorId, users.id))
+          .where(eq(diaries.isPublic, true))
+          .orderBy(desc(diaries.createdAt))
+          .limit(limit || 1000);
+
+        return results.map(r => ({
+          ...r.diary,
+          author: r.author || undefined
+        })) as any;
       }
-      return result;
     } catch (error) {
       console.error("Error getting diaries:", error);
-      // Return mock data when database is unavailable
-      const mockDiaries = [
-        {
-          id: 1,
-          content: "The city never sleeps, and neither do I. Tonight I watched the rain create patterns on my window, each drop a tiny universe of reflection. There's something magical about 3 AM thoughts - they feel more honest, more raw. I wonder if anyone else is awake right now, sharing this quiet moment with the night.",
-          authorId: 1,
-          isPublic: true,
-          mood: null,
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
-        },
-        {
-          id: 2,
-          content: "Had the strangest dream about floating through a library made of stars. Each book contained a different lifetime, a different possibility. When I woke up, I felt like I'd lived a thousand lives in those few hours of sleep. Dreams are the night's way of showing us infinite potential.",
-          authorId: 2,
-          isPublic: true,
-          mood: null,
-          createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000) // 4 hours ago
-        },
-        {
-          id: 3,
-          content: "Tonight's moon is a silver coin tossed into the velvet sky. I made myself some chamomile tea and sat on my balcony, just breathing. Sometimes the best therapy is silence and starlight. The world feels different at night - softer, more forgiving, full of possibilities.",
-          authorId: 3,
-          isPublic: true,
-          mood: null,
-          createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000) // 6 hours ago
-        },
-        {
-          id: 4,
-          content: "Been thinking about time lately. How it moves differently in the dark. Minutes stretch like hours when you're lost in thought, but hours disappear like seconds when you're creating something beautiful. Tonight I wrote three poems and painted a small canvas. The night is my muse.",
-          authorId: 4,
-          isPublic: true,
-          mood: null,
-          createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000) // 8 hours ago
-        },
-        {
-          id: 5,
-          content: "There's a cat that visits my fire escape every night around midnight. Tonight I left out some milk and we shared a moment of understanding. Animals know something we've forgotten - how to simply exist without the weight of tomorrow's worries. Lessons from a midnight cat.",
-          authorId: 5,
-          isPublic: true,
-          mood: null,
-          createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000) // 10 hours ago
-        },
-        {
-          id: 6,
-          content: "Insomnia has become my unwanted companion again. But instead of fighting it, I've learned to dance with it. Tonight I reorganized my bookshelf by color, discovered a letter from my grandmother I'd forgotten about, and realized that sleepless nights can be gifts in disguise.",
-          authorId: 6,
-          isPublic: true,
-          mood: null,
-          createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000) // 12 hours ago
-        }
-      ];
-
-      if (filterPublic) {
-        return mockDiaries.filter(diary => diary.isPublic);
-      }
-      return mockDiaries;
+      return [];
     }
   }
 
@@ -744,9 +844,23 @@ export class DatabaseStorage implements IStorage {
     return newWhisper;
   }
 
-  async getWhispers(): Promise<Whisper[]> {
+  async getWhispers(limit?: number): Promise<Whisper[]> {
     try {
-      return await db.select().from(whispers).orderBy(desc(whispers.createdAt));
+      // FIX: Use LEFT JOIN to include author info (prevents N+1 queries)
+      const results = await db
+        .select({
+          whisper: whispers,
+          author: users
+        })
+        .from(whispers)
+        .leftJoin(users, eq(whispers.authorId, users.id))
+        .orderBy(desc(whispers.createdAt))
+        .limit(limit || 1000);
+
+      return results.map(r => ({
+        ...r.whisper,
+        author: r.author || undefined
+      })) as any;
     } catch (error) {
       console.error("Error getting whispers:", error);
       // Return mock whispers
@@ -756,6 +870,9 @@ export class DatabaseStorage implements IStorage {
           content: "Sometimes the darkest nights produce the brightest stars ✨",
           hearts: 23,
           authorId: null,
+          detectedEmotion: "hope",
+          sentimentScore: 3,
+          reflectionDepth: 8,
           createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000)
         },
         {
@@ -763,6 +880,9 @@ export class DatabaseStorage implements IStorage {
           content: "3 AM thoughts hit different... anyone else awake?",
           hearts: 45,
           authorId: null,
+          detectedEmotion: "lonely",
+          sentimentScore: -2,
+          reflectionDepth: 6,
           createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000)
         },
         {
@@ -770,6 +890,9 @@ export class DatabaseStorage implements IStorage {
           content: "The sound of rain at night is nature's lullaby 🌧️",
           hearts: 67,
           authorId: null,
+          detectedEmotion: "peaceful",
+          sentimentScore: 4,
+          reflectionDepth: 7,
           createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000)
         }
       ];
@@ -795,9 +918,14 @@ export class DatabaseStorage implements IStorage {
     return newMaze;
   }
 
-  async getMindMaze(): Promise<MindMaze[]> {
+  async getMindMaze(limit?: number): Promise<MindMaze[]> {
     try {
-      return await db.select().from(mindMaze).orderBy(desc(mindMaze.createdAt));
+      let query = db.select().from(mindMaze).orderBy(desc(mindMaze.createdAt));
+      if (limit) {
+        // @ts-ignore
+        query = query.limit(limit);
+      }
+      return await query;
     } catch (error) {
       console.error("Error getting mind maze:", error);
       // Return mock mind maze data
@@ -841,9 +969,14 @@ export class DatabaseStorage implements IStorage {
     return newCircle;
   }
 
-  async getNightCircles(): Promise<NightCircle[]> {
+  async getNightCircles(limit?: number): Promise<NightCircle[]> {
     try {
-      return await db.select().from(nightCircles).orderBy(desc(nightCircles.createdAt));
+      let query = db.select().from(nightCircles).orderBy(desc(nightCircles.createdAt));
+      if (limit) {
+        // @ts-ignore
+        query = query.limit(limit);
+      }
+      return await query;
     } catch (error) {
       console.error("Error getting night circles:", error);
       // Return mock night circles data
@@ -895,9 +1028,23 @@ export class DatabaseStorage implements IStorage {
     return newCafe;
   }
 
-  async getMidnightCafe(): Promise<MidnightCafe[]> {
+  async getMidnightCafe(limit?: number): Promise<MidnightCafe[]> {
     try {
-      return await db.select().from(midnightCafe).orderBy(desc(midnightCafe.createdAt));
+      // FIX: Use LEFT JOIN to include author info (prevents N+1 queries)
+      const results = await db
+        .select({
+          cafe: midnightCafe,
+          author: users
+        })
+        .from(midnightCafe)
+        .leftJoin(users, eq(midnightCafe.authorId, users.id))
+        .orderBy(desc(midnightCafe.createdAt))
+        .limit(limit || 1000);
+
+      return results.map(r => ({
+        ...r.cafe,
+        author: r.author || undefined
+      })) as any;
     } catch (error) {
       console.error("Error getting midnight cafe:", error);
       // Return mock midnight cafe data
@@ -955,7 +1102,20 @@ export class DatabaseStorage implements IStorage {
 
   async getAmFounder(): Promise<AmFounder[]> {
     try {
-      return await db.select().from(amFounder).orderBy(desc(amFounder.createdAt));
+      // FIX: Use LEFT JOIN to include author info (prevents N+1 queries)
+      const results = await db
+        .select({
+          founder: amFounder,
+          author: users
+        })
+        .from(amFounder)
+        .leftJoin(users, eq(amFounder.authorId, users.id))
+        .orderBy(desc(amFounder.createdAt));
+
+      return results.map(r => ({
+        ...r.founder,
+        author: r.author || undefined
+      })) as any;
     } catch (error) {
       console.error("Error getting amFounder:", error);
       return [];
@@ -981,6 +1141,24 @@ export class DatabaseStorage implements IStorage {
         .where(eq(amFounder.id, id));
     } catch (error) {
       console.error("Error incrementing founder comments:", error);
+    }
+  }
+
+  async createAmFounderReply(reply: InsertAmFounderReply): Promise<AmFounderReply> {
+    const [newReply] = await db.insert(amFounderReplies).values(reply).returning();
+    return newReply;
+  }
+
+  async getAmFounderReplies(founderId: number): Promise<AmFounderReply[]> {
+    try {
+      return await db
+        .select()
+        .from(amFounderReplies)
+        .where(eq(amFounderReplies.founderId, founderId))
+        .orderBy(asc(amFounderReplies.createdAt));
+    } catch (error) {
+      console.error("Error getting amFounder replies:", error);
+      return [];
     }
   }
 
@@ -1123,21 +1301,36 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getActivePrompt(): Promise<NightlyPrompt | undefined> {
+  async getActivePrompt(type?: 'diary' | 'inspection'): Promise<NightlyPrompt | undefined> {
     try {
       const now = new Date();
-      const [activePrompt] = await db
+      // First check if we have a valid active prompt in DB
+      let query = db
         .select()
         .from(nightlyPrompts)
-        .where(sql`${nightlyPrompts.expiresAt} > ${now}`)
+        .where(
+          and(
+            sql`${nightlyPrompts.expiresAt} > ${now}`,
+            type === 'diary'
+              ? eq(nightlyPrompts.shiftMode, 'diary')
+              : ne(nightlyPrompts.shiftMode, 'diary')
+          )
+        )
         .orderBy(desc(nightlyPrompts.createdAt))
         .limit(1);
-      return activePrompt || undefined;
+
+      const [activePrompt] = await query;
+
+      if (activePrompt) return activePrompt;
+
+      // If no active prompt, return undefined to trigger generation in service
+      return undefined;
     } catch (error) {
       console.error("Error getting active prompt:", error);
       return undefined;
     }
   }
+
 
   async getNightlyPrompt(id: number): Promise<NightlyPrompt | undefined> {
     try {
@@ -1155,6 +1348,44 @@ export class DatabaseStorage implements IStorage {
         .insert(userReflections)
         .values({ ...reflection, aiEvaluation })
         .returning();
+
+      // Update streak logic (same as diary)
+      if (reflection.userId) {
+        try {
+          const user = await this.getUser(reflection.userId);
+          if (user) {
+            const now = new Date();
+            const lastEntry = user.lastEntryDate ? new Date(user.lastEntryDate) : null;
+            let newStreak = user.currentStreak || 0;
+
+            if (!lastEntry) {
+              newStreak = 1;
+            } else {
+              const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const last = new Date(lastEntry.getFullYear(), lastEntry.getMonth(), lastEntry.getDate());
+
+              const diffTime = Math.abs(today.getTime() - last.getTime());
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+              if (diffDays === 1) {
+                newStreak++;
+              } else if (diffDays > 1) {
+                newStreak = 1;
+              }
+            }
+
+            // Only update if it's a new day or streak change
+            if (!lastEntry || newStreak !== user.currentStreak || now.getDate() !== lastEntry.getDate()) {
+              await db.update(users)
+                .set({ currentStreak: newStreak, lastEntryDate: now })
+                .where(eq(users.id, reflection.userId));
+            }
+          }
+        } catch (error) {
+          console.error("Error updating user streak from reflection:", error);
+        }
+      }
+
       return newReflection;
     } catch (error) {
       console.error("Error creating user reflection:", error);

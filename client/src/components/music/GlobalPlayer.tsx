@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import ReactPlayer from "react-player";
 import { useMusic } from "@/context/MusicContext";
-import { Play, Pause, X, Volume2, Radio, Clock, ChevronUp, ChevronDown } from "lucide-react";
+import { Play, Pause, X, Volume2, Radio, Clock, ChevronUp, ChevronDown, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -11,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { Visualizer } from "./Visualizer";
 
 export function GlobalPlayer() {
     const {
@@ -28,11 +29,22 @@ export function GlobalPlayer() {
     const { toast } = useToast();
 
     const [isExpanded, setIsExpanded] = useState(true);
+    const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
 
     if (!currentStation) return null;
 
     return (
         <>
+            {/* Visualizer Overlay */}
+            {isVisualizerOpen && (
+                <Visualizer
+                    station={currentStation}
+                    isPlaying={isPlaying}
+                    onClose={() => setIsVisualizerOpen(false)}
+                    color={activePlaylist?.color || 'from-gray-700 to-gray-800'}
+                />
+            )}
+
             {/* Hidden Player (In-viewport to ensure rendering, but transparent) */}
             <div className="fixed top-0 left-0 z-[-1] opacity-[0.01] pointer-events-none">
                 {React.createElement(ReactPlayer as any, {
@@ -90,7 +102,7 @@ export function GlobalPlayer() {
                     <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
                         {/* Find Track Info */}
                         <div className="flex items-center gap-4 min-w-0 flex-1">
-                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center bg-gradient-to-br ${activePlaylist?.color || 'from-gray-700 to-gray-800'} shadow-lg shrink-0`}>
+                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center bg-gradient-to-br ${activePlaylist?.color || 'from-gray-700 to-gray-800'} shadow-lg shrink-0 group relative overflow-hidden cursor-pointer`} onClick={() => setIsVisualizerOpen(true)}>
                                 {isPlaying ? (
                                     <div className="flex gap-0.5 h-4 items-center">
                                         <span className="w-0.5 h-full bg-white animate-[music-bar_0.6s_ease-in-out_infinite]" />
@@ -100,9 +112,14 @@ export function GlobalPlayer() {
                                 ) : (
                                     <Radio className="w-5 h-5 text-white" />
                                 )}
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Maximize2 className="w-4 h-4 text-white" />
+                                </div>
                             </div>
                             <div className="min-w-0">
-                                <h4 className="text-white font-medium text-sm sm:text-base truncate">{currentStation.name}</h4>
+                                <h4 className="text-white font-medium text-sm sm:text-base truncate cursor-pointer hover:text-gray-300 transition-colors" onClick={() => setIsVisualizerOpen(true)}>
+                                    {currentStation.name}
+                                </h4>
                                 <p className="text-xs text-gray-400 truncate">{activePlaylist?.name || "Live Radio"}</p>
                             </div>
                         </div>
@@ -136,6 +153,10 @@ export function GlobalPlayer() {
                                     <DropdownMenuItem onClick={() => setSleepTimer(null)} className="text-red-400">Turn Off</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+
+                            <Button variant="ghost" size="icon" onClick={() => setIsVisualizerOpen(true)} className="text-gray-400 hover:text-white hidden sm:flex">
+                                <Maximize2 className="w-4 h-4" />
+                            </Button>
 
                             <Button
                                 size="icon"

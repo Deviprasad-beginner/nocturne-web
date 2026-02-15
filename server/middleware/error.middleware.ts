@@ -44,6 +44,12 @@ export function errorHandler(
         );
     }
 
+    // specific handling for passport deserialization error
+    if (err.message === "Failed to deserialize user out of session") {
+        res.clearCookie("connect.sid");
+        return res.status(401).json(errorResponse("Session invalid, please login again", "UNAUTHORIZED"));
+    }
+
     // Handle unexpected errors
     const statusCode = 500;
     const message =

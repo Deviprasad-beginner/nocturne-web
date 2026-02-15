@@ -13,16 +13,26 @@ if (process.env.DATABASE_URL) {
   // Format: postgresql://user:password@host:port/database
   const dbUrl = new URL(process.env.DATABASE_URL);
 
+  // Create a connection string without SSL parameters to prevent conflicts
+  // and ensure our manual SSL config takes precedence
+  const connectionString = new URL(process.env.DATABASE_URL);
+  connectionString.searchParams.delete('sslmode');
+  connectionString.searchParams.delete('ssl');
+
+  // Log connection details for debugging (masking password)
+  const safeUrl = new URL(process.env.DATABASE_URL);
+  safeUrl.password = "*****";
+  console.log(`[DB] Connecting to: ${safeUrl.toString()}`);
+  console.log(`[DB] SNI Servername: ${process.env.DB_SNI_SERVERNAME || dbUrl.hostname}`);
+
   pool = new Pool({
-    host: dbUrl.hostname,
-    port: parseInt(dbUrl.port || '5432'),
-    user: dbUrl.username,
-    password: dbUrl.password,
-    database: dbUrl.pathname.slice(1), // Remove leading slash
+    connectionString: connectionString.toString(),
     ssl: {
       rejectUnauthorized: false,
-      // If hostname is an IP, use the SNI servername from env or construct from components
-      servername: process.env.DB_SNI_SERVERNAME || dbUrl.hostname
+      servername: process.env.DB_SNI_SERVERNAME || dbUrl.hostname,
+      // Fix for "Hostname/IP does not match certificate's altnames"
+      // because we are connecting via IP but the cert is for the hostname
+      checkServerIdentity: () => undefined
     },
   });
 

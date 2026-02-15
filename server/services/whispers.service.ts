@@ -4,17 +4,19 @@
  */
 
 import { whispersRepository } from "../repositories/whispers.repository";
+import { storage } from "../storage";
 import type { Whisper, InsertWhisper } from "@shared/schema";
 import { NotFoundError, ForbiddenError } from "../utils/errors";
 import { logger } from "../utils/logger";
+import { analyzeEmotion } from "./emotion-analyzer";
 
 export class WhispersService {
     /**
      * Get all whispers
      */
-    async getAllWhispers(): Promise<Whisper[]> {
+    async getAllWhispers(limit?: number): Promise<Whisper[]> {
         logger.debug("Fetching all whispers");
-        return await whispersRepository.getAll();
+        return await storage.getWhispers(limit);
     }
 
     /**
@@ -45,9 +47,14 @@ export class WhispersService {
     async createWhisper(data: InsertWhisper, userId?: number): Promise<Whisper> {
         logger.info("Creating new whisper", { userId });
 
+        const analysis = analyzeEmotion(data.content);
+
         const whisperData: InsertWhisper = {
             ...data,
             authorId: userId, // Link to user if logged in
+            detectedEmotion: analysis.detectedEmotion,
+            sentimentScore: analysis.sentimentScore,
+            reflectionDepth: analysis.reflectionDepthScore,
         };
 
         return await whispersRepository.create(whisperData);

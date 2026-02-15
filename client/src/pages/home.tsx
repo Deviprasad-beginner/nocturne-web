@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { SEO } from "@/components/SEO";
 import { Diary, Whisper, MindMaze, NightCircle, MidnightCafe } from "@shared/schema";
 import { AuthButton } from "@/components/auth-button";
 import { CategoryCard } from "@/components/category-card";
@@ -43,27 +44,27 @@ export default function Home() {
 
   // Data fetching with React Query from our backend API
   const { data: diaries = [], isLoading: diariesLoading } = useQuery<Diary[]>({
-    queryKey: ['/api/v1/diaries'],
+    queryKey: ['/api/v1/diaries?limit=5'],
     enabled: true,
   });
 
   const { data: whispers = [], isLoading: whispersLoading } = useQuery<Whisper[]>({
-    queryKey: ['/api/v1/whispers'],
+    queryKey: ['/api/v1/whispers?limit=5'],
     enabled: true,
   });
 
   const { data: mindMaze = [], isLoading: mindMazeLoading } = useQuery<MindMaze[]>({
-    queryKey: ['/api/v1/mind-maze'],
+    queryKey: ['/api/v1/mind-maze?limit=5'],
     enabled: true,
   });
 
   const { data: nightCircles = [], isLoading: nightCirclesLoading } = useQuery<NightCircle[]>({
-    queryKey: ['/api/v1/circles'],
+    queryKey: ['/api/v1/circles?limit=5'],
     enabled: true,
   });
 
   const { data: midnightCafe = [], isLoading: midnightCafeLoading } = useQuery<MidnightCafe[]>({
-    queryKey: ['/api/v1/cafe'],
+    queryKey: ['/api/v1/cafe?limit=5'],
     enabled: true,
   });
 
@@ -80,6 +81,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white relative overflow-hidden">
 
       {/* Stars Background */}
+      <SEO title="Home" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <Star className="w-1 h-1 top-20 left-10 animate-twinkle" />
         <Star className="w-1 h-1 top-32 right-20 animate-twinkle" style={{ animationDelay: '0.5s' }} />
@@ -90,13 +92,13 @@ export default function Home() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 p-6">
+      <header className="relative z-10 p-4 sm:p-6">
         <nav className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center animate-pulse-glow">
-              <Moon className="w-6 h-6" />
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center animate-pulse-glow">
+              <Moon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
               Nocturne
             </h1>
           </div>
@@ -109,40 +111,43 @@ export default function Home() {
       <HeroSection />
 
       {/* Category Grid */}
-      <section className="relative z-10 px-6 pb-20">
+      <section className="relative z-10 px-4 sm:px-6 pb-12 md:pb-20">
         <div className="max-w-6xl mx-auto">
-          <h3 className="text-3xl font-bold text-center mb-4 text-white">Explore Nocturne</h3>
+          <h3 className="text-2xl sm:text-3xl font-bold text-center mb-3 md:mb-4 text-white">Explore Nocturne</h3>
 
           {/* Guiding Sentence */}
-          <h2 className="text-lg text-center text-gray-400 font-light mb-12 italic tracking-wide animate-pulse-slow">
+          <h2 className="text-sm sm:text-base md:text-lg text-center text-gray-400 font-light mb-8 md:mb-12 italic tracking-wide animate-pulse-slow px-4">
             "Choose one place. You don't need to stay."
           </h2>
 
-          {/* Top Section - Activity & Profile */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="lg:col-span-2">
-              <LiveActivityFeed />
-            </div>
-            <div>
+          {/* Dashboard Widgets Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
+            {/* 1. Profile (Personal Context) */}
+            <div className="h-48">
               <UserProfileCard />
             </div>
-          </div>
 
-          {/* Trending Section */}
-          <div className="mb-12">
-            <TrendingTopics />
+            {/* 2. Live Activity (Real-time Pulse) */}
+            <div className="h-48">
+              <LiveActivityFeed />
+            </div>
+
+            {/* 3. Trending (Community Pulse) */}
+            <div className="h-48">
+              <TrendingTopics />
+            </div>
           </div>
 
           {/* SECTION 1: Your Sanctuary - Solo Activities */}
-          <div className="mb-16">
-            <div className="flex items-center gap-3 mb-6">
+          <div className="mb-12 md:mb-16">
+            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
               <div className="h-px bg-gradient-to-r from-transparent via-indigo-400/30 to-transparent flex-1"></div>
-              <h4 className="text-xl font-semibold text-indigo-300 uppercase tracking-wider">Your Sanctuary</h4>
+              <h4 className="text-base sm:text-lg md:text-xl font-semibold text-indigo-300 uppercase tracking-wider">Your Sanctuary</h4>
               <div className="h-px bg-gradient-to-r from-transparent via-indigo-400/30 to-transparent flex-1"></div>
             </div>
-            <p className="text-center text-gray-400 text-sm mb-6 italic">Solo spaces for reflection and creation</p>
+            <p className="text-center text-gray-400 text-xs sm:text-sm mb-4 md:mb-6 italic">Solo spaces for reflection and creation</p>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
               {/* Night Diaries */}
               <CategoryCard
                 title="Night Diaries"
@@ -243,15 +248,15 @@ export default function Home() {
           </div>
 
           {/* SECTION 2: Connect - Social Features */}
-          <div className="mb-16">
-            <div className="flex items-center gap-3 mb-6">
+          <div className="mb-12 md:mb-16">
+            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
               <div className="h-px bg-gradient-to-r from-transparent via-pink-400/30 to-transparent flex-1"></div>
-              <h4 className="text-xl font-semibold text-pink-300 uppercase tracking-wider">Connect</h4>
+              <h4 className="text-base sm:text-lg md:text-xl font-semibold text-pink-300 uppercase tracking-wider">Connect</h4>
               <div className="h-px bg-gradient-to-r from-transparent via-pink-400/30 to-transparent flex-1"></div>
             </div>
-            <p className="text-center text-gray-400 text-sm mb-6 italic">Find others wandering the night</p>
+            <p className="text-center text-gray-400 text-xs sm:text-sm mb-4 md:mb-6 italic">Find others wandering the night</p>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
               {/* Whispers */}
               <CategoryCard
                 title="Whispers"
@@ -359,15 +364,15 @@ export default function Home() {
           </div>
 
           {/* SECTION 3: Explore - Experimental Features */}
-          <div className="mb-16">
-            <div className="flex items-center gap-3 mb-6">
+          <div className="mb-12 md:mb-16">
+            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
               <div className="h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent flex-1"></div>
-              <h4 className="text-xl font-semibold text-amber-300 uppercase tracking-wider">Explore</h4>
+              <h4 className="text-base sm:text-lg md:text-xl font-semibold text-amber-300 uppercase tracking-wider">Explore</h4>
               <div className="h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent flex-1"></div>
             </div>
-            <p className="text-center text-gray-400 text-sm mb-6 italic">Experimental spaces for the curious</p>
+            <p className="text-center text-gray-400 text-xs sm:text-sm mb-4 md:mb-6 italic">Experimental spaces for the curious</p>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
               {/* Mind Maze */}
               <CategoryCard
                 title="Mind Maze"

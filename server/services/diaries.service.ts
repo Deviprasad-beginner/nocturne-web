@@ -7,14 +7,15 @@ import { storage } from "../storage";
 import type { Diary, InsertDiary } from "@shared/schema";
 import { NotFoundError, ForbiddenError } from "../utils/errors";
 import { logger } from "../utils/logger";
+import { analyzeEmotion } from "./emotion-analyzer";
 
 export class DiariesService {
     /**
      * Get all public diaries
      */
-    async getAllDiaries(): Promise<Diary[]> {
-        logger.debug("Fetching all public diaries");
-        return await storage.getDiaries(true); // true = public only
+    async getAllDiaries(userId?: number, limit?: number): Promise<Diary[]> {
+        logger.debug(`Fetching diaries for viewer: ${userId || 'Guest'}`);
+        return await storage.getDiaries(userId, limit);
     }
 
     /**
@@ -48,9 +49,14 @@ export class DiariesService {
     async createDiary(data: InsertDiary, userId: number): Promise<Diary> {
         logger.info("Creating new diary", { userId });
 
+        const analysis = analyzeEmotion(data.content);
+
         const diaryData: InsertDiary = {
             ...data,
             authorId: userId,
+            detectedEmotion: analysis.detectedEmotion,
+            sentimentScore: analysis.sentimentScore,
+            reflectionDepth: analysis.reflectionDepthScore,
         };
 
         return await storage.createDiary(diaryData);

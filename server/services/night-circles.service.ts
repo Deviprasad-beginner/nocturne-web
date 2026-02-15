@@ -12,9 +12,9 @@ export class NightCirclesService {
     /**
      * Get all night circles
      */
-    async getAllCircles(): Promise<NightCircle[]> {
+    async getAllCircles(limit?: number): Promise<NightCircle[]> {
         logger.debug("Fetching all night circles");
-        return await storage.getNightCircles();
+        return await storage.getNightCircles(limit);
     }
 
     /**

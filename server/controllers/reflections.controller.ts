@@ -15,7 +15,8 @@ export class ReflectionsController {
      */
     getPrompt = async (req: Request, res: Response) => {
         try {
-            const prompt = await this.reflectionsService.getActivePrompt();
+            const type = req.query.type as 'diary' | 'inspection' | undefined;
+            const prompt = await this.reflectionsService.getActivePrompt(type);
             res.json(prompt);
         } catch (error) {
             console.error("Error getting prompt:", error);
@@ -50,6 +51,25 @@ export class ReflectionsController {
         } catch (error) {
             console.error("Error submitting response:", error);
             res.status(500).json({ error: "Failed to submit response" });
+        }
+    };
+
+    /**
+     * POST /api/reflections/sentiment
+     * Analyze sentiment of a reflection
+     */
+    analyzeSentiment = async (req: Request, res: Response) => {
+        try {
+            const { content } = req.body;
+            if (!content) {
+                return res.status(400).json({ error: "Content is required" });
+            }
+
+            const result = await this.reflectionsService.analyzeSentiment(content);
+            res.json(result);
+        } catch (error) {
+            console.error("Error analyzing sentiment:", error);
+            res.status(500).json({ error: "Failed to analyze sentiment" });
         }
     };
 

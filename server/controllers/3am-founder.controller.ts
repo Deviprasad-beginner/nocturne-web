@@ -41,6 +41,25 @@ export class AmFounderController {
         await amFounderService.incrementComments(id);
         res.json(successResponse({ message: "Comment count incremented" }));
     });
+
+    /**
+     * POST /api/v1/founder/:id/replies
+     */
+    createReply = asyncHandler(async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const { content } = req.body;
+        await amFounderService.createReply(id, content, req.user?.id);
+        res.status(201).json(successResponse({ message: "Reply created successfully" }));
+    });
+
+    /**
+     * GET /api/v1/founder/:id/replies
+     */
+    getReplies = asyncHandler(async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const replies = await amFounderService.getReplies(id);
+        res.json(successResponse(replies));
+    });
 }
 
 export const amFounderController = new AmFounderController();

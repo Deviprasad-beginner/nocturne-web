@@ -20,6 +20,7 @@ import activityRoutes from "./activity.routes";
 import profileRoutes from "./profile.routes";
 import nightThoughtsRoutes from "./night-thoughts.routes";
 import readsRoutes from "./reads.routes";
+import reflectionRoutes from "../../reflections.routes"; // Import from parent routes dir
 
 const router = Router();
 
@@ -40,6 +41,7 @@ router.use("/activity", activityRoutes);
 router.use("/profile", profileRoutes);
 router.use("/thoughts", nightThoughtsRoutes);
 router.use("/reads", readsRoutes);
+router.use("/reflections", reflectionRoutes); // Use the existing reflection routes file
 
 // Health check endpoint
 router.get("/health", (req, res) => {

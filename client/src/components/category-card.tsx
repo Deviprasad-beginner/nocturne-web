@@ -32,7 +32,7 @@ export function CategoryCard({
 }: CategoryCardProps) {
   return (
     <Card
-      className={`category-card glassmorphism p-8 rounded-3xl transition-all duration-300 relative overflow-hidden
+      className={`category-card glassmorphism p-4 sm:p-6 md:p-8 rounded-2xl md:rounded-3xl transition-all duration-300 relative overflow-hidden
         ${isLocked ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer hover:translate-y-[-8px]'}
         ${glow ? 'ring-1 ring-indigo-500/50 shadow-[0_0_30px_-5px_rgba(99,102,241,0.3)]' : ''}
       `}
@@ -55,21 +55,21 @@ export function CategoryCard({
       )}
 
       <CardContent className="p-0">
-        <div className="flex items-center justify-between mb-6">
-          <div className={`w-12 h-12 ${isLocked ? 'bg-gray-800' : iconColor} rounded-2xl flex items-center justify-center`}>
-            <Icon className={`w-6 h-6 ${isLocked ? 'text-gray-500' : 'text-white'}`} />
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <div className={`w-10 h-10 md:w-12 md:h-12 ${isLocked ? 'bg-gray-800' : iconColor} rounded-xl md:rounded-2xl flex items-center justify-center`}>
+            <Icon className={`w-5 h-5 md:w-6 md:h-6 ${isLocked ? 'text-gray-500' : 'text-white'}`} />
           </div>
-          <span className={`text-xs ${isLocked ? 'bg-gray-800 text-gray-500' : countColor} px-3 py-1 rounded-full`}>
+          <span className={`text-xs ${isLocked ? 'bg-gray-800 text-gray-500' : countColor} px-2 md:px-3 py-1 rounded-full`}>
             {count} {countLabel}
           </span>
         </div>
-        <h4 className={`text-xl font-semibold mb-3 ${isLocked ? 'text-gray-500' : ''}`}>{title}</h4>
-        <p className="text-gray-400 mb-6">{description}</p>
+        <h4 className={`text-lg md:text-xl font-semibold mb-2 md:mb-3 ${isLocked ? 'text-gray-500' : ''}`}>{title}</h4>
+        <p className="text-gray-400 mb-4 md:mb-6 text-xs md:text-sm">{description}</p>
 
         <div className={isLocked ? 'opacity-30 blur-[1px]' : ''}>
           {children}
         </div>
       </CardContent>
-    </Card >
+    </Card>
   );
 }

@@ -13,7 +13,8 @@ export class NightCirclesController {
      * Get all night circles
      */
     getAll = asyncHandler(async (req: Request, res: Response) => {
-        const circles = await nightCirclesService.getAllCircles();
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+        const circles = await nightCirclesService.getAllCircles(limit);
         res.json(successResponse(circles));
     });
 

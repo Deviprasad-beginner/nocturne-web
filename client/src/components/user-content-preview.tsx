@@ -12,17 +12,17 @@ export function UserContentPreview({ type }: UserContentPreviewProps) {
 
     // Queries
     const { data: diaries = [], isLoading: diariesLoading } = useQuery<Diary[]>({
-        queryKey: ['/api/users/me/diaries'],
+        queryKey: ['/api/v1/users/me/diaries'],
         enabled: type === 'void',
     });
 
     const { data: whispers = [], isLoading: whispersLoading } = useQuery<Whisper[]>({
-        queryKey: ['/api/users/me/whispers'],
+        queryKey: ['/api/v1/users/me/whispers'],
         enabled: type === 'void',
     });
 
     const { data: reflections = [], isLoading: reflectionsLoading } = useQuery<UserReflection[]>({
-        queryKey: ['/api/reflections/history'],
+        queryKey: ['/api/v1/reflections/history'],
         enabled: type === 'inspection',
     });
 

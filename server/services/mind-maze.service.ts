@@ -11,9 +11,9 @@ export class MindMazeService {
     /**
      * Get all mind maze questions
      */
-    async getAllQuestions(): Promise<MindMaze[]> {
+    async getAllQuestions(limit?: number): Promise<MindMaze[]> {
         logger.debug("Fetching all mind maze questions");
-        return await storage.getMindMaze();
+        return await storage.getMindMaze(limit);
     }
 
     /**

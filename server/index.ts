@@ -3,6 +3,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import cors from "cors";
 import helmet from "helmet";
+import morgan from "morgan";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { WebSocketManager } from "./websocket";
@@ -33,41 +35,17 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
 }));
 
+// Enable Gzip compression for all responses
+app.use(compression());
+
 // Apply rate limiting to all API routes
 app.use("/api", apiLimiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
+// Use morgan for HTTP request logging
+app.use(morgan("dev"));
 
 (async () => {
   const httpServer = createServer(app);

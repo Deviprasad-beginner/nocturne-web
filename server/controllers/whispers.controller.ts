@@ -14,7 +14,8 @@ export class WhispersController {
      * Get all whispers
      */
     getAll = asyncHandler(async (req: Request, res: Response) => {
-        const whispers = await whispersService.getAllWhispers();
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+        const whispers = await whispersService.getAllWhispers(limit);
         res.json(successResponse(whispers));
     });
 

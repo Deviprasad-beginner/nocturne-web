@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { TrendingUp, Hash, ChevronDown, ChevronUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { TrendingUp, Hash, ArrowUpRight } from "lucide-react";
 
 interface TrendingTopic {
   id: number;
@@ -14,137 +12,75 @@ interface TrendingTopic {
 }
 
 export function TrendingTopics() {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   const { data: response, isLoading } = useQuery<{ success: boolean; data: TrendingTopic[] }>({
     queryKey: ["/api/v1/trending/topics"],
     refetchInterval: 60000,
   });
 
   const trendingTopics = response?.data || [];
-  const displayTopics = isExpanded ? trendingTopics : trendingTopics.slice(0, 5);
+  const displayTopics = trendingTopics.slice(0, 3); // Top 3 only
 
   return (
-    <>
-      <div className="bg-black/20 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden">
-        <div
-          className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-white/5 transition-all duration-200"
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="w-4 h-4 text-green-400" />
-            <span className="text-sm font-medium text-white">Trending Tonight</span>
-          </div>
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <ChevronUp className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-0' : 'rotate-180'}`} />
-          </button>
-        </div>
-
-        <div
-          className="transition-all duration-500 ease-in-out overflow-hidden"
-          style={{
-            maxHeight: isExpanded ? '600px' : '0px',
-            opacity: isExpanded ? 1 : 0
-          }}
-        >
-          <div className="px-4 pb-3">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400"></div>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-2 max-h-72 overflow-y-auto">
-                  {displayTopics.map((topic, index) => (
-                    <Link key={topic.id} href={topic.destination}>
-                      <div
-                        className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200 cursor-pointer group border border-white/0 hover:border-white/10 hover:scale-[1.01]"
-                        style={{
-                          animation: isExpanded ? `fadeSlideIn 0.3s ease-out ${index * 0.05}s both` : 'none'
-                        }}
-                      >
-                        <div className="flex items-center space-x-2 flex-1 min-w-0">
-                          <div className="flex items-center justify-center w-5 h-5 bg-white/10 group-hover:bg-purple-500/30 rounded-lg text-xs font-bold text-gray-300 transition-all duration-200 flex-shrink-0">
-                            {index + 1}
-                          </div>
-                          <div className="flex items-center space-x-1 min-w-0">
-                            <Hash className="w-3 h-3 text-gray-500 group-hover:text-purple-400 transition-colors flex-shrink-0" />
-                            <span className="text-xs text-white font-medium group-hover:text-purple-300 transition-colors truncate">
-                              {topic.tag}
-                            </span>
-                          </div>
-                          <span className="text-xs text-gray-500 flex-shrink-0">
-                            {topic.posts}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-1 text-green-400 flex-shrink-0">
-                          <TrendingUp className="w-3 h-3" />
-                          <span className="text-xs font-medium">+{topic.growth}%</span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-
-                  {trendingTopics.length === 0 && (
-                    <div className="text-center py-6 text-gray-500">
-                      <p className="text-xs">No trending topics yet</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Quick Tags */}
-                <div className="mt-4 pt-3 border-t border-white/5 animate-in fade-in duration-500" style={{ animationDelay: '0.2s' }}>
-                  <h4 className="text-xs font-semibold text-gray-500 mb-2">Quick Tags</h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { tag: "#nightthoughts", dest: "/diaries" },
-                      { tag: "#3amwisdom", dest: "/whispers" },
-                      { tag: "#moonlitmusings", dest: "/midnight-cafe" },
-                      { tag: "#insomniaclife", dest: "/night-circles" },
-                    ].map(({ tag, dest }) => (
-                      <Link key={tag} href={dest}>
-                        <Badge
-                          variant="outline"
-                          className="text-xs cursor-pointer bg-white/5 border-white/10 text-gray-400 hover:bg-purple-500/20 hover:border-purple-400/50 hover:text-purple-300 transition-all duration-200 hover:scale-105"
-                        >
-                          {tag}
-                        </Badge>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div
-          className="transition-all duration-300 ease-in-out overflow-hidden"
-          style={{
-            maxHeight: !isExpanded && trendingTopics.length > 0 ? '50px' : '0px',
-            opacity: !isExpanded ? 1 : 0
-          }}
-        >
-          <div className="px-4 pb-3">
-            <div className="text-center text-xs text-gray-500 py-1">
-              {trendingTopics.length} trending {trendingTopics.length === 1 ? 'topic' : 'topics'}
-            </div>
-          </div>
+    <div className="bg-black/40 backdrop-blur-md border border-white/5 rounded-xl overflow-hidden h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/[0.02]">
+        <div className="flex items-center space-x-2">
+          <TrendingUp className="w-3.5 h-3.5 text-fuchsia-400" />
+          <span className="text-xs font-medium text-fuchsia-100 tracking-wide">Trending Tonight</span>
         </div>
       </div>
 
-      <style>{`
-        @keyframes fadeSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-    </>
+      {/* Content */}
+      <div className="flex-1 p-2">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="w-1 h-8 bg-fuchsia-500/20 rounded animate-pulse" />
+          </div>
+        ) : trendingTopics.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-600 space-y-2 opacity-50">
+            <TrendingUp className="w-6 h-6" />
+            <span className="text-xs">Quiet night...</span>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {displayTopics.map((topic, index) => (
+              <Link key={topic.id} href={topic.destination}>
+                <div className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-all duration-200 cursor-pointer group border border-transparent hover:border-white/5">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <span className="text-xs font-bold text-gray-600 w-3 text-center group-hover:text-fuchsia-500/50 transition-colors">
+                      {index + 1}
+                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-medium text-gray-300 truncate group-hover:text-white transition-colors">
+                        {topic.tag}
+                      </span>
+                      <span className="text-[10px] text-gray-600 truncate">
+                        {topic.posts} posts
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] text-green-400 font-medium">+{topic.growth}%</span>
+                    <ArrowUpRight className="w-3 h-3 text-gray-600 group-hover:text-white transition-colors" />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Footer / More Link */}
+      {trendingTopics.length > 3 && (
+        <div className="px-4 py-2 border-t border-white/5 bg-white/[0.02]">
+          <Link href="/explore">
+            <div className="text-[10px] text-center text-gray-500 hover:text-white cursor-pointer transition-colors">
+              View all trends
+            </div>
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }

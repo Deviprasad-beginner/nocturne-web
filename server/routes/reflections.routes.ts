@@ -11,6 +11,9 @@ router.get("/prompt", reflectionsController.getPrompt);
 // POST /api/reflections/respond - Submit response to a prompt
 router.post("/respond", reflectionsController.submitResponse);
 
+// POST /api/reflections/sentiment - Analyze sentiment of a reflection
+router.post("/sentiment", reflectionsController.analyzeSentiment);
+
 // GET /api/reflections/history - Get user's reflection history
 router.get("/history", reflectionsController.getHistory);
 
