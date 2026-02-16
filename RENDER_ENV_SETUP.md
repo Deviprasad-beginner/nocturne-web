@@ -15,14 +15,15 @@ production
 
 ### 2. DATABASE_URL
 ```
-postgresql://neondb_owner:npg_BiANFhq21kVc@ep-sparkling-art-ahmkor6n.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+YOUR_NEON_DATABASE_URL_HERE
 ```
 
 ---
 
-### 3. SESSION_SECRET (🔒 IMPORTANT - Generated fresh for you!)
+### 3. SESSION_SECRET (🔒 IMPORTANT - Generate fresh!)
 ```
-4174af850ce27ccbc28e02cf4b888efc63c70a8ad6528c6c4289d53a1014a1d9
+# Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+YOUR_GENERATED_SECRET_HERE
 ```
 
 ---

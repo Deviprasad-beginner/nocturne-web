@@ -201,7 +201,7 @@ export function getAIService(): IAIService {
         const apiKey = process.env.GEMINI_API_KEY || "";
         const model = process.env.GEMINI_MODEL || "gemini-pro";
 
-        if (!apiKey || apiKey === "AIzaSyC63MxbNeB7v-umfmOdp4RTTNGVIMDSSdM") {
+        if (!apiKey) {
             console.warn("⚠️ No valid GEMINI_API_KEY found. Using Mock AI Service.");
             aiServiceInstance = new MockAIService();
         } else {

@@ -39,7 +39,7 @@ Click on "Environment" tab and add these variables:
 
 ```bash
 # Database (use your Neon database URL)
-DATABASE_URL=postgresql://neondb_owner:npg_BiANFhq21kVc@ep-sparkling-art-ahmkor6n.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+DATABASE_URL=YOUR_NEON_DATABASE_URL_HERE
 
 # Session Security - GENERATE A NEW SECRET!
 # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
