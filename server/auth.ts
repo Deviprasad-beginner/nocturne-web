@@ -7,6 +7,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { logger } from "./utils/logger";
 
 declare global {
     namespace Express {
@@ -32,13 +33,21 @@ async function comparePasswords(supplied: string, stored: string) {
 export function setupAuth(app: Express) {
     const isProduction = app.get("env") === "production" || process.env.NODE_ENV === "production";
 
+    // Validate required secrets at startup
+    if (!process.env.SESSION_SECRET) {
+        if (isProduction) {
+            throw new Error("FATAL: SESSION_SECRET environment variable is required in production");
+        }
+        logger.warn("SESSION_SECRET not set — using insecure default. Set it in .env for production.");
+    }
+
     // Trust proxy for Render, Heroku, and other cloud platforms
     if (isProduction) {
         app.set("trust proxy", 1);
     }
 
     const sessionSettings: session.SessionOptions = {
-        secret: process.env.SESSION_SECRET || "nocturne_secret_key_12345",
+        secret: process.env.SESSION_SECRET || "dev_only_insecure_secret_do_not_use_in_prod",
         resave: false,
         saveUninitialized: false,
         store: storage.sessionStore,
@@ -64,21 +73,44 @@ export function setupAuth(app: Express) {
 
     app.post("/api/auth/firebase", async (req, res, next) => {
         try {
-            const { uid, email, displayName, photoURL } = req.body;
+            const { idToken, uid, email, displayName, photoURL } = req.body;
             if (!uid) return res.status(400).send("UID required");
 
-            // In a real app, verify the ID token from Firebase Admin SDK here.
-            // For this bridge implementation, we trust the client-side claim to bootstrap the session.
+            // Verify Firebase ID token server-side if possible
+            let verifiedUid = uid;
+            let verifiedEmail = email;
+            try {
+                // Dynamic import to avoid crash if firebase-admin is not installed
+                const admin = await import("firebase-admin").catch(() => null);
+                if (admin && idToken) {
+                    // Initialize admin app if not already done
+                    if (!admin.apps?.length) {
+                        admin.initializeApp();
+                    }
+                    const decodedToken = await admin.auth().verifyIdToken(idToken);
+                    verifiedUid = decodedToken.uid;
+                    verifiedEmail = decodedToken.email || email;
+                    logger.info("Firebase ID token verified server-side");
+                } else if (!admin) {
+                    logger.warn("firebase-admin not installed — trusting client-side Firebase UID. Install firebase-admin for production security.");
+                } else if (!idToken) {
+                    logger.warn("No idToken provided in request — trusting client-side Firebase UID.");
+                }
+            } catch (verifyError: any) {
+                logger.error("Firebase token verification failed", verifyError);
+                return res.status(401).json({ error: "Invalid Firebase token" });
+            }
 
             // Strategy: 
             // 1. Try to find user by 'googleId' (Firebase UID)
             // 2. Try to find user by 'email'
             // 3. If not found, create new user
 
-            let user = await storage.getUserByGoogleId(uid);
+            let user = await storage.getUserByGoogleId(verifiedUid);
 
-            if (!user && email) {
-                user = await storage.getUserByEmail(email);
+            if (!user && verifiedEmail) {
+                user = await storage.getUserByEmail(verifiedEmail);
+
 
                 // If found by email but no googleId, update the user to link googleId?
                 // For now, let's just log them in. 

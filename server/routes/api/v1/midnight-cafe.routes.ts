@@ -5,7 +5,7 @@
 
 import { Router } from "express";
 import { MidnightCafeController } from "../../../controllers/midnight-cafe.controller";
-import { optionalAuth } from "../../../middleware/auth.middleware";
+import { optionalAuth, requireAuth } from "../../../middleware/auth.middleware";
 import { validate } from "../../../middleware/validation.middleware";
 import { insertMidnightCafeSchema } from "@shared/schema";
 import { z } from "zod";
@@ -40,6 +40,6 @@ router.post(
 // New Routes
 router.get("/:id/replies", MidnightCafeController.getReplies);
 router.post("/replies", MidnightCafeController.createReply);
-router.delete("/:id", MidnightCafeController.deletePost);
+router.delete("/:id", requireAuth, MidnightCafeController.deletePost);
 
 export default router;

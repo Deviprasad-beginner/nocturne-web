@@ -1,6 +1,7 @@
 import express from "express";
 import { socialService } from "../services/socialService";
 import { insertDiarySchema, insertWhisperSchema, insertMindMazeSchema, insertNightCircleSchema, insertMidnightCafeSchema } from "@shared/schema";
+import { logger } from "../utils/logger";
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ router.get("/diaries", async (req, res) => {
         const diaries = await socialService.getDiaries(true);
         res.json(diaries);
     } catch (error) {
-        console.error("Error getting diaries:", error);
+        logger.error("Error getting diaries:", error);
         res.status(500).json({ error: "Failed to fetch diaries" });
     }
 });
@@ -30,7 +31,7 @@ router.post("/diaries", async (req, res) => {
         const diary = await socialService.createDiary(diaryData);
         res.status(201).json({ success: true, data: diary });
     } catch (error) {
-        console.error("Error creating diary:", error);
+        logger.error("Error creating diary:", error);
         res.status(400).json({ error: "Invalid diary data" });
     }
 });
@@ -59,7 +60,7 @@ router.delete("/diaries/:id", async (req, res) => {
             res.status(500).json({ error: "Failed to delete diary" });
         }
     } catch (error) {
-        console.error("Error deleting diary:", error);
+        logger.error("Error deleting diary:", error);
         res.status(500).json({ error: "Failed to delete diary" });
     }
 });
@@ -72,7 +73,7 @@ router.get("/whispers", async (req, res) => {
         const whispers = await socialService.getWhispers();
         res.json({ success: true, data: whispers });
     } catch (error) {
-        console.error("Error getting whispers:", error);
+        logger.error("Error getting whispers:", error);
         res.status(500).json({ error: "Failed to fetch whispers" });
     }
 });
@@ -86,7 +87,7 @@ router.post("/whispers", async (req, res) => {
         const whisper = await socialService.createWhisper(whisperData);
         res.status(201).json({ success: true, data: whisper });
     } catch (error) {
-        console.error("Error creating whisper:", error);
+        logger.error("Error creating whisper:", error);
         res.status(400).json({ error: "Invalid whisper data" });
     }
 });
@@ -97,7 +98,7 @@ router.patch("/whispers/:id/hearts", async (req, res) => {
         await socialService.incrementWhisperHearts(id);
         res.json({ success: true });
     } catch (error) {
-        console.error("Error incrementing hearts:", error);
+        logger.error("Error incrementing hearts:", error);
         res.status(500).json({ error: "Failed to increment hearts" });
     }
 });
@@ -110,7 +111,7 @@ router.get("/mind-maze", async (req, res) => {
         const mindMaze = await socialService.getMindMaze();
         res.json(mindMaze);
     } catch (error) {
-        console.error("Error getting mind maze:", error);
+        logger.error("Error getting mind maze:", error);
         res.status(500).json({ error: "Failed to fetch mind maze" });
     }
 });
@@ -121,7 +122,7 @@ router.post("/mind-maze", async (req, res) => {
         const mindMaze = await socialService.createMindMaze(mindMazeData);
         res.status(201).json(mindMaze);
     } catch (error) {
-        console.error("Error creating mind maze:", error);
+        logger.error("Error creating mind maze:", error);
         res.status(400).json({ error: "Invalid mind maze data" });
     }
 });
@@ -132,7 +133,7 @@ router.patch("/mind-maze/:id/responses", async (req, res) => {
         await socialService.incrementMindMazeResponses(id);
         res.json({ success: true });
     } catch (error) {
-        console.error("Error incrementing responses:", error);
+        logger.error("Error incrementing responses:", error);
         res.status(500).json({ error: "Failed to increment responses" });
     }
 });
@@ -145,7 +146,7 @@ router.get("/circles", async (req, res) => {
         const circles = await socialService.getCircles();
         res.json(circles);
     } catch (error) {
-        console.error("Error getting circles:", error);
+        logger.error("Error getting circles:", error);
         res.status(500).json({ error: "Failed to fetch circles" });
     }
 });
@@ -156,7 +157,7 @@ router.post("/circles", async (req, res) => {
         const circle = await socialService.createCircle(circleData);
         res.status(201).json(circle);
     } catch (error) {
-        console.error("Error creating circle:", error);
+        logger.error("Error creating circle:", error);
         res.status(400).json({ error: "Invalid circle data" });
     }
 });
@@ -168,7 +169,7 @@ router.patch("/circles/:id/members", async (req, res) => {
         await socialService.updateCircleMembers(id, members);
         res.json({ success: true });
     } catch (error) {
-        console.error("Error updating members:", error);
+        logger.error("Error updating members:", error);
         res.status(500).json({ error: "Failed to update members" });
     }
 });
@@ -181,7 +182,7 @@ router.get("/cafe", async (req, res) => {
         const cafePosts = await socialService.getCafePosts();
         res.json(cafePosts);
     } catch (error) {
-        console.error("Error getting cafe posts:", error);
+        logger.error("Error getting cafe posts:", error);
         res.status(500).json({ error: "Failed to fetch cafe posts" });
     }
 });
@@ -195,7 +196,7 @@ router.post("/cafe", async (req, res) => {
         const cafe = await socialService.createCafePost(cafeData);
         res.status(201).json({ success: true, data: cafe });
     } catch (error) {
-        console.error("Error creating cafe post:", error);
+        logger.error("Error creating cafe post:", error);
         res.status(400).json({ error: "Invalid cafe data" });
     }
 });
@@ -206,7 +207,7 @@ router.patch("/cafe/:id/reply", async (req, res) => {
         await socialService.incrementCafeReplies(id);
         res.json({ success: true });
     } catch (error) {
-        console.error("Error incrementing replies:", error);
+        logger.error("Error incrementing replies:", error);
         res.status(500).json({ error: "Failed to increment replies" });
     }
 });

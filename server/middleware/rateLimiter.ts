@@ -1,12 +1,15 @@
 import rateLimit from 'express-rate-limit';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 /**
  * General API rate limiter
- * 5000 requests per 15 minutes per IP (Greatly increased for dev)
+ * Production: 200 requests per 15 minutes per IP
+ * Development: 5000 requests per 15 minutes per IP
  */
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5000, // Relaxed from 500
+    max: isDev ? 5000 : 200,
     message: {
         success: false,
         error: {
@@ -19,11 +22,12 @@ export const apiLimiter = rateLimit({
 
 /**
  * Strict rate limiter for authentication routes
- * 1000 requests per 15 minutes per IP (Increased for dev)
+ * Production: 20 requests per 15 minutes per IP
+ * Development: 1000 requests per 15 minutes per IP
  */
 export const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 1000, // Relaxed from 100
+    max: isDev ? 1000 : 20,
     message: {
         success: false,
         error: {

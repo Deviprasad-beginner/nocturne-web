@@ -53,6 +53,7 @@ import { eq, desc, asc, sql, or, and, ne } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { logger } from "./utils/logger";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -1462,9 +1463,9 @@ export class DatabaseStorage implements IStorage {
 const useDatabase = Boolean(process.env.DATABASE_URL && db);
 
 if (useDatabase) {
-  console.log("Using DatabaseStorage");
+  logger.info("Using DatabaseStorage");
 } else {
-  console.log("Using MemoryStorage (DATABASE_URL not set or db connection failed)");
+  logger.info("Using MemoryStorage (DATABASE_URL not set or db connection failed)");
 }
 
 export const storage = useDatabase ? new DatabaseStorage() : new MemoryStorage();

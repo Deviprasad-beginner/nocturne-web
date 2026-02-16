@@ -399,6 +399,7 @@ export const reads = pgTable("reads", {
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at"),
+  isEphemeral: boolean("is_ephemeral").default(false),
   lastAccessedAt: timestamp("last_accessed_at"),
 }, (table) => [
   index("idx_reads_visibility").on(table.visibility, table.moderationStatus),

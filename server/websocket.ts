@@ -1,7 +1,10 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
-import { Server } from 'http';
+import { Server, IncomingMessage } from 'http';
 import type { WebSocketMessage } from '@/hooks/use-websocket';
+import { logger } from './utils/logger';
+import cookie from 'cookie';
+import { storage } from './storage';
 
 interface Room {
   id: string;
@@ -27,26 +30,74 @@ export class WebSocketManager {
     this.wss = new WebSocketServer({ noServer: true });
     this.setupWebSocket();
 
-    server.on('upgrade', (request, socket, head) => {
+    server.on('upgrade', async (request, socket, head) => {
       // Only handle upgrades for the /ws path
       if (request.url === '/ws') {
-        this.wss.handleUpgrade(request, socket, head, (ws) => {
-          this.wss.emit('connection', ws, request);
-        });
+        // Authenticate via session cookie
+        try {
+          const sessionUser = await this.extractUserFromSession(request);
+          if (!sessionUser) {
+            logger.warn('WebSocket connection rejected: unauthenticated');
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+            return;
+          }
+
+          // Attach user info to request for later use
+          (request as any).authenticatedUser = sessionUser;
+
+          this.wss.handleUpgrade(request, socket, head, (ws) => {
+            this.wss.emit('connection', ws, request);
+          });
+        } catch (error) {
+          logger.error('WebSocket upgrade auth error', error);
+          socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+          socket.destroy();
+        }
       }
     });
   }
 
+  /**
+   * Extract user from session cookie.
+   * Parses the connect.sid cookie, looks up the session in the store,
+   * and returns the user if found.
+   */
+  private async extractUserFromSession(request: IncomingMessage): Promise<any | null> {
+    try {
+      const cookies = cookie.parse(request.headers.cookie || '');
+      const sid = cookies['connect.sid'];
+      if (!sid) return null;
+
+      // Parse the signed session ID (format: s:<session-id>.<signature>)
+      const sessionId = sid.startsWith('s:') ? sid.slice(2).split('.')[0] : sid;
+      if (!sessionId) return null;
+
+      // Look up session in store
+      return new Promise((resolve) => {
+        (storage.sessionStore as any).get(sessionId, (err: any, session: any) => {
+          if (err || !session || !session.passport?.user) {
+            resolve(null);
+          } else {
+            resolve({ id: session.passport.user });
+          }
+        });
+      });
+    } catch {
+      return null;
+    }
+  }
+
   private setupWebSocket() {
     this.wss.on('connection', (ws: WebSocket) => {
-      console.log('WebSocket connection established');
+      logger.info('WebSocket connection established');
 
       ws.on('message', (data) => {
         try {
           const message: WebSocketMessage = JSON.parse(data.toString());
           this.handleMessage(ws, message);
         } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
+          logger.error('Failed to parse WebSocket message', error);
         }
       });
 
@@ -55,7 +106,7 @@ export class WebSocketManager {
       });
 
       ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        logger.error('WebSocket error', error);
         this.handleDisconnection(ws);
       });
     });

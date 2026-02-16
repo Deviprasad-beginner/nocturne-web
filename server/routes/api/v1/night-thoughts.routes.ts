@@ -3,6 +3,7 @@ import { nightThoughtsService } from '../../../services/night-thoughts.service';
 import { insertNightThoughtSchema } from '@shared/schema';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
+import { logger } from '../../../utils/logger';
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.get('/', async (req: Request, res: Response) => {
 
         res.json(thoughts);
     } catch (error: any) {
-        console.error('Error fetching thoughts:', error);
+        logger.error('Error fetching thoughts:', error);
         res.status(500).json({ error: 'Failed to fetch thoughts' });
     }
 });
@@ -54,7 +55,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
         res.json(thought);
     } catch (error: any) {
-        console.error('Error fetching thought:', error);
+        logger.error('Error fetching thought:', error);
         res.status(500).json({ error: 'Failed to fetch thought' });
     }
 });
@@ -81,7 +82,7 @@ router.post('/', async (req: Request, res: Response) => {
         if (error instanceof z.ZodError) {
             return res.status(400).json({ error: 'Validation error', details: error.errors });
         }
-        console.error('Error creating thought:', error);
+        logger.error('Error creating thought:', error);
         res.status(500).json({ error: 'Failed to create thought' });
     }
 });
@@ -111,7 +112,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
 
         res.json(updated);
     } catch (error: any) {
-        console.error('Error updating thought:', error);
+        logger.error('Error updating thought:', error);
         res.status(500).json({ error: 'Failed to update thought' });
     }
 });
@@ -141,7 +142,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
         res.json({ message: 'Thought deleted successfully' });
     } catch (error: any) {
-        console.error('Error deleting thought:', error);
+        logger.error('Error deleting thought:', error);
         res.status(500).json({ error: 'Failed to delete thought' });
     }
 });
@@ -157,7 +158,7 @@ router.post('/:id/heart', async (req: Request, res: Response) => {
 
         res.json(thought);
     } catch (error: any) {
-        console.error('Error adding heart:', error);
+        logger.error('Error adding heart:', error);
         res.status(500).json({ error: 'Failed to add heart' });
     }
 });
@@ -173,7 +174,7 @@ router.post('/:id/reply', async (req: Request, res: Response) => {
 
         res.json(thought);
     } catch (error: any) {
-        console.error('Error incrementing replies:', error);
+        logger.error('Error incrementing replies:', error);
         res.status(500).json({ error: 'Failed to increment replies' });
     }
 });

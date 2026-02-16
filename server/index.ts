@@ -17,16 +17,33 @@ import { logger } from "./utils/logger";
 const app = express();
 
 // Security headers with helmet
+const isProduction = process.env.NODE_ENV === "production";
+
+// Warn if FRONTEND_URL is not set in production
+if (isProduction && !process.env.FRONTEND_URL) {
+  logger.warn("FRONTEND_URL not set in production — CORS will reject cross-origin requests. Set FRONTEND_URL to your domain.");
+}
+
 app.use(helmet({
-  contentSecurityPolicy: false, // Disabled for development, configure for production
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com", "https://www.gstatic.com", "https://www.youtube.com", "https://replit.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'", "https:", "wss:"],
+      mediaSrc: ["'self'", "https:", "blob:"],
+      frameSrc: ["'self'", "https://accounts.google.com", "https://*.firebaseapp.com", "https://www.youtube.com"],
+    },
+  },
   crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: false, // Allow communication with popups (Firebase Auth)
   originAgentCluster: false, // Required for some cross-origin interactions
 }));
 
-// CORS configuration for production
-const isProduction = process.env.NODE_ENV === "production";
-const allowedOrigin = process.env.FRONTEND_URL || (isProduction ? "*" : "http://localhost:5173");
+// CORS configuration — explicit origin required in production
+const allowedOrigin = process.env.FRONTEND_URL || (isProduction ? false : "http://localhost:5173");
 
 app.use(cors({
   origin: allowedOrigin,

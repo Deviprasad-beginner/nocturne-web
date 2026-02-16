@@ -1,6 +1,7 @@
 import express from "express";
 import { communityService } from "../services/communityService";
 import { insertAmFounderSchema, insertStarlitSpeakerSchema, insertMoonMessengerSchema } from "@shared/schema";
+import { logger } from "../utils/logger";
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ router.get("/founder", async (req, res) => {
         const founders = await communityService.getFounderPosts();
         res.json(founders);
     } catch (error) {
-        console.error("Error getting founders:", error);
+        logger.error("Error getting founders:", error);
         res.status(500).json({ error: "Failed to fetch founders" });
     }
 });
@@ -26,7 +27,7 @@ router.post("/founder", async (req, res) => {
         const founder = await communityService.createFounderPost(founderData);
         res.status(201).json({ success: true, data: founder });
     } catch (error) {
-        console.error("Error creating founder post:", error);
+        logger.error("Error creating founder post:", error);
         res.status(400).json({ error: "Invalid founder data" });
     }
 });
@@ -37,7 +38,7 @@ router.patch("/founder/:id/upvote", async (req, res) => {
         await communityService.incrementFounderUpvotes(id);
         res.json({ success: true });
     } catch (error) {
-        console.error("Error incrementing upvotes:", error);
+        logger.error("Error incrementing upvotes:", error);
         res.status(500).json({ error: "Failed to increment upvotes" });
     }
 });
@@ -48,7 +49,7 @@ router.patch("/founder/:id/comments", async (req, res) => {
         await communityService.incrementFounderComments(id);
         res.json({ success: true });
     } catch (error) {
-        console.error("Error incrementing comments:", error);
+        logger.error("Error incrementing comments:", error);
         res.status(500).json({ error: "Failed to increment comments" });
     }
 });
@@ -61,7 +62,7 @@ router.get("/speaker", async (req, res) => {
         const speakers = await communityService.getSpeakerRooms();
         res.json(speakers);
     } catch (error) {
-        console.error("Error getting speakers:", error);
+        logger.error("Error getting speakers:", error);
         res.status(500).json({ error: "Failed to fetch speakers" });
     }
 });
@@ -72,7 +73,7 @@ router.post("/speaker", async (req, res) => {
         const speaker = await communityService.createSpeakerRoom(speakerData);
         res.status(201).json(speaker);
     } catch (error) {
-        console.error("Error creating speaker:", error);
+        logger.error("Error creating speaker:", error);
         res.status(400).json({ error: "Invalid speaker data" });
     }
 });
@@ -84,7 +85,7 @@ router.patch("/speaker/:id/participants", async (req, res) => {
         await communityService.updateSpeakerParticipants(id, participants);
         res.json({ success: true });
     } catch (error) {
-        console.error("Error updating participants:", error);
+        logger.error("Error updating participants:", error);
         res.status(500).json({ error: "Failed to update participants" });
     }
 });
@@ -98,7 +99,7 @@ router.get("/messenger/:sessionId", async (req, res) => {
         const messages = await communityService.getMessages(sessionId);
         res.json(messages);
     } catch (error) {
-        console.error("Error getting messages:", error);
+        logger.error("Error getting messages:", error);
         res.status(500).json({ error: "Failed to fetch messages" });
     }
 });
@@ -109,7 +110,7 @@ router.post("/messenger", async (req, res) => {
         const message = await communityService.createMessage(messageData);
         res.status(201).json(message);
     } catch (error) {
-        console.error("Error creating message:", error);
+        logger.error("Error creating message:", error);
         res.status(400).json({ error: "Invalid message data" });
     }
 });
@@ -119,7 +120,7 @@ router.get("/messenger", async (req, res) => {
         const sessions = await communityService.getActiveSessions();
         res.json(sessions);
     } catch (error) {
-        console.error("Error getting sessions:", error);
+        logger.error("Error getting sessions:", error);
         res.status(500).json({ error: "Failed to fetch sessions" });
     }
 });

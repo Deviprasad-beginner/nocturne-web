@@ -3,7 +3,7 @@
     "client/src/**/*",
     "shared/**/*",
     "server/**/*",
-    "test-soundcloud.ts"
+    "scripts/**/*"
   ],
   "exclude": [
     "node_modules",

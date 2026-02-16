@@ -65,3 +65,13 @@ sessions/
 # Generated files
 .vite/
 .firebase/
+
+# Firebase service account key (NEVER commit this)
+firebase-service-account.json
+
+# Firebase service account key (NEVER commit this)
+firebase-service-account.json
+
+
+# Firebase service account key (NEVER commit this)
+firebase-service-account.json

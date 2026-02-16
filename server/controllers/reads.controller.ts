@@ -7,7 +7,7 @@ import {
     type Read,
     type ReadSession,
 } from "@shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or, gt, isNull } from "drizzle-orm";
 
 export const readsController = {
     // Create a new read (upload or paste)
@@ -18,7 +18,7 @@ export const readsController = {
             }
 
             let content = "";
-            let contentType = "text";
+            let contentType: "text" | "pdf" | "epub" | "curated" = "text";
             const file = req.file;
 
             // Handle file upload
@@ -49,11 +49,14 @@ export const readsController = {
                 return res.status(400).json({ error: "No content provided" });
             }
 
-            const { title, author, intention, estimatedReadTimeMinutes } = req.body;
+            const { title, author, intention, estimatedReadTimeMinutes, isEphemeral } = req.body;
 
             // Calculate estimated read time if not provided (avg 200 words per min)
             const wordCount = content.split(/\s+/).length;
             const calculatedReadTime = estimatedReadTimeMinutes || Math.ceil(wordCount / 200);
+
+            // Calculate expiration for ephemeral reads (24 hours)
+            const expiresAt = isEphemeral ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null;
 
             const newRead = await db
                 .insert(reads)
@@ -67,6 +70,8 @@ export const readsController = {
                     ownerId: req.user.id,
                     visibility: "private",
                     moderationStatus: "approved",
+                    isEphemeral: isEphemeral || false,
+                    expiresAt,
                 })
                 .returning();
 
@@ -90,7 +95,11 @@ export const readsController = {
                 .where(
                     and(
                         eq(reads.ownerId, req.user.id),
-                        eq(reads.visibility, "private")
+                        eq(reads.visibility, "private"),
+                        or(
+                            isNull(reads.expiresAt),
+                            gt(reads.expiresAt, new Date())
+                        )
                     )
                 )
                 .orderBy(desc(reads.lastAccessedAt), desc(reads.createdAt));
