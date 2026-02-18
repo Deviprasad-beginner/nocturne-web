@@ -122,10 +122,10 @@ export interface IStorage {
   getSavedStations(userId: number): Promise<string[]>;
 
   // User specific getters
-  getUserWhispers(userId: number): Promise<Whisper[]>;
-  getUserCafePosts(userId: number): Promise<MidnightCafe[]>;
-  getUserDiaries(userId: number): Promise<Diary[]>;
-  getUserFounders(userId: number): Promise<AmFounder[]>;
+  getUserWhispers(userId: number, limit?: number): Promise<Whisper[]>;
+  getUserCafePosts(userId: number, limit?: number): Promise<MidnightCafe[]>;
+  getUserDiaries(userId: number, limit?: number): Promise<Diary[]>;
+  getUserFounders(userId: number, limit?: number): Promise<AmFounder[]>;
 
   // Nightly Reflection operations
   createNightlyPrompt(prompt: InsertNightlyPrompt): Promise<NightlyPrompt>;
@@ -562,23 +562,21 @@ export class MemoryStorage implements IStorage {
       .map(s => s.stationId);
   }
 
-  async getUserWhispers(userId: number): Promise<Whisper[]> {
-    return this.whispers.filter(w => w.authorId === userId);
+  async getUserWhispers(userId: number, limit?: number): Promise<Whisper[]> {
+    return this.whispers.filter(w => w.authorId === userId).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
-  async getUserCafePosts(userId: number): Promise<MidnightCafe[]> {
-    return this.midnightCafes.filter(c => c.authorId === userId);
+  async getUserCafePosts(userId: number, limit?: number): Promise<MidnightCafe[]> {
+    return this.midnightCafes.filter(c => c.authorId === userId).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
-  async getUserDiaries(userId: number): Promise<Diary[]> {
+  async getUserDiaries(userId: number, limit?: number): Promise<Diary[]> {
     return this.diaries.filter(diary => diary.authorId === userId).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
-  async getUserFounders(userId: number): Promise<AmFounder[]> {
-    return this.amFounders.filter(f => f.authorId === userId);
+  async getUserFounders(userId: number, limit?: number): Promise<AmFounder[]> {
+    return this.amFounders.filter(f => f.authorId === userId).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
-
-
 
   // Nightly Reflection operations
   async createNightlyPrompt(prompt: InsertNightlyPrompt): Promise<NightlyPrompt> {
@@ -1255,36 +1253,56 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserWhispers(userId: number): Promise<Whisper[]> {
+  async getUserWhispers(userId: number, limit?: number): Promise<Whisper[]> {
     try {
-      return await db.select().from(whispers).where(eq(whispers.authorId, userId)).orderBy(desc(whispers.createdAt));
+      const query = db.select().from(whispers).where(eq(whispers.authorId, userId)).orderBy(desc(whispers.createdAt));
+      if (limit) {
+        // @ts-ignore
+        query.limit(limit);
+      }
+      return await query;
     } catch (error) {
       console.error("Error getting user whispers", error);
       return [];
     }
   }
 
-  async getUserCafePosts(userId: number): Promise<MidnightCafe[]> {
+  async getUserCafePosts(userId: number, limit?: number): Promise<MidnightCafe[]> {
     try {
-      return await db.select().from(midnightCafe).where(eq(midnightCafe.authorId, userId)).orderBy(desc(midnightCafe.createdAt));
+      const query = db.select().from(midnightCafe).where(eq(midnightCafe.authorId, userId)).orderBy(desc(midnightCafe.createdAt));
+      if (limit) {
+        // @ts-ignore
+        query.limit(limit);
+      }
+      return await query;
     } catch (error) {
       console.error("Error getting user cafe posts", error);
       return [];
     }
   }
 
-  async getUserDiaries(userId: number): Promise<Diary[]> {
+  async getUserDiaries(userId: number, limit?: number): Promise<Diary[]> {
     try {
-      return await db.select().from(diaries).where(eq(diaries.authorId, userId)).orderBy(desc(diaries.createdAt));
+      const query = db.select().from(diaries).where(eq(diaries.authorId, userId)).orderBy(desc(diaries.createdAt));
+      if (limit) {
+        // @ts-ignore
+        query.limit(limit);
+      }
+      return await query;
     } catch (error) {
       console.error("Error getting user diaries", error);
       return [];
     }
   }
 
-  async getUserFounders(userId: number): Promise<AmFounder[]> {
+  async getUserFounders(userId: number, limit?: number): Promise<AmFounder[]> {
     try {
-      return await db.select().from(amFounder).where(eq(amFounder.authorId, userId)).orderBy(desc(amFounder.createdAt));
+      const query = db.select().from(amFounder).where(eq(amFounder.authorId, userId)).orderBy(desc(amFounder.createdAt));
+      if (limit) {
+        // @ts-ignore
+        query.limit(limit);
+      }
+      return await query;
     } catch (error) {
       console.error("Error getting user founder posts", error);
       return [];

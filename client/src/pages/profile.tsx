@@ -31,17 +31,20 @@ export default function Profile() {
   // Fetch real data
   const { data: whispers, isLoading: whispersLoading } = useQuery<Whisper[]>({
     queryKey: ["/api/v1/users/me/whispers"],
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 
   const { data: cafePosts, isLoading: cafeLoading } = useQuery<MidnightCafe[]>({
     queryKey: ["/api/v1/users/me/cafe"],
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 
   const { data: savedStations, isLoading: stationsLoading } = useQuery<string[]>({
     queryKey: ["/api/v1/users/me/favorites"],
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -154,8 +157,8 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen bg-aurora text-slate-100">
+      <div className="container mx-auto px-4 py-8 max-w-6xl relative z-10">
 
         <Link href="/">
           <Button variant="ghost" size="sm" className="mb-6 text-gray-400 hover:text-white">

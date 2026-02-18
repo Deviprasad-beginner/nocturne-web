@@ -1,3 +1,6 @@
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 import { Request, Response } from "express";
 import { db } from "../db";
 import {
@@ -24,9 +27,8 @@ export const readsController = {
             // Handle file upload
             if (file) {
                 if (file.mimetype === "application/pdf") {
-                    // Extract text from PDF using dynamic import
+                    // Extract text from PDF
                     try {
-                        const pdfParse = (await import("pdf-parse")).default;
                         const pdfData = await pdfParse(file.buffer);
                         content = pdfData.text;
                         contentType = "pdf";

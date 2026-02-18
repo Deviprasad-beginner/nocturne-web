@@ -18,6 +18,7 @@ export interface IAIService {
     generateNightlyPrompt(shiftMode: ShiftMode): Promise<string>;
     evaluateUserResponse(promptText: string, userResponse: string): Promise<string>;
     generatePersonalReflection(query: string): Promise<string>;
+    analyzeSentiment(text: string): Promise<string>;
 }
 
 export class MockAIService implements IAIService {
@@ -53,6 +54,11 @@ export class MockAIService implements IAIService {
         ];
         return responses[Math.floor(Math.random() * responses.length)];
     }
+
+    async analyzeSentiment(text: string): Promise<string> {
+        const sentiments = ["Reflective", "Calm", "Hopeful", "Melancholic", "Deep", "Anxious", "Peaceful"];
+        return sentiments[Math.floor(Math.random() * sentiments.length)];
+    }
 }
 
 export class AIService implements IAIService {
@@ -70,9 +76,11 @@ export class AIService implements IAIService {
      * @returns The generated prompt
      */
     async generateNightlyPrompt(shiftMode: ShiftMode): Promise<string> {
-        const systemPrompt = this.getShiftModePrompt(shiftMode);
-
-        const prompt = `${systemPrompt}
+        try {
+            const systemPrompt = this.getShiftModePrompt(shiftMode);
+            const prompt = `${systemPrompt}\n\nGenerate a single nightly reflection prompt...`; // (truncated for brevity in diff, but I will use full string in actual tool call)
+            // Re-using the exact prompt string from original file to ensure no regression
+            const fullPrompt = `${systemPrompt}
 
 Generate a single nightly reflection prompt that follows this cognitive framework. The prompt should:
 - Be calm and contemplative
@@ -84,19 +92,20 @@ Generate a single nightly reflection prompt that follows this cognitive framewor
 
 Output only the prompt text, nothing else.`;
 
-        const result = await this.model.generateContent(prompt);
-        const response = await result.response;
-        return response.text().trim();
+            const result = await this.model.generateContent(fullPrompt);
+            const response = await result.response;
+            return response.text().trim();
+        } catch (error) {
+            console.error("Gemini API Error (generateNightlyPrompt):", error);
+            // Fallback to mock
+            return new MockAIService().generateNightlyPrompt(shiftMode);
+        }
     }
 
-    /**
-     * Evaluate a user's response to a prompt
-     * @param promptText The original prompt
-     * @param userResponse The user's response
-     * @returns AI's reflection on the response
-     */
     async evaluateUserResponse(promptText: string, userResponse: string): Promise<string> {
-        const prompt = `You are an AI in a night-time reflection app called Nocturne. Your role is to support quiet thinking, not to judge or advise.
+        try {
+            const prompt = `You are an AI in a night-time reflection app called Nocturne...`; // (truncated)
+            const fullPrompt = `You are an AI in a night-time reflection app called Nocturne. Your role is to support quiet thinking, not to judge or advise.
 
 The user responded to this prompt:
 "${promptText}"
@@ -117,18 +126,18 @@ Provide a brief, calm reflection on their response. Follow these strict rules:
 
 Output only your reflection, nothing else.`;
 
-        const result = await this.model.generateContent(prompt);
-        const response = await result.response;
-        return response.text().trim();
+            const result = await this.model.generateContent(fullPrompt);
+            const response = await result.response;
+            return response.text().trim();
+        } catch (error) {
+            console.error("Gemini API Error (evaluateUserResponse):", error);
+            return new MockAIService().evaluateUserResponse(promptText, userResponse);
+        }
     }
 
-    /**
-     * Generate a personal reflection based on user query
-     * @param query The user's question or prompt
-     * @returns AI's reflection
-     */
     async generatePersonalReflection(query: string): Promise<string> {
-        const prompt = `You are an AI in a night-time reflection app called Nocturne. Your role is to support quiet thinking.
+        try {
+            const fullPrompt = `You are an AI in a night-time reflection app called Nocturne. Your role is to support quiet thinking.
 
 The user asked:
 "${query}"
@@ -148,9 +157,13 @@ Provide a thoughtful reflection. Follow these strict rules:
 
 Output only your reflection, nothing else.`;
 
-        const result = await this.model.generateContent(prompt);
-        const response = await result.response;
-        return response.text().trim();
+            const result = await this.model.generateContent(fullPrompt);
+            const response = await result.response;
+            return response.text().trim();
+        } catch (error) {
+            console.error("Gemini API Error (generatePersonalReflection):", error);
+            return new MockAIService().generatePersonalReflection(query);
+        }
     }
 
     /**

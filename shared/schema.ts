@@ -94,7 +94,9 @@ export const midnightCafe = pgTable("midnight_cafe", {
   replies: integer("replies").default(0),
   authorId: integer("author_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_midnight_cafe_author_id").on(table.authorId),
+]);
 
 export const cafeReplies = pgTable("cafe_replies", {
   id: serial("id").primaryKey(),
@@ -110,7 +112,9 @@ export const savedStations = pgTable("saved_stations", {
   userId: integer("user_id").references(() => users.id).notNull(),
   stationId: text("station_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_saved_stations_user_id").on(table.userId),
+]);
 
 // Mood Analytics Logs
 export const moodLogs = pgTable("mood_logs", {
@@ -119,7 +123,9 @@ export const moodLogs = pgTable("mood_logs", {
   emotion: varchar("emotion", { length: 50 }).notNull(),
   sentimentScore: integer("sentiment_score").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_mood_logs_user_id").on(table.userId),
+]);
 
 // Upsert user schema for auth systems
 export const upsertUserSchema = createInsertSchema(users).omit({
