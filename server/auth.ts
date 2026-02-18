@@ -78,7 +78,8 @@ export function setupAuth(app: Express) {
 
             // Verify Firebase ID token server-side if possible
             let verifiedUid = uid;
-            let verifiedEmail = email;
+            let verifiedEmail = email ? email.toLowerCase() : null; // Enforce lowercase email
+
             try {
                 // Dynamic import to avoid crash if firebase-admin is not installed
                 const admin = await import("firebase-admin").catch(() => null);
@@ -89,7 +90,7 @@ export function setupAuth(app: Express) {
                     }
                     const decodedToken = await admin.auth().verifyIdToken(idToken);
                     verifiedUid = decodedToken.uid;
-                    verifiedEmail = decodedToken.email || email;
+                    verifiedEmail = decodedToken.email ? decodedToken.email.toLowerCase() : verifiedEmail;
                     logger.info("Firebase ID token verified server-side");
                 } else if (!admin) {
                     logger.warn("firebase-admin not installed — trusting client-side Firebase UID. Install firebase-admin for production security.");
@@ -104,50 +105,60 @@ export function setupAuth(app: Express) {
             // Strategy: 
             // 1. Try to find user by 'googleId' (Firebase UID)
             // 2. Try to find user by 'email'
-            // 3. If not found, create new user
+            // 3. If not found, create new user (handle race conditions)
 
             let user = await storage.getUserByGoogleId(verifiedUid);
 
             if (!user && verifiedEmail) {
                 user = await storage.getUserByEmail(verifiedEmail);
 
-
-                // If found by email but no googleId, update the user to link googleId?
-                // For now, let's just log them in. 
-                // Ideally we should update the googleId, but IStorage doesn't have updateUser yet except upsert (which throws error in DBStorage).
-                // Let's rely on login.
+                // If found by email but no googleId (or different one?), ensure googleId is set later if needed.
+                // For now, if we match by email, we log them in.
+                if (user && !user.googleId) {
+                    // Ideally update the user to link googleId here.
+                    // storage.updateUser(user.id, { googleId: verifiedUid }); 
+                }
             }
 
             if (!user) {
                 // Determine username: email or uid or possibly a slugified name?
-                // We use email || uid to be safe.
-                const username = email || uid;
+                // We use email part or uid to be safe.
+                const baseUsername = (verifiedEmail ? verifiedEmail.split('@')[0] : uid).toLowerCase().replace(/[^a-z0-9]/g, '');
 
                 // Check if username is taken (rare edge case if it differs from email lookup)
-                const existingUserByName = await storage.getUserByUsername(username);
-
-                let safeUsername = username;
-                if (existingUserByName) {
-                    // This is a conflict. We found a user by username, but not by GoogleId or Email (implied).
-                    // This implies 'username' column has 'email' value, but 'email' column is empty?
-                    // Or we are trying to set username to something that exists.
-                    // Handle by appending random string
-                    const randomSuffix = randomBytes(4).toString('hex');
-                    // We modify the username to be unique
-                    safeUsername = `${username}_${randomSuffix}`;
-                }
+                // We'll just generate a unique one to be safe
+                const randomSuffix = randomBytes(4).toString('hex');
+                const safeUsername = `${baseUsername}_${randomSuffix}`;
 
                 // Create a random password for local strategy fallback
                 const randomPwd = await hashPassword(randomBytes(16).toString('hex'));
 
-                user = await storage.createUser({
-                    username: safeUsername!,
-                    password: randomPwd,
-                    googleId: uid,
-                    displayName: displayName || "Nocturne User",
-                    email: email,
-                    profileImageUrl: photoURL
-                });
+                try {
+                    user = await storage.createUser({
+                        username: safeUsername,
+                        password: randomPwd,
+                        googleId: verifiedUid,
+                        displayName: displayName || "Nocturne User",
+                        email: verifiedEmail, // Use the verified, lowercased email
+                        profileImageUrl: photoURL
+                    });
+                } catch (createError: any) {
+                    // Handle potential race condition where user was created between lookup and insert
+                    // OR unique constraint violation on email/googleId
+                    logger.warn("User creation failed, checking for existing user...", createError.message);
+
+                    // Retry lookup
+                    user = await storage.getUserByGoogleId(verifiedUid);
+                    if (!user && verifiedEmail) {
+                        user = await storage.getUserByEmail(verifiedEmail);
+                    }
+
+                    if (!user) {
+                        // If still no user, it's a genuine error
+                        logger.error("Failed to recover from user creation error", createError);
+                        throw createError;
+                    }
+                }
             }
 
             // Establish local session
@@ -157,7 +168,8 @@ export function setupAuth(app: Express) {
             });
 
         } catch (error) {
-            next(error);
+            console.error("Auth Error:", error); // Log full error on server
+            next(error); // Pass to error handler
         }
     });
 
