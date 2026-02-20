@@ -21,11 +21,13 @@ import profileRoutes from "./profile.routes";
 import nightThoughtsRoutes from "./night-thoughts.routes";
 import readsRoutes from "./reads.routes";
 import reflectionRoutes from "../../reflections.routes"; // Import from parent routes dir
+import consciousnessRoutes from "./consciousness.routes";
 
 const router = Router();
 
 // Mount feature routes
 router.use("/whispers", whispersRoutes);
+router.use("/consciousness", consciousnessRoutes);
 router.use("/diaries", diariesRoutes);
 router.use("/cafe", midnightCafeRoutes);
 router.use("/circles", nightCirclesRoutes);

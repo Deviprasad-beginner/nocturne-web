@@ -291,7 +291,13 @@ export class MemoryStorage implements IStorage {
       detectedEmotion: whisper.detectedEmotion || null,
       sentimentScore: whisper.sentimentScore || null,
       reflectionDepth: whisper.reflectionDepth || null,
-      createdAt: new Date()
+      createdAt: new Date(),
+      decayStage: whisper.decayStage || 'fresh',
+      decayProgress: whisper.decayProgress || 0,
+      visibilityOpacity: whisper.visibilityOpacity || 100,
+      audioFrequency: whisper.audioFrequency || 444,
+      resonanceScore: 0,
+      interactionCount: 0
     };
     this.whispers.push(newWhisper);
     return newWhisper;
@@ -872,7 +878,13 @@ export class DatabaseStorage implements IStorage {
           detectedEmotion: "hope",
           sentimentScore: 3,
           reflectionDepth: 8,
-          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000)
+          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+          decayStage: 'fresh',
+          decayProgress: 0,
+          visibilityOpacity: 100,
+          audioFrequency: 432,
+          resonanceScore: 5,
+          interactionCount: 2
         },
         {
           id: 2,
@@ -882,7 +894,13 @@ export class DatabaseStorage implements IStorage {
           detectedEmotion: "lonely",
           sentimentScore: -2,
           reflectionDepth: 6,
-          createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000)
+          createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+          decayStage: 'fading',
+          decayProgress: 30,
+          visibilityOpacity: 70,
+          audioFrequency: 396,
+          resonanceScore: 12,
+          interactionCount: 8
         },
         {
           id: 3,
@@ -892,7 +910,13 @@ export class DatabaseStorage implements IStorage {
           detectedEmotion: "peaceful",
           sentimentScore: 4,
           reflectionDepth: 7,
-          createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000)
+          createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+          decayStage: 'fresh',
+          decayProgress: 10,
+          visibilityOpacity: 90,
+          audioFrequency: 528,
+          resonanceScore: 20,
+          interactionCount: 15
         }
       ];
     }

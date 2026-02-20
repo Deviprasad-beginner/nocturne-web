@@ -24,6 +24,7 @@ if (process.env.DATABASE_URL) {
   safeUrl.password = "*****";
   console.log(`[DB] Connecting to: ${safeUrl.toString()}`);
   console.log(`[DB] SNI Servername: ${process.env.DB_SNI_SERVERNAME || dbUrl.hostname}`);
+  console.log(`[DB] Password length: ${dbUrl.password.length}`);
 
   pool = new Pool({
     connectionString: connectionString.toString(),

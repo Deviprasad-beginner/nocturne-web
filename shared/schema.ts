@@ -62,9 +62,41 @@ export const whispers = pgTable("whispers", {
   detectedEmotion: varchar("detected_emotion", { length: 50 }),
   sentimentScore: integer("sentiment_score"),
   reflectionDepth: integer("reflection_depth"),
+
+  // Whisper System 2.0 Fields
+  decayStage: varchar("decay_stage", { length: 20 }).default("fresh"),
+  decayProgress: integer("decay_progress").default(0), // 0-100 representing 0.0-1.0
+  visibilityOpacity: integer("visibility_opacity").default(100), // 0-100 representing 0.0-1.0
+  audioFrequency: integer("audio_frequency"),
+
+  // Resonance tracking
+  resonanceScore: integer("resonance_score").default(0),
+  interactionCount: integer("interaction_count").default(0),
 }, (table) => [
   index("idx_whispers_author_id").on(table.authorId),
   index("idx_whispers_created_at").on(table.createdAt),
+  index("idx_whispers_decay_stage").on(table.decayStage),
+]);
+
+export const globalConsciousness = pgTable("global_consciousness", {
+  id: serial("id").primaryKey(),
+  activityLevel: varchar("activity_level", { length: 20 }).default("low"),
+  connectedEntities: integer("connected_entities").default(0),
+  currentDominantEmotion: varchar("current_dominant_emotion", { length: 50 }),
+  realmStability: integer("realm_stability").default(100), // 0-100 representing 0.0-1.0
+  lastUpdated: timestamp("last_updated").defaultNow(),
+});
+
+export const whisperInteractions = pgTable("whisper_interactions", {
+  id: serial("id").primaryKey(),
+  whisperId: integer("whisper_id").references(() => whispers.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // "resonate", "echo", "absorb"
+  weight: integer("weight").default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_whisper_interactions_whisper").on(table.whisperId),
+  index("idx_whisper_interactions_user").on(table.userId),
 ]);
 
 export const mindMaze = pgTable("mind_maze", {
@@ -153,6 +185,18 @@ export const insertWhisperSchema = createInsertSchema(whispers).omit({
   id: true,
   hearts: true,
   createdAt: true,
+  interactionCount: true,
+  resonanceScore: true,
+});
+
+export const insertGlobalConsciousnessSchema = createInsertSchema(globalConsciousness).omit({
+  id: true,
+  lastUpdated: true,
+});
+
+export const insertWhisperInteractionSchema = createInsertSchema(whisperInteractions).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertMindMazeSchema = createInsertSchema(mindMaze).omit({
@@ -190,6 +234,14 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export type Diary = typeof diaries.$inferSelect;
 export type InsertDiary = z.infer<typeof insertDiarySchema>;
+
+
+
+export type GlobalConsciousness = typeof globalConsciousness.$inferSelect;
+export type InsertGlobalConsciousness = z.infer<typeof insertGlobalConsciousnessSchema>;
+
+export type WhisperInteraction = typeof whisperInteractions.$inferSelect;
+export type InsertWhisperInteraction = z.infer<typeof insertWhisperInteractionSchema>;
 
 export type Whisper = typeof whispers.$inferSelect;
 export type InsertWhisper = z.infer<typeof insertWhisperSchema>;

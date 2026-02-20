@@ -40,11 +40,11 @@ export function analyzeEmotion(text: string): EmotionalAnalysisResult {
     const lengthScore = Math.min(text.length / 120, 5); // Max 5 points for length
     const intensityScore = Math.min(Math.abs(sentimentScore), 5); // Max 5 points for sentiment intensity
 
-    const reflectionDepthScore = Number((lengthScore + intensityScore).toFixed(2));
+    const reflectionDepthScore = Math.round((lengthScore + intensityScore) * 10); // scale 0-100
 
     return {
         detectedEmotion,
-        sentimentScore,
+        sentimentScore: Math.round(sentimentScore),
         reflectionDepthScore
     };
 }

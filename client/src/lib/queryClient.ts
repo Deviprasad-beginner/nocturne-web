@@ -139,7 +139,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "returnNull" }),
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      staleTime: 0, // Always consider data stale to allow immediate refetch after mutations
+      staleTime: 1000 * 60 * 5, // Cache feeds and data lists for 5 minutes instead of refetching on load
       retry: retryFn,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },

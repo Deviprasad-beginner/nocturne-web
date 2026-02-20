@@ -8,6 +8,13 @@
       "when": 1771060256013,
       "tag": "0000_absurd_black_cat",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771543751365,
+      "tag": "0001_furry_shaman",
+      "breakpoints": true
     }
   ]
 }

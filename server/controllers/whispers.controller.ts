@@ -60,6 +60,23 @@ export class WhispersController {
         await whispersService.deleteWhisper(id, req.user!.id);
         res.json(successResponse({ message: "Whisper deleted successfully" }));
     });
+
+    /**
+     * POST /api/v1/whispers/:id/interaction
+     * Interact with a whisper
+     */
+    interact = asyncHandler(async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const { type } = req.body;
+
+        if (!['resonate', 'echo', 'absorb'].includes(type)) {
+            res.status(400).json({ success: false, message: "Invalid interaction type" });
+            return;
+        }
+
+        await whispersService.interact(req.user!.id, id, type);
+        res.json(successResponse({ message: `Interaction ${type} recorded` }));
+    });
 }
 
 export const whispersController = new WhispersController();

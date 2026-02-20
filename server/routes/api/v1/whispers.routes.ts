@@ -44,4 +44,13 @@ router.delete(
     whispersController.delete
 );
 
+// POST /api/v1/whispers/:id/interaction - Proximity interaction
+router.post(
+    "/:id/interaction",
+    requireAuth,
+    validate(z.object({ id: z.string().regex(/^\d+$/) }), "params"),
+    validate(z.object({ type: z.enum(['resonate', 'echo', 'absorb']) })),
+    whispersController.interact
+);
+
 export default router;

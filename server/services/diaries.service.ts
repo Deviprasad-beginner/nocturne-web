@@ -40,7 +40,7 @@ export class DiariesService {
     async getUserDiaries(userId: number): Promise<Diary[]> {
         logger.debug(`Fetching diaries for user: ${userId}`);
         // TODO: Implement user-specific diary filtering in storage layer
-        return await storage.getDiaries(false); // false = include private diaries
+        return await storage.getUserDiaries(userId);
     }
 
     /**

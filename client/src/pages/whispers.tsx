@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Whisper, InsertWhisper } from "@shared/schema";
+import { Whisper, InsertWhisper, GlobalConsciousness } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,8 @@ import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import type { User } from "@shared/schema";
+import { WhisperCard } from "@/components/whisper/WhisperCard";
+import { EmotionVisualizer } from "@/components/whisper/EmotionVisualizer";
 
 export default function Whispers() {
   const [isCreating, setIsCreating] = useState(false);
@@ -38,6 +40,11 @@ export default function Whispers() {
     queryKey: ['/api/v1/whispers'],
   });
 
+  const { data: consciousness } = useQuery<GlobalConsciousness>({
+    queryKey: ['/api/v1/consciousness'],
+    refetchInterval: 30000, // Update every 30s
+  });
+
   const createWhisperMutation = useMutation({
     mutationFn: async (newWhisper: InsertWhisper) => {
       const res = await apiRequest('POST', '/api/v1/whispers', newWhisper);
@@ -45,6 +52,7 @@ export default function Whispers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/whispers'], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/consciousness'] });
       charLimit.reset();
       setIsCreating(false);
       toast({
@@ -58,33 +66,20 @@ export default function Whispers() {
     }
   });
 
-  const likeWhisperMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest('POST', `/api/v1/whispers/${id}/like`);
+  const interactMutation = useMutation({
+    mutationFn: async ({ id, type }: { id: number, type: 'resonate' | 'echo' | 'absorb' }) => {
+      const res = await apiRequest('POST', `/api/v1/whispers/${id}/interaction`, { type });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/whispers'] });
-    },
-    onError: (error) => {
-      handleError(error, 'liking whisper');
-    }
-  });
-
-  const deleteWhisperMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest('DELETE', `/api/v1/whispers/${id}`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/whispers'], refetchType: 'active' });
       toast({
-        title: "Whisper Deleted",
-        description: "Your whisper has vanished into the void.",
+        title: `Interaction Recorded`,
+        description: `You ${variables.type}d with a whisper.`,
       });
     },
     onError: (error) => {
-      handleError(error, 'deleting whisper');
+      handleError(error, 'interacting with whisper');
     }
   });
 
@@ -117,195 +112,134 @@ export default function Whispers() {
     });
   };
 
-  /**
-   * Handles delete with confirmation
-   */
-  const handleDelete = async (whisperId: number) => {
-    const confirmed = await confirmDialog.confirm({
-      title: "Delete Whisper",
-      description: "This whisper will be permanently deleted. This action cannot be undone.",
-      confirmText: "Delete",
-      variant: "destructive",
-    });
-
-    if (confirmed) {
-      deleteWhisperMutation.mutate(whisperId);
-    }
-  };
-
-  const handleLike = (id: number) => {
-    likeWhisperMutation.mutate(id);
+  const handleInteraction = (id: number, type: 'resonate' | 'echo' | 'absorb') => {
+    interactMutation.mutate({ id, type });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white p-3 sm:p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen text-white p-3 sm:p-6 relative overflow-hidden">
+
+      <EmotionVisualizer dominantEmotion={consciousness?.currentDominantEmotion || 'neutral'} />
+
+      <div className="max-w-6xl mx-auto relative z-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
           <div className="flex items-center space-x-2 sm:space-x-4">
             <Link href="/">
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white backdrop-blur-sm bg-black/20">
                 <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Back to Home</span>
                 <span className="sm:hidden">Back</span>
               </Button>
             </Link>
             <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/20">
                 <MessageCircle className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h1 className="text-xl sm:text-3xl font-bold">Whispers</h1>
+              <div>
+                <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Whispers</h1>
+                <p className="text-xs text-indigo-300/80 font-mono mt-1">
+                  Global Stability: {consciousness?.realmStability || 100}% • {consciousness?.activityLevel?.toUpperCase() || 'CALM'}
+                </p>
+              </div>
             </div>
           </div>
           <Button
             onClick={() => setIsCreating(!isCreating)}
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 w-full sm:w-auto"
+            className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 w-full sm:w-auto transition-all duration-300 hover:scale-105"
           >
             {isCreating ? "Cancel" : "Share Whisper"}
           </Button>
         </div>
 
-        <div className="mb-6 p-4 bg-indigo-900/30 rounded-lg border border-indigo-700/50">
-          <p className="text-sm text-indigo-200">
-            <span className="font-medium">Quantum Whisper Network:</span> Anonymous thought transmission system utilizing zero-knowledge cryptography.
-            Deploy unfiltered cognitive fragments into the collective subconscious with absolute identity protection.
-          </p>
-        </div>
-
         {/* Create Form */}
-        {isCreating && (
-          <Card className="mb-8 bg-gray-800/50 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-xl">Share Anonymous Whisper</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Textarea
-                    value={charLimit.value}
-                    onChange={(e) => charLimit.setValue(e.target.value)}
-                    placeholder="What weighs on your mind tonight? Share anonymously..."
-                    rows={4}
-                    className={`bg-gray-700/50 border-gray-600 text-white resize-none ${charLimit.isOverLimit ? 'border-red-500 focus:border-red-500' :
-                      charLimit.isNearLimit ? 'border-yellow-500' : ''
-                      }`}
-                    aria-describedby="whisper-char-counter"
-                    aria-invalid={charLimit.isOverLimit || charLimit.isUnderMin}
-                  />
-                  <CharacterCounter
-                    current={charLimit.length}
-                    max={280}
-                    min={5}
-                    showError={true}
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={
-                    charLimit.isUnderMin ||
-                    charLimit.isOverLimit ||
-                    createWhisperMutation.isPending ||
-                    charLimit.length === 0
-                  }
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Share whisper"
-                >
-                  {createWhisperMutation.isPending ? (
-                    <>
-                      <span className="mr-2">Sharing...</span>
-                      <span className="animate-spin">⏳</span>
-                    </>
-                  ) : (
-                    "Share Whisper"
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Whispers List */}
-        <div className="space-y-4">
-          <AnimatePresence>
-            {isLoading ? (
-              Array(3).fill(0).map((_, i) => (
-                <Card key={i} className="bg-gray-800/30 border-gray-700">
-                  <CardContent className="p-6 space-y-4">
-                    <Skeleton className="h-4 w-3/4 bg-gray-700/50" />
-                    <Skeleton className="h-4 w-1/2 bg-gray-700/50" />
-                    <div className="flex justify-between items-center pt-2">
-                      <Skeleton className="h-4 w-32 bg-gray-700/50" />
-                      <Skeleton className="h-8 w-12 bg-gray-700/50" />
+        <AnimatePresence>
+          {isCreating && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mb-8"
+            >
+              <Card className="bg-black/40 border-indigo-500/30 backdrop-blur-xl shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-xl text-indigo-100">Share Anonymous Whisper</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Textarea
+                        value={charLimit.value}
+                        onChange={(e) => charLimit.setValue(e.target.value)}
+                        placeholder="What weighs on your mind tonight? Share anonymously..."
+                        rows={4}
+                        className={`bg-white/5 border-white/10 text-white resize-none focus:bg-white/10 transition-all ${charLimit.isOverLimit ? 'border-red-500 focus:border-red-500' :
+                          charLimit.isNearLimit ? 'border-yellow-500' : ''
+                          }`}
+                        aria-describedby="whisper-char-counter"
+                        aria-invalid={charLimit.isOverLimit || charLimit.isUnderMin}
+                      />
+                      <CharacterCounter
+                        current={charLimit.length}
+                        max={280}
+                        min={5}
+                        showError={true}
+                      />
                     </div>
-                  </CardContent>
-                </Card>
+                    <Button
+                      type="submit"
+                      disabled={
+                        charLimit.isUnderMin ||
+                        charLimit.isOverLimit ||
+                        createWhisperMutation.isPending ||
+                        charLimit.length === 0
+                      }
+                      className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all active:scale-95"
+                      aria-label="Share whisper"
+                    >
+                      {createWhisperMutation.isPending ? (
+                        <>
+                          <span className="mr-2">Sharing...</span>
+                          <span className="animate-spin">⏳</span>
+                        </>
+                      ) : (
+                        "Release into the Void"
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Whispers Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatePresence mode="popLayout">
+            {isLoading ? (
+              Array(6).fill(0).map((_, i) => (
+                <div key={i} className="h-48 bg-white/5 rounded-xl animate-pulse" />
               ))
             ) : whispers.length === 0 ? (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center text-gray-400 py-12"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="col-span-full text-center text-gray-400 py-20 flex flex-col items-center"
               >
-                <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p className="text-xl mb-2">No whispers yet</p>
-                <p>Be the first to share an anonymous thought!</p>
+                <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                  <MessageCircle className="w-10 h-10 opacity-30" />
+                </div>
+                <p className="text-xl mb-2 font-light">The void is silent.</p>
+                <p className="text-sm opacity-50">Be the first to whisper into the darkness.</p>
               </motion.div>
             ) : (
-              whispers.map((whisper, index) => {
-                const isOwner = user && whisper.authorId === user.id;
-
-                return (
-                  <motion.div
-                    key={whisper.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all hover:border-indigo-500/30 group">
-                      <CardContent className="p-6">
-                        <p className="text-gray-200 leading-relaxed mb-4 text-lg italic italic-indigo-100">
-                          "{whisper.content}"
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs font-mono text-indigo-400/70">ANON-ID-{whisper.id.toString().padStart(4, '0')}</span>
-                            <span className="text-xs text-gray-500">
-                              • {whisper.createdAt ? new Date(whisper.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleLike(whisper.id)}
-                              disabled={likeWhisperMutation.isPending}
-                              className="text-gray-400 hover:text-pink-400 transition-all hover:bg-pink-400/10 rounded-full"
-                            >
-                              <Heart className={`w-4 h-4 mr-1 ${whisper.hearts ? 'fill-pink-500 text-pink-500' : ''}`} />
-                              <span className={whisper.hearts ? 'text-pink-400' : ''}>{whisper.hearts || 0}</span>
-                            </Button>
-                            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-indigo-400 rounded-full">
-                              <Share2 className="w-4 h-4" aria-hidden="true" />
-                            </Button>
-                            {isOwner && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-full transition-colors"
-                                onClick={() => handleDelete(whisper.id)}
-                                disabled={deleteWhisperMutation.isPending}
-                                aria-label="Delete whisper"
-                              >
-                                <Trash2 className="w-4 h-4" aria-hidden="true" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })
+              whispers.map((whisper, index) => (
+                <WhisperCard
+                  key={whisper.id}
+                  whisper={whisper}
+                  onInteract={handleInteraction}
+                />
+              ))
             )}
           </AnimatePresence>
         </div>
@@ -320,7 +254,7 @@ export default function Whispers() {
           confirmText={confirmDialog.config?.confirmText}
           cancelText={confirmDialog.config?.cancelText}
           variant={confirmDialog.config?.variant}
-          isLoading={deleteWhisperMutation.isPending}
+          isLoading={false}
         />
       </div>
     </div>

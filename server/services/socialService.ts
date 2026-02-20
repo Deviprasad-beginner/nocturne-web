@@ -11,8 +11,8 @@ export class SocialService {
         return await storage.createDiary(data);
     }
 
-    async getDiaries(filterPublic = false) {
-        return await storage.getDiaries(filterPublic);
+    async getDiaries(viewerId?: number) {
+        return await storage.getDiaries(viewerId);
     }
 
     async getDiary(id: number) {

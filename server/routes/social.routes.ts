@@ -10,7 +10,7 @@ const router = express.Router();
 // ============================================================================
 router.get("/diaries", async (req, res) => {
     try {
-        const diaries = await socialService.getDiaries(true);
+        const diaries = await socialService.getDiaries();
         res.json(diaries);
     } catch (error) {
         logger.error("Error getting diaries:", error);

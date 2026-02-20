@@ -4,8 +4,8 @@
  */
 
 import { db } from "../config/database";
-import { whispers, type Whisper, type InsertWhisper } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { whispers, whisperInteractions, type Whisper, type InsertWhisper } from "@shared/schema";
+import { eq, desc, sql } from "drizzle-orm";
 
 export class WhispersRepository {
     /**
@@ -71,6 +71,32 @@ export class WhispersRepository {
         await db
             .delete(whispers)
             .where(eq(whispers.id, id));
+    }
+
+    /**
+     * Add an interaction (resonate, echo, absorb)
+     */
+    async addInteraction(whisperId: number, userId: number, type: string, weight: number): Promise<void> {
+        // Record the interaction
+        await db.insert(whisperInteractions).values({
+            whisperId,
+            userId,
+            type,
+            weight
+        });
+
+        // Update whisper stats
+        let resonanceIncrease = 1;
+        if (type === 'echo') resonanceIncrease = 2;
+        if (type === 'absorb') resonanceIncrease = 3;
+
+        await db
+            .update(whispers)
+            .set({
+                resonanceScore: sql`${whispers.resonanceScore} + ${resonanceIncrease}`,
+                interactionCount: sql`${whispers.interactionCount} + 1`
+            })
+            .where(eq(whispers.id, whisperId));
     }
 }
 

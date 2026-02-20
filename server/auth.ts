@@ -81,21 +81,49 @@ export function setupAuth(app: Express) {
             let verifiedEmail = email ? email.toLowerCase() : null; // Enforce lowercase email
 
             try {
-                // Dynamic import to avoid crash if firebase-admin is not installed
-                const admin = await import("firebase-admin").catch(() => null);
-                if (admin && idToken) {
-                    // Initialize admin app if not already done
-                    if (!admin.apps?.length) {
-                        admin.initializeApp();
+                // Phase 1: Try to initialize Firebase Admin if not already done
+                const admin = await import("firebase-admin").then(m => m.default).catch(() => null);
+
+                if (admin) {
+                    if (!admin.apps.length) {
+                        try {
+                            // First, check for service account as a JSON string in environment variable
+                            // This is the preferred way for hosting platforms like Render/Vercel
+                            if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+                                const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+                                admin.initializeApp({
+                                    credential: admin.credential.cert(serviceAccount)
+                                });
+                                logger.info("Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT env var");
+                            }
+                            // Fallback to the local file path if specified
+                            else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+                                admin.initializeApp({
+                                    credential: admin.credential.applicationDefault()
+                                });
+                                logger.info("Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS file path");
+                            }
+                            // Last resort: simple initialization (may fail if credentials aren't found in env)
+                            else {
+                                admin.initializeApp();
+                                logger.info("Firebase Admin initialized with default credentials");
+                            }
+                        } catch (initErr: any) {
+                            logger.warn("Firebase Admin initialization failed, proceeding with limited functionality:", initErr.message);
+                        }
                     }
-                    const decodedToken = await admin.auth().verifyIdToken(idToken);
-                    verifiedUid = decodedToken.uid;
-                    verifiedEmail = decodedToken.email ? decodedToken.email.toLowerCase() : verifiedEmail;
-                    logger.info("Firebase ID token verified server-side");
-                } else if (!admin) {
+
+                    // Phase 2: Verify ID Token if provided
+                    if (idToken && admin.apps.length) {
+                        const decodedToken = await admin.auth().verifyIdToken(idToken);
+                        verifiedUid = decodedToken.uid;
+                        verifiedEmail = decodedToken.email ? decodedToken.email.toLowerCase() : verifiedEmail;
+                        logger.info("Firebase ID token verified server-side");
+                    } else if (!idToken) {
+                        logger.warn("No idToken provided in request — trusting client-side Firebase UID (Insecure).");
+                    }
+                } else {
                     logger.warn("firebase-admin not installed — trusting client-side Firebase UID. Install firebase-admin for production security.");
-                } else if (!idToken) {
-                    logger.warn("No idToken provided in request — trusting client-side Firebase UID.");
                 }
             } catch (verifyError: any) {
                 logger.error("Firebase token verification failed", verifyError);
@@ -231,17 +259,10 @@ export function setupAuth(app: Express) {
         });
     });
 
-    app.get("/api/user", async (req, res) => {
+    app.get("/api/user", (req, res) => {
         if (!req.isAuthenticated() || !req.user) return res.sendStatus(401);
 
-        try {
-            // Fetch fresh user data from database instead of using cached session data
-            const freshUser = await storage.getUser(req.user.id);
-            res.json(freshUser);
-        } catch (error) {
-            console.error("Error fetching user:", error);
-            // Fallback to session user if database fetch fails
-            res.json(req.user);
-        }
+        // Serve the successfully identified user straight from the session (populated by passport's `deserializeUser` from the database already)
+        res.json(req.user);
     });
 }

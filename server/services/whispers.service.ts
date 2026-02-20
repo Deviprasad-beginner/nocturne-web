@@ -48,13 +48,35 @@ export class WhispersService {
         logger.info("Creating new whisper", { userId });
 
         const analysis = analyzeEmotion(data.content);
+        const emotion = analysis.detectedEmotion || 'neutral';
+
+        // Emotion Frequency Map
+        const EMOTION_FREQ_MAP: Record<string, number> = {
+            loneliness: 396,
+            curiosity: 432,
+            peace: 528,
+            anxiety: 741,
+            mystery: 639,
+            neutral: 444,
+            joy: 528, // Map joy to peace/love freq
+            sadness: 396, // Map sadness to loneliness/release
+            love: 639, // Map love to connection
+            ambition: 432, // Map ambition to change
+            nostalgia: 417 // 417 is undoing situations/facilitating change
+        };
+
+        const frequency = EMOTION_FREQ_MAP[emotion] || 444;
 
         const whisperData: InsertWhisper = {
             ...data,
             authorId: userId, // Link to user if logged in
-            detectedEmotion: analysis.detectedEmotion,
+            detectedEmotion: emotion,
             sentimentScore: analysis.sentimentScore,
             reflectionDepth: analysis.reflectionDepthScore,
+            audioFrequency: frequency,
+            decayStage: 'fresh',
+            decayProgress: 0,
+            visibilityOpacity: 100,
         };
 
         return await whispersRepository.create(whisperData);
@@ -87,6 +109,19 @@ export class WhispersService {
         }
 
         await whispersRepository.delete(id);
+    }
+
+    /**
+     * Interact with a whisper (resonate, echo, absorb)
+     */
+    async interact(userId: number, whisperId: number, type: 'resonate' | 'echo' | 'absorb'): Promise<void> {
+        logger.info(`Interaction: ${type} on whisper ${whisperId} by user ${userId}`);
+
+        // Verify whisper exists
+        await this.getWhisperById(whisperId);
+
+        // Record interaction
+        await whispersRepository.addInteraction(whisperId, userId, type, type === 'echo' ? 2 : 1);
     }
 }
 
