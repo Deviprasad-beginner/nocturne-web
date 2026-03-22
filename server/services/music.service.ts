@@ -1,49 +1,60 @@
-/**
- * Music Service - Business Logic Layer
- */
-
 import { storage } from "../storage";
-import { NotFoundError } from "../utils/errors";
+import { createRequire } from 'module';
+import memoize from 'memoizee';
 import { logger } from "../utils/logger";
-import ytSearch from "yt-search";
 
+const require = createRequire(import.meta.url);
+const soundcloud = require("soundcloud-scraper");
+const client = new soundcloud.Client();
+
+/**
+ * Music Service - Handles music search and favorites with caching
+ */
 export class MusicService {
-    /**
-     * Search for music stations
-     */
-    async searchMusic(query: string): Promise<any[]> {
-        logger.debug(`Searching for music: ${query}`);
+    // Cache music searches for 15 minutes to reduce external API calls
+    private searchMusicCached = memoize(
+        async (query: string) => {
+            logger.debug(`[MusicService] Searching SoundCloud for: ${query}`);
+            try {
+                const results = await Promise.race([
+                    client.search(query, "track"),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Search timeout')), 5000)
+                    )
+                ]);
 
-        if (!query) {
-            throw new Error("Query parameter is required");
+                const tracks = (results as any[]) || [];
+                return tracks.slice(0, 10).map((v: any) => ({
+                    id: v.url,
+                    name: v.name || v.title,
+                    streamUrl: v.url,
+                }));
+            } catch (error) {
+                logger.error('[MusicService] Search failed:', error);
+                // Return empty array instead of throwing to prevent 500 errors
+                return [];
+            }
+        },
+        {
+            maxAge: 1000 * 60 * 15, // 15 min cache
+            promise: true,
+            length: 1 // Cache based on query only
         }
+    );
 
-        const r = await ytSearch(query + " live radio");
-        const liveVideos = (r as any).live || [];
-
-        const stations = liveVideos
-            .slice(0, 10)
-            .map((v: any) => ({
-                id: v.videoId,
-                name: v.title,
-                youtubeId: v.videoId
-            }));
-
-        return stations;
+    async searchMusic(query: string) {
+        if (!query || typeof query !== 'string') {
+            throw new Error('Query parameter is required');
+        }
+        return await this.searchMusicCached(query);
     }
 
-    /**
-     * Toggle favorite station for user
-     */
-    async toggleFavorite(userId: number, stationId: string): Promise<boolean> {
+    async toggleFavorite(userId: number, stationId: string) {
         logger.info(`Toggling favorite station for user: ${userId}`, { stationId });
         return await storage.toggleSavedStation(userId, stationId);
     }
 
-    /**
-     * Get user's favorite stations
-     */
-    async getFavorites(userId: number): Promise<any[]> {
+    async getFavorites(userId: number) {
         logger.debug(`Fetching favorite stations for user: ${userId}`);
         return await storage.getSavedStations(userId);
     }

@@ -1,8 +1,13 @@
 import { Track } from "@/lib/youtubePlayer";
 import { useMusic } from "@/context/MusicContext";
-import { Play, Users } from "lucide-react";
+import { Play, Users, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface MusicCardProps {
     track: Track;
@@ -10,9 +15,57 @@ interface MusicCardProps {
 
 export function MusicCard({ track }: MusicCardProps) {
     const { playTrack, currentTrack, isPlaying } = useMusic();
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
 
     const isCurrentTrack = currentTrack?.id === track.id;
     const listeners = Math.floor(Math.random() * 100) + 10; // Mock listener count
+
+    // Fetch current saved stations for this user
+    const { data: savedStations = [] } = useQuery<string[]>({
+        queryKey: ["/api/v1/users/me/favorites"],
+        enabled: !!user,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const isFavorited = savedStations.includes(track.id);
+
+    // Toggle favorite mutation
+    const toggleFavoriteMutation = useMutation({
+        mutationFn: async () => {
+            const res = await apiRequest("POST", `/api/v1/music/favorites/${track.id}`);
+            return res.json();
+        },
+        onSuccess: (data: any) => {
+            queryClient.invalidateQueries({ queryKey: ["/api/v1/users/me/favorites"] });
+            const saved = data?.data?.saved ?? data?.saved;
+            toast({
+                title: saved ? "Station Saved!" : "Station Removed",
+                description: saved ? `${track.title} added to your profile.` : `${track.title} removed from saved stations.`,
+            });
+        },
+        onError: () => {
+            toast({
+                title: "Login Required",
+                description: "Sign in to save your favorite stations.",
+                variant: "destructive",
+            });
+        },
+    });
+
+    const handleFavoriteClick = (e: React.MouseEvent) => {
+        e.stopPropagation(); // don't play track when clicking heart
+        if (!user) {
+            toast({
+                title: "Login Required",
+                description: "Sign in to save your favorite stations.",
+                variant: "destructive",
+            });
+            return;
+        }
+        toggleFavoriteMutation.mutate();
+    };
 
     return (
         <motion.div
@@ -60,6 +113,20 @@ export function MusicCard({ track }: MusicCardProps) {
                         {track.mood}
                     </Badge>
                 </div>
+
+                {/* Heart / Save button */}
+                <button
+                    onClick={handleFavoriteClick}
+                    className={cn(
+                        "absolute bottom-2 right-2 p-1.5 rounded-full transition-all duration-200",
+                        isFavorited
+                            ? "bg-pink-500/80 text-white opacity-100"
+                            : "bg-black/50 text-gray-300 opacity-0 group-hover:opacity-100 hover:bg-pink-500/60 hover:text-white"
+                    )}
+                    title={isFavorited ? "Remove from favorites" : "Save to favorites"}
+                >
+                    <Heart className={cn("h-4 w-4", isFavorited && "fill-current")} />
+                </button>
             </div>
 
             {/* Track info */}
@@ -73,6 +140,11 @@ export function MusicCard({ track }: MusicCardProps) {
                 <div className="flex items-center gap-1 text-xs text-gray-500 pt-1">
                     <Users className="h-3 w-3" />
                     <span>{listeners} listening</span>
+                    {isFavorited && (
+                        <span className="ml-auto text-pink-400 flex items-center gap-0.5">
+                            <Heart className="h-3 w-3 fill-current" /> Saved
+                        </span>
+                    )}
                 </div>
             </div>
 

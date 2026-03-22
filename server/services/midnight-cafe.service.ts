@@ -22,8 +22,7 @@ export class MidnightCafeService {
      */
     async getPostById(id: number): Promise<MidnightCafe> {
         logger.debug(`Fetching cafe post with id: ${id}`);
-        const posts = await storage.getMidnightCafe();
-        const post = posts.find(p => p.id === id);
+        const post = await storage.getMidnightCafeById(id);
 
         if (!post) {
             throw new NotFoundError(`Cafe post with id ${id} not found`);

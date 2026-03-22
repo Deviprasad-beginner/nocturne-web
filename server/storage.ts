@@ -91,6 +91,7 @@ export interface IStorage {
   // Midnight Cafe operations
   createMidnightCafe(midnightCafe: InsertMidnightCafe): Promise<MidnightCafe>;
   getMidnightCafe(limit?: number): Promise<MidnightCafe[]>;
+  getMidnightCafeById(id: number): Promise<MidnightCafe | undefined>;
   incrementCafeReplies(id: number): Promise<void>;
   createCafeReply(reply: InsertCafeReply): Promise<CafeReply>;
   getCafeReplies(cafeId: number): Promise<CafeReply[]>;
@@ -350,6 +351,10 @@ export class MemoryStorage implements IStorage {
       maxMembers: nightCircle.maxMembers || 8,
       currentMembers: 0,
       isActive: true,
+      state: "forming",
+      primaryEmotion: null,
+      vibeScore: 0,
+      expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000),
       createdAt: new Date()
     };
     this.nightCircles.push(newNightCircle);
@@ -386,6 +391,10 @@ export class MemoryStorage implements IStorage {
   async getMidnightCafe(limit?: number): Promise<MidnightCafe[]> {
     const cafes = [...this.midnightCafes].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
     return limit ? cafes.slice(0, limit) : cafes;
+  }
+
+  async getMidnightCafeById(id: number): Promise<MidnightCafe | undefined> {
+    return this.midnightCafes.find(c => c.id === id);
   }
 
   async incrementCafeReplies(id: number): Promise<void> {
@@ -924,12 +933,9 @@ export class DatabaseStorage implements IStorage {
 
   async incrementWhisperHearts(id: number): Promise<void> {
     try {
-      const [whisper] = await db.select().from(whispers).where(eq(whispers.id, id));
-      if (whisper) {
-        await db.update(whispers)
-          .set({ hearts: (whisper.hearts || 0) + 1 })
-          .where(eq(whispers.id, id));
-      }
+      const result = await db.update(whispers)
+        .set({ hearts: sql`${whispers.hearts} + 1` })
+        .where(eq(whispers.id, id));
     } catch (error) {
       console.error("Error incrementing whisper hearts:", error);
     }
@@ -975,12 +981,9 @@ export class DatabaseStorage implements IStorage {
 
   async incrementMindMazeResponses(id: number): Promise<void> {
     try {
-      const [maze] = await db.select().from(mindMaze).where(eq(mindMaze.id, id));
-      if (maze) {
-        await db.update(mindMaze)
-          .set({ responses: (maze.responses || 0) + 1 })
-          .where(eq(mindMaze.id, id));
-      }
+      await db.update(mindMaze)
+        .set({ responses: sql`${mindMaze.responses} + 1` })
+        .where(eq(mindMaze.id, id));
     } catch (error) {
       console.error("Error incrementing mind maze responses:", error);
     }
@@ -1008,27 +1011,39 @@ export class DatabaseStorage implements IStorage {
           id: 1,
           name: "Midnight Philosophers",
           description: null,
-          maxMembers: 50,
-          currentMembers: 45,
+          maxMembers: 8,
+          currentMembers: 3,
           isActive: true,
+          state: "deep_phase",
+          primaryEmotion: "deep",
+          vibeScore: 70,
+          expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
           createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000)
         },
         {
           id: 2,
           name: "Night Owls Unite",
           description: null,
-          maxMembers: 100,
-          currentMembers: 78,
+          maxMembers: 8,
+          currentMembers: 2,
           isActive: true,
+          state: "forming",
+          primaryEmotion: "curious",
+          vibeScore: 50,
+          expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
           createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000)
         },
         {
           id: 3,
           name: "Dream Sharers",
           description: null,
-          maxMembers: 50,
-          currentMembers: 32,
-          isActive: false,
+          maxMembers: 8,
+          currentMembers: 1,
+          isActive: true,
+          state: "closing",
+          primaryEmotion: "lonely",
+          vibeScore: 30,
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
           createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000)
         }
       ];
@@ -1103,20 +1118,68 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getMidnightCafeById(id: number): Promise<MidnightCafe | undefined> {
+    try {
+      const results = await db
+        .select({
+          cafe: midnightCafe,
+          author: users
+        })
+        .from(midnightCafe)
+        .leftJoin(users, eq(midnightCafe.authorId, users.id))
+        .where(eq(midnightCafe.id, id))
+        .limit(1);
+
+      if (results.length === 0) return undefined;
+
+      const r = results[0];
+      return {
+        ...r.cafe,
+        author: r.author || undefined
+      } as any;
+    } catch (error) {
+      console.error("Error getting midnight cafe by id:", error);
+      return undefined;
+    }
+  }
+
   async incrementCafeReplies(id: number): Promise<void> {
     try {
-      const [cafe] = await db.select().from(midnightCafe).where(eq(midnightCafe.id, id));
-      if (cafe) {
-        await db.update(midnightCafe)
-          .set({ replies: (cafe.replies || 0) + 1 })
-          .where(eq(midnightCafe.id, id));
-      }
+      await db.update(midnightCafe)
+        .set({ replies: sql`${midnightCafe.replies} + 1` })
+        .where(eq(midnightCafe.id, id));
     } catch (error) {
       console.error("Error incrementing cafe replies:", error);
     }
   }
 
-  // 3AM Founder operations
+  async getCafeReplies(cafeId: number): Promise<CafeReply[]> {
+    try {
+      return await db
+        .select()
+        .from(cafeReplies)
+        .where(eq(cafeReplies.cafeId, cafeId))
+        .orderBy(asc(cafeReplies.createdAt));
+    } catch (error) {
+      console.error("Error getting cafe replies:", error);
+      return [];
+    }
+  }
+
+  async createCafeReply(reply: InsertCafeReply): Promise<CafeReply> {
+    const [newReply] = await db.insert(cafeReplies).values(reply).returning();
+    return newReply;
+  }
+
+  async deleteCafePost(id: number): Promise<void> {
+    await db.delete(midnightCafe).where(eq(midnightCafe.id, id));
+  }
+
+  async deleteCafeReply(id: number): Promise<void> {
+    await db.delete(cafeReplies).where(eq(cafeReplies.id, id));
+  }
+
+
   // 3AM Founder operations
   async createAmFounder(founder: InsertAmFounder): Promise<AmFounder> {
     const [newFounder] = await db.insert(amFounder).values(founder).returning();

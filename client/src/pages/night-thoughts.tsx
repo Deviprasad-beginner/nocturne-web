@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { NightThought, InsertNightThought } from "@shared/schema";
+import { NightThought, InsertNightThought, NightThoughtReply } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CharacterCounter } from "@/components/common/CharacterCounter";
 import {
     ArrowLeft, Moon, Heart, MessageCircle, Lock, Globe,
-    Sparkles, Coffee, Edit3, Trash2, Send, Eye, EyeOff
+    Sparkles, Coffee, Edit3, Trash2, Send, Eye, EyeOff, ChevronDown, ChevronUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCharacterLimit } from "@/hooks/useCharacterLimit";
@@ -24,9 +24,11 @@ import type { User } from "@shared/schema";
 
 export default function NightThoughtsPage() {
     const [isCreating, setIsCreating] = useState(false);
-    const [isPrivate, setIsPrivate] = useState(true); // Default to private for privacy-first
+    const [isPrivate, setIsPrivate] = useState(true);
     const [topic, setTopic] = useState("");
     const [selectedFilter, setSelectedFilter] = useState("all");
+    const [openRepliesFor, setOpenRepliesFor] = useState<number | null>(null);
+    const [replyInput, setReplyInput] = useState<Record<number, string>>({});
     const { toast } = useToast();
 
     const charLimit = useCharacterLimit({
@@ -118,6 +120,21 @@ export default function NightThoughtsPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['/api/v1/thoughts'] });
         },
+    });
+
+    const addReplyMutation = useMutation({
+        mutationFn: async ({ thoughtId, content }: { thoughtId: number; content: string }) => {
+            const res = await apiRequest('POST', `/api/v1/thoughts/${thoughtId}/replies`, { content });
+            return res.json();
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: [`/api/v1/thoughts/${variables.thoughtId}/replies`] });
+            queryClient.invalidateQueries({ queryKey: ['/api/v1/thoughts'] });
+            setReplyInput(prev => ({ ...prev, [variables.thoughtId]: '' }));
+        },
+        onError: () => {
+            toast({ variant: 'destructive', title: 'Failed to post reply', description: 'Please try again.' });
+        }
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -491,12 +508,38 @@ export default function NightThoughtsPage() {
                                                             <span className="text-xs">{thought.hearts || 0}</span>
                                                         </Button>
                                                         {thought.allowReplies && (
-                                                            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 h-8">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setOpenRepliesFor(openRepliesFor === thought.id ? null : thought.id)}
+                                                                className={`h-8 ${openRepliesFor === thought.id ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500 hover:text-blue-400 hover:bg-blue-500/10'}`}
+                                                            >
                                                                 <MessageCircle className="w-4 h-4 mr-1.5" />
                                                                 <span className="text-xs">{thought.replies || 0}</span>
+                                                                {openRepliesFor === thought.id
+                                                                    ? <ChevronUp className="w-3 h-3 ml-1" />
+                                                                    : <ChevronDown className="w-3 h-3 ml-1" />}
                                                             </Button>
                                                         )}
                                                     </div>
+
+                                                    {/* Comment Panel */}
+                                                    <AnimatePresence>
+                                                        {openRepliesFor === thought.id && thought.allowReplies && (
+                                                            <CommentPanel
+                                                                thoughtId={thought.id}
+                                                                user={user ?? null}
+                                                                replyInput={replyInput[thought.id] ?? ''}
+                                                                onReplyChange={(val) => setReplyInput(prev => ({ ...prev, [thought.id]: val }))}
+                                                                onSubmit={() => {
+                                                                    const content = (replyInput[thought.id] ?? '').trim();
+                                                                    if (!content) return;
+                                                                    addReplyMutation.mutate({ thoughtId: thought.id, content });
+                                                                }}
+                                                                isPending={addReplyMutation.isPending}
+                                                            />
+                                                        )}
+                                                    </AnimatePresence>
                                                 </CardContent>
                                             </Card>
                                         </motion.div>
@@ -509,5 +552,110 @@ export default function NightThoughtsPage() {
             </div>
         </div>
 
+    );
+}
+
+// ─── Comment Panel ─────────────────────────────────────────────────────────────
+
+interface CommentPanelProps {
+    thoughtId: number;
+    user: { id: number; username: string } | null;
+    replyInput: string;
+    onReplyChange: (val: string) => void;
+    onSubmit: () => void;
+    isPending: boolean;
+}
+
+function CommentPanel({ thoughtId, user, replyInput, onReplyChange, onSubmit, isPending }: CommentPanelProps) {
+    const { data: replies = [], isLoading } = useQuery<NightThoughtReply[]>({
+        queryKey: [`/api/v1/thoughts/${thoughtId}/replies`],
+        queryFn: async () => {
+            const res = await fetch(`/api/v1/thoughts/${thoughtId}/replies`);
+            if (!res.ok) throw new Error('Failed to load replies');
+            return res.json();
+        },
+    });
+
+    const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (replyInput.trim()) onSubmit();
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+        >
+            <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                {/* Existing replies */}
+                {isLoading ? (
+                    <div className="space-y-2">
+                        {[1, 2].map(i => (
+                            <div key={i} className="h-10 bg-white/5 animate-pulse rounded-lg" />
+                        ))}
+                    </div>
+                ) : replies.length === 0 ? (
+                    <p className="text-xs text-gray-600 italic text-center py-2">
+                        No replies yet. Be the first to respond.
+                    </p>
+                ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                        {replies.map((reply) => (
+                            <div
+                                key={reply.id}
+                                className="flex items-start gap-2 bg-white/5 rounded-lg px-3 py-2"
+                            >
+                                <div className="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span className="text-[8px] text-indigo-300">
+                                        {reply.authorId ? reply.authorId.toString().slice(-2) : '?'}
+                                    </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-indigo-300 font-medium mb-0.5">
+                                        {reply.authorId ? `Anon #${reply.authorId}` : 'Anonymous'}
+                                    </p>
+                                    <p className="text-sm text-gray-300 leading-relaxed break-words">{reply.content}</p>
+                                    <p className="text-[10px] text-gray-600 mt-1">
+                                        {reply.createdAt ? new Date(reply.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Reply input */}
+                <div className="flex gap-2 items-end">
+                    <textarea
+                        value={replyInput}
+                        onChange={(e) => onReplyChange(e.target.value)}
+                        onKeyDown={handleKey}
+                        placeholder={user ? 'Write a reply… (Enter to send)' : 'Log in to reply'}
+                        disabled={!user || isPending}
+                        rows={1}
+                        className="flex-1 resize-none bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-blue-500/40 disabled:opacity-40 transition-colors"
+                        style={{ minHeight: '36px', maxHeight: '100px' }}
+                        onInput={(e) => {
+                            const t = e.currentTarget;
+                            t.style.height = 'auto';
+                            t.style.height = Math.min(t.scrollHeight, 100) + 'px';
+                        }}
+                    />
+                    <Button
+                        size="icon"
+                        disabled={!user || !replyInput.trim() || isPending}
+                        onClick={onSubmit}
+                        className="h-9 w-9 flex-shrink-0 bg-blue-600 hover:bg-blue-500 disabled:opacity-30"
+                    >
+                        <Send className="w-4 h-4" />
+                    </Button>
+                </div>
+            </div>
+        </motion.div>
     );
 }

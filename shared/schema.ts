@@ -115,8 +115,46 @@ export const nightCircles = pgTable("night_circles", {
   maxMembers: integer("max_members").default(8),
   currentMembers: integer("current_members").default(0),
   isActive: boolean("is_active").default(true),
+  // Lifecycle state machine
+  state: varchar("state", { length: 20 }).default("forming"), // forming | active | deep_phase | closing | ended
+  // Emotion tracking
+  primaryEmotion: varchar("primary_emotion", { length: 50 }),
+  vibeScore: integer("vibe_score").default(0),
+  // Auto-expiry
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_night_circles_state").on(table.state),
+  index("idx_night_circles_expires_at").on(table.expiresAt),
+]);
+
+// Night Circle Members — anonymous identity per session
+export const circleMembers = pgTable("circle_members", {
+  id: serial("id").primaryKey(),
+  circleId: integer("circle_id").references(() => nightCircles.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  alias: varchar("alias", { length: 50 }).notNull(),
+  avatar: varchar("avatar", { length: 30 }).default("moon_1"),
+  mode: varchar("mode", { length: 20 }).default("listener"), // silent | listener | speaker
+  state: varchar("state", { length: 20 }).default("active"), // active | inactive
+  joinedAt: timestamp("joined_at").defaultNow(),
+  leftAt: timestamp("left_at"),
+}, (table) => [
+  index("idx_circle_members_circle_id").on(table.circleId),
+  index("idx_circle_members_user_id").on(table.userId),
+]);
+
+// Night Circle Messages — chat per circle
+export const circleMessages = pgTable("circle_messages", {
+  id: serial("id").primaryKey(),
+  circleId: integer("circle_id").references(() => nightCircles.id, { onDelete: "cascade" }).notNull(),
+  senderAlias: varchar("sender_alias", { length: 50 }).notNull(),
+  content: text("content").notNull(),
+  sentimentScore: integer("sentiment_score"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_circle_messages_circle_id").on(table.circleId),
+]);
 
 export const midnightCafe = pgTable("midnight_cafe", {
   id: serial("id").primaryKey(),
@@ -209,6 +247,19 @@ export const insertNightCircleSchema = createInsertSchema(nightCircles).omit({
   id: true,
   currentMembers: true,
   isActive: true,
+  state: true,
+  vibeScore: true,
+  createdAt: true,
+});
+
+export const insertCircleMemberSchema = createInsertSchema(circleMembers).omit({
+  id: true,
+  joinedAt: true,
+  leftAt: true,
+});
+
+export const insertCircleMessageSchema = createInsertSchema(circleMessages).omit({
+  id: true,
   createdAt: true,
 });
 
@@ -252,6 +303,13 @@ export type InsertMindMaze = z.infer<typeof insertMindMazeSchema>;
 export type NightCircle = typeof nightCircles.$inferSelect;
 export type InsertNightCircle = z.infer<typeof insertNightCircleSchema>;
 
+export type CircleMember = typeof circleMembers.$inferSelect;
+export type InsertCircleMember = z.infer<typeof insertCircleMemberSchema>;
+
+export type CircleMessage = typeof circleMessages.$inferSelect;
+export type InsertCircleMessage = z.infer<typeof insertCircleMessageSchema>;
+
+
 export type MidnightCafe = typeof midnightCafe.$inferSelect;
 export type InsertMidnightCafe = z.infer<typeof insertMidnightCafeSchema>;
 
@@ -285,6 +343,17 @@ export const nightThoughts = pgTable("night_thoughts", {
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at"), // For ephemeral whisper-style thoughts
 });
+
+// Replies for Night Thoughts — stores actual reply content
+export const nightThoughtReplies = pgTable("night_thought_replies", {
+  id: serial("id").primaryKey(),
+  thoughtId: integer("thought_id").references(() => nightThoughts.id, { onDelete: "cascade" }).notNull(),
+  content: text("content").notNull(),
+  authorId: integer("author_id").references(() => users.id), // nullable = anonymous
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_night_thought_replies_thought_id").on(table.thoughtId),
+]);
 
 // 3AM Founder - Anonymous thoughts for entrepreneurs and late-night innovators
 export const amFounder = pgTable("am_founder", {
@@ -427,8 +496,16 @@ export const insertNightThoughtSchema = createInsertSchema(nightThoughts).omit({
   createdAt: true,
 });
 
+export const insertNightThoughtReplySchema = createInsertSchema(nightThoughtReplies).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type NightThought = typeof nightThoughts.$inferSelect;
 export type InsertNightThought = z.infer<typeof insertNightThoughtSchema>;
+
+export type NightThoughtReply = typeof nightThoughtReplies.$inferSelect;
+export type InsertNightThoughtReply = z.infer<typeof insertNightThoughtReplySchema>;
 
 // Read Card Feature Tables
 

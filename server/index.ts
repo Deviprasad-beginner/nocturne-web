@@ -1,4 +1,8 @@
-import "dotenv/config";
+import "dotenv/config"; // trigger restart
+// Re-load .env with override:true so .env values ALWAYS win over
+// any stale OS/system environment variables on this machine.
+import { config } from "dotenv";
+config({ override: true });
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import cors from "cors";

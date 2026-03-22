@@ -1,4 +1,11 @@
+// Load .env FIRST with override:true before anything reads process.env.
+// This is critical because db.ts runs at module-load time (before dotenv
+// in index.ts fires), and any OS-level env var would otherwise win.
+import { config } from "dotenv";
+config({ override: true });
+
 import { drizzle } from 'drizzle-orm/node-postgres';
+
 import pg from 'pg';
 const { Pool } = pg;
 import * as schema from "@shared/schema";

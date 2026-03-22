@@ -9,7 +9,7 @@ import { storage } from './storage';
 interface Room {
   id: string;
   participants: Set<WebSocket>;
-  type: 'random' | 'voice';
+  type: 'random' | 'voice' | 'circle';
   maxParticipants?: number;
 }
 
@@ -17,6 +17,8 @@ interface UserConnection {
   ws: WebSocket;
   username: string;
   roomId?: string;
+  circleAlias?: string;
+  circleId?: number;
   isSearching?: boolean;
 }
 
@@ -33,24 +35,28 @@ export class WebSocketManager {
     server.on('upgrade', async (request, socket, head) => {
       // Only handle upgrades for the /ws path
       if (request.url === '/ws') {
-        // Authenticate via session cookie
         try {
+          // Try to identify via session cookie (registered users)
+          // If no session, allow the connection anyway as a guest.
+          // Night Circles supports anonymous users — rejecting here would
+          // break real-time messaging for everyone who isn't logged in.
           const sessionUser = await this.extractUserFromSession(request);
-          if (!sessionUser) {
-            logger.warn('WebSocket connection rejected: unauthenticated');
-            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-            socket.destroy();
-            return;
-          }
 
-          // Attach user info to request for later use
-          (request as any).authenticatedUser = sessionUser;
+          if (sessionUser) {
+            (request as any).authenticatedUser = sessionUser;
+          } else {
+            // Assign a temporary guest identity based on connection time
+            // The alias assigned during circle join is used for display
+            const guestId = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            (request as any).authenticatedUser = { id: null, guestId };
+            logger.info(`WebSocket guest connection allowed: ${guestId}`);
+          }
 
           this.wss.handleUpgrade(request, socket, head, (ws) => {
             this.wss.emit('connection', ws, request);
           });
         } catch (error) {
-          logger.error('WebSocket upgrade auth error', error);
+          logger.error('WebSocket upgrade error', error);
           socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
           socket.destroy();
         }
@@ -125,6 +131,16 @@ export class WebSocketManager {
         break;
       case 'join_room':
         this.handleJoinRoom(ws, message.roomId, message.username);
+        break;
+      // Night Circles 2.0 events
+      case 'CIRCLE_JOIN':
+        this.handleCircleJoin(ws, message.circleId, message.alias, message.lifecycle);
+        break;
+      case 'CIRCLE_LEAVE':
+        this.handleCircleLeave(ws, message.circleId, message.alias);
+        break;
+      case 'CIRCLE_MESSAGE':
+        this.handleCircleMessage(ws, message.circleId, message.alias, message.content, message.emotion);
         break;
     }
   }
@@ -277,7 +293,115 @@ export class WebSocketManager {
       this.waitingForRandom.splice(waitingIndex, 1);
     }
 
+    // Auto-leave circle on disconnect
+    const conn = this.connections.get(ws);
+    if (conn?.circleId) {
+      this.handleCircleLeave(ws, conn.circleId, conn.circleAlias ?? 'Unknown Voice');
+    }
+
     this.handleLeaveRoom(ws);
+  }
+
+  // ── Night Circles Room Handlers ───────────────────────────────────────────
+
+  private handleCircleJoin(ws: WebSocket, circleId: number, alias: string, lifecycle?: string) {
+    const roomId = `circle_${circleId}`;
+    let room = this.rooms.get(roomId);
+
+    if (!room) {
+      room = { id: roomId, participants: new Set(), type: 'circle' };
+      this.rooms.set(roomId, room);
+    }
+
+    room.participants.add(ws);
+
+    const conn = this.connections.get(ws) ?? { ws, username: alias };
+    conn.roomId = roomId;
+    conn.circleAlias = alias;
+    conn.circleId = circleId;
+    this.connections.set(ws, conn);
+
+    // Broadcast to others
+    this.broadcastToRoom(roomId, {
+      type: 'MEMBER_JOINED',
+      circleId,
+      alias,
+      memberCount: room.participants.size,
+      lifecycle,
+    } as any, ws);
+
+    // Confirm to the joining socket
+    this.sendToSocket(ws, {
+      type: 'CIRCLE_JOINED',
+      circleId,
+      alias,
+      memberCount: room.participants.size,
+    } as any);
+  }
+
+  private handleCircleLeave(ws: WebSocket, circleId: number, alias: string) {
+    const roomId = `circle_${circleId}`;
+    const room = this.rooms.get(roomId);
+    if (!room) return;
+
+    room.participants.delete(ws);
+
+    const conn = this.connections.get(ws);
+    if (conn) {
+      conn.circleId = undefined;
+      conn.circleAlias = undefined;
+    }
+
+    if (room.participants.size === 0) {
+      this.rooms.delete(roomId);
+      return;
+    }
+
+    this.broadcastToRoom(roomId, {
+      type: 'MEMBER_LEFT',
+      circleId,
+      alias,
+      memberCount: room.participants.size,
+    } as any);
+  }
+
+  private handleCircleMessage(ws: WebSocket, circleId: number, alias: string, content: string, emotion?: string) {
+    const roomId = `circle_${circleId}`;
+    this.broadcastToRoom(roomId, {
+      type: 'CIRCLE_MESSAGE',
+      circleId,
+      alias,
+      content,
+      emotion,
+      timestamp: new Date().toISOString(),
+    } as any, ws);
+  }
+
+  // Broadcast lifecycle change to all in a circle
+  broadcastCircleLifecycle(circleId: number, state: string, memberCount: number) {
+    const roomId = `circle_${circleId}`;
+    this.broadcastToRoom(roomId, {
+      type: 'LIFECYCLE_CHANGED',
+      circleId,
+      state,
+      memberCount,
+    } as any);
+
+    if (state === 'ended') {
+      this.broadcastToRoom(roomId, { type: 'CIRCLE_ENDED', circleId } as any);
+      this.rooms.delete(roomId);
+    }
+  }
+
+  // Broadcast emotion update to all in a circle
+  broadcastEmotionUpdate(circleId: number, primaryEmotion: string, vibeScore: number) {
+    const roomId = `circle_${circleId}`;
+    this.broadcastToRoom(roomId, {
+      type: 'EMOTION_UPDATED',
+      circleId,
+      primaryEmotion,
+      vibeScore,
+    } as any);
   }
 
   private sendToSocket(ws: WebSocket, message: WebSocketMessage) {

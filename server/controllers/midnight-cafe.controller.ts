@@ -101,13 +101,8 @@ export class MidnightCafeController {
      */
     static async createReply(req: Request, res: Response) {
         try {
-            if (!req.isAuthenticated()) {
-                return res.status(401).json({ error: "Unauthorized" });
-            }
-
             const data = insertCafeReplySchema.parse(req.body);
-            const reply = await midnightCafeService.createReply(data, req.user!.id);
-
+            const reply = await midnightCafeService.createReply(data, req.user?.id);
             res.status(201).json(reply);
         } catch (error: any) {
             logger.error("Error creating reply", error);

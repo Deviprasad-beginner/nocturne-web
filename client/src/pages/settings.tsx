@@ -7,473 +7,476 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Moon, Bell, Shield, User, Globe, Download, Trash2, Eye, EyeOff } from "lucide-react";
+import {
+  AlertTriangle, Moon, Bell, Shield, User, Globe,
+  Download, Trash2, LogOut, Notebook, MessageCircle,
+  Brain, Coffee, Lightbulb, Star, Users, Headphones,
+  Settings2, ChevronRight,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Tab = "profile" | "privacy" | "notifications" | "appearance" | "services" | "account";
+
+// ─── Service definitions ───────────────────────────────────────────────────────
+const SERVICES = [
+  {
+    id: "diaries",
+    label: "Night Diaries",
+    icon: Notebook,
+    color: "text-yellow-400",
+    bg: "bg-yellow-500/10",
+    description: "Personal journal entries",
+    settings: [
+      { key: "diariesPrivacy", label: "Default Privacy", type: "select", options: ["Private", "Friends", "Public"] },
+      { key: "diariesAllowComments", label: "Allow comments on entries", type: "toggle" },
+      { key: "diariesShowInFeed", label: "Show public entries in main feed", type: "toggle" },
+    ],
+  },
+  {
+    id: "whispers",
+    label: "Whispers",
+    icon: MessageCircle,
+    color: "text-indigo-400",
+    bg: "bg-indigo-500/10",
+    description: "Anonymous short messages",
+    settings: [
+      { key: "whispersAutoAnon", label: "Always post as anonymous", type: "toggle" },
+      { key: "whispersReplyNotif", label: "Notify me on replies", type: "toggle" },
+      { key: "whispersVisibility", label: "Who can reply", type: "select", options: ["Everyone", "Night Owls", "No one"] },
+    ],
+  },
+  {
+    id: "cafe",
+    label: "Midnight Cafe",
+    icon: Coffee,
+    color: "text-amber-400",
+    bg: "bg-amber-500/10",
+    description: "Casual chat discussions",
+    settings: [
+      { key: "cafeAutoJoin", label: "Auto-join open tables", type: "toggle" },
+      { key: "cafeShowInFeed", label: "Show cafe activity in feed", type: "toggle" },
+      { key: "cafeTopic", label: "Preferred topic", type: "select", options: ["Anything", "Tech", "Philosophy", "Art", "Music"] },
+    ],
+  },
+  {
+    id: "mindmaze",
+    label: "Mind Maze",
+    icon: Brain,
+    color: "text-fuchsia-400",
+    bg: "bg-fuchsia-500/10",
+    description: "Brain teasers & puzzles",
+    settings: [
+      { key: "mazeNotif", label: "Notify me of new puzzles", type: "toggle" },
+      { key: "mazeDifficulty", label: "Preferred difficulty", type: "select", options: ["Easy", "Medium", "Hard", "Any"] },
+      { key: "mazeShowSolved", label: "Show solved puzzles in profile", type: "toggle" },
+    ],
+  },
+  {
+    id: "founder",
+    label: "3AM Founder",
+    icon: Lightbulb,
+    color: "text-orange-400",
+    bg: "bg-orange-500/10",
+    description: "Entrepreneur midnight insights",
+    settings: [
+      { key: "founderAnon", label: "Post anonymously by default", type: "toggle" },
+      { key: "founderVisibility", label: "Post visibility", type: "select", options: ["Everyone", "Founders Only", "Private"] },
+      { key: "founderNotif", label: "Notify me of new insights", type: "toggle" },
+    ],
+  },
+  {
+    id: "speaker",
+    label: "Starlit Speaker",
+    icon: Headphones,
+    color: "text-violet-400",
+    bg: "bg-violet-500/10",
+    description: "Voice rooms under the stars",
+    settings: [
+      { key: "speakerAutoMic", label: "Join rooms with mic off by default", type: "toggle" },
+      { key: "speakerNotif", label: "Notify me when a room goes live", type: "toggle" },
+      { key: "speakerDiscoverable", label: "Show me in speaker listings", type: "toggle" },
+    ],
+  },
+  {
+    id: "circles",
+    label: "Night Circles",
+    icon: Users,
+    color: "text-pink-400",
+    bg: "bg-pink-500/10",
+    description: "Group conversation rooms",
+    settings: [
+      { key: "circlesAutoJoin", label: "Allow others to add me to circles", type: "toggle" },
+      { key: "circlesNotif", label: "Notify me of circle activity", type: "toggle" },
+      { key: "circlesDiscoverable", label: "Make my circles discoverable", type: "toggle" },
+    ],
+  },
+  {
+    id: "messenger",
+    label: "Moon Messenger",
+    icon: Star,
+    color: "text-blue-400",
+    bg: "bg-blue-500/10",
+    description: "Private & random paired chats",
+    settings: [
+      { key: "messengerPairing", label: "Opt into random pairing", type: "toggle" },
+      { key: "messengerRequests", label: "Who can message me", type: "select", options: ["Everyone", "Mutuals Only", "No one"] },
+      { key: "messengerReadReceipts", label: "Send read receipts", type: "toggle" },
+    ],
+  },
+];
+
+// ─── Tab nav item ──────────────────────────────────────────────────────────────
+function NavItem({ id, label, icon: Icon, active, onClick }: {
+  id: Tab; label: string; icon: React.ElementType; active: boolean; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-left
+        ${active ? "bg-indigo-500/20 text-indigo-300" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+    >
+      <Icon className="w-4 h-4 flex-shrink-0" />
+      {label}
+      {active && <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-50" />}
+    </button>
+  );
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
 export default function Settings() {
   const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    // Profile Settings
-    displayName: "Night Wanderer",
+  const { user, logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [activeService, setActiveService] = useState<string>("diaries");
+
+  const [settings, setSettings] = useState<Record<string, any>>({
+    // Profile
+    displayName: user?.displayName ?? "Night Wanderer",
+    nightPersona: "",
     bio: "A fellow insomniac exploring the depths of midnight thoughts",
     location: "Somewhere in the night",
-    
-    // Privacy Settings
+    // Privacy
     profileVisibility: "public",
     showOnlineStatus: true,
     allowDirectMessages: true,
     showActivity: false,
     anonymousPosting: true,
-    
-    // Notification Settings
+    // Notifications
     pushNotifications: true,
     emailNotifications: false,
     mentionNotifications: true,
     messageNotifications: true,
     circleUpdates: true,
-    whisperReplies: false,
-    
-    // Theme Settings
+    // Appearance
     darkMode: true,
     accentColor: "purple",
     fontSize: "medium",
     compactMode: false,
-    
-    // Content Settings
-    showExplicitContent: false,
-    autoPlayMedia: true,
-    showReadReceipts: true,
-    dataUsage: "standard",
+    // Service defaults
+    diariesPrivacy: "Private",
+    diariesAllowComments: true,
+    diariesShowInFeed: false,
+    whispersAutoAnon: true,
+    whispersReplyNotif: true,
+    whispersVisibility: "Everyone",
+    cafeAutoJoin: false,
+    cafeShowInFeed: true,
+    cafeTopic: "Anything",
+    mazeNotif: true,
+    mazeDifficulty: "Any",
+    mazeShowSolved: true,
+    founderAnon: true,
+    founderVisibility: "Everyone",
+    founderNotif: true,
+    speakerAutoMic: true,
+    speakerNotif: true,
+    speakerDiscoverable: true,
+    circlesAutoJoin: true,
+    circlesNotif: true,
+    circlesDiscoverable: false,
+    messengerPairing: true,
+    messengerRequests: "Everyone",
+    messengerReadReceipts: true,
   });
 
-  const handleSettingChange = (key: string, value: any) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
-    
-    toast({
-      title: "Settings Updated",
-      description: "Your preferences have been saved.",
-      duration: 2000,
-    });
+  const set = (key: string, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    toast({ title: "Saved", description: "Preference updated.", duration: 1500 });
   };
 
-  const exportData = () => {
-    toast({
-      title: "Data Export Started",
-      description: "Your data archive will be ready for download shortly.",
-    });
-  };
+  const card = "bg-white/[0.03] border border-white/[0.07] rounded-2xl";
+  const sectionTitle = "text-white font-semibold text-base flex items-center gap-2 mb-1";
+  const sectionDesc = "text-gray-500 text-sm mb-5";
+  const row = "flex items-center justify-between py-3 border-b border-white/[0.05] last:border-0";
+  const rowLabel = "text-gray-300 text-sm font-medium";
+  const rowSub = "text-gray-500 text-xs mt-0.5";
 
-  const deleteAccount = () => {
-    toast({
-      title: "Account Deletion",
-      description: "Please contact support to delete your account.",
-      variant: "destructive",
-    });
-  };
+  const currentService = SERVICES.find(s => s.id === activeService)!;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="min-h-screen bg-[#07070f] text-white">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-          <p className="text-gray-400">Customize your Nocturne experience</p>
+        <div className="mb-8 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+            <Settings2 className="w-5 h-5 text-indigo-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Settings</h1>
+            <p className="text-gray-500 text-sm">Customize your Nocturne experience</p>
+          </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Profile Settings */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile Settings
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Manage your public profile information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="displayName" className="text-gray-300">Display Name</Label>
-                  <Input
-                    id="displayName"
-                    value={settings.displayName}
-                    onChange={(e) => handleSettingChange('displayName', e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="location" className="text-gray-300">Location</Label>
-                  <Input
-                    id="location"
-                    value={settings.location}
-                    onChange={(e) => handleSettingChange('location', e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="bio" className="text-gray-300">Bio</Label>
-                <Textarea
-                  id="bio"
-                  value={settings.bio}
-                  onChange={(e) => handleSettingChange('bio', e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* ── Sidebar nav ── */}
+          <aside className="md:w-52 flex-shrink-0 space-y-1">
+            <NavItem id="profile" label="Profile" icon={User} active={activeTab === "profile"} onClick={() => setActiveTab("profile")} />
+            <NavItem id="privacy" label="Privacy" icon={Shield} active={activeTab === "privacy"} onClick={() => setActiveTab("privacy")} />
+            <NavItem id="notifications" label="Notifications" icon={Bell} active={activeTab === "notifications"} onClick={() => setActiveTab("notifications")} />
+            <NavItem id="appearance" label="Appearance" icon={Moon} active={activeTab === "appearance"} onClick={() => setActiveTab("appearance")} />
+            <NavItem id="services" label="Services" icon={Globe} active={activeTab === "services"} onClick={() => setActiveTab("services")} />
+            <div className="pt-2 border-t border-white/5 mt-2">
+              <NavItem id="account" label="Account" icon={AlertTriangle} active={activeTab === "account"} onClick={() => setActiveTab("account")} />
+            </div>
+          </aside>
 
-          {/* Privacy Settings */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Privacy & Security
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Control who can see your activity and content
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Profile Visibility</Label>
-                  <p className="text-sm text-gray-500">Who can see your profile</p>
-                </div>
-                <Select
-                  value={settings.profileVisibility}
-                  onValueChange={(value) => handleSettingChange('profileVisibility', value)}
-                >
-                  <SelectTrigger className="w-32 bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="friends">Friends</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* ── Content ── */}
+          <div className="flex-1 min-w-0">
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Show Online Status</Label>
-                  <p className="text-sm text-gray-500">Let others see when you're online</p>
+            {/* ════ PROFILE ════ */}
+            {activeTab === "profile" && (
+              <div className={`${card} p-6`}>
+                <p className={sectionTitle}><User className="w-4 h-4 text-indigo-400" /> Profile</p>
+                <p className={sectionDesc}>Manage your public identity</p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-400 text-xs mb-1.5 block">Display Name</Label>
+                      <Input value={settings.displayName} onChange={e => set("displayName", e.target.value)}
+                        className="bg-white/5 border-white/10 text-white" />
+                    </div>
+                    <div>
+                      <Label className="text-gray-400 text-xs mb-1.5 block">Night Persona <span className="text-indigo-400">(anonymous alias)</span></Label>
+                      <Input placeholder="e.g. SleeplessOwl_42" value={settings.nightPersona} onChange={e => set("nightPersona", e.target.value)}
+                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-gray-400 text-xs mb-1.5 block">Location</Label>
+                    <Input value={settings.location} onChange={e => set("location", e.target.value)}
+                      className="bg-white/5 border-white/10 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-gray-400 text-xs mb-1.5 block">Bio</Label>
+                    <Textarea value={settings.bio} onChange={e => set("bio", e.target.value)}
+                      className="bg-white/5 border-white/10 text-white" rows={3} />
+                  </div>
                 </div>
-                <Switch
-                  checked={settings.showOnlineStatus}
-                  onCheckedChange={(checked) => handleSettingChange('showOnlineStatus', checked)}
-                />
               </div>
+            )}
 
-              <div className="flex items-center justify-between">
+            {/* ════ PRIVACY ════ */}
+            {activeTab === "privacy" && (
+              <div className={`${card} p-6`}>
+                <p className={sectionTitle}><Shield className="w-4 h-4 text-indigo-400" /> Privacy & Security</p>
+                <p className={sectionDesc}>Control who sees your activity</p>
                 <div>
-                  <Label className="text-gray-300">Allow Direct Messages</Label>
-                  <p className="text-sm text-gray-500">Receive messages from other users</p>
+                  <div className={row}>
+                    <div><p className={rowLabel}>Profile Visibility</p><p className={rowSub}>Who can see your profile</p></div>
+                    <Select value={settings.profileVisibility} onValueChange={v => set("profileVisibility", v)}>
+                      <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#12121f] border-white/10 text-white">
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="friends">Friends</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {[
+                    { key: "showOnlineStatus", label: "Show Online Status", sub: "Let others see when you're active" },
+                    { key: "allowDirectMessages", label: "Allow Direct Messages", sub: "Receive messages from users" },
+                    { key: "anonymousPosting", label: "Anonymous Posting", sub: "Use your Night Persona by default" },
+                    { key: "showActivity", label: "Show Activity in Feeds", sub: "Surface your activity publicly" },
+                  ].map(({ key, label, sub }) => (
+                    <div key={key} className={row}>
+                      <div><p className={rowLabel}>{label}</p><p className={rowSub}>{sub}</p></div>
+                      <Switch checked={settings[key]} onCheckedChange={v => set(key, v)} />
+                    </div>
+                  ))}
                 </div>
-                <Switch
-                  checked={settings.allowDirectMessages}
-                  onCheckedChange={(checked) => handleSettingChange('allowDirectMessages', checked)}
-                />
               </div>
+            )}
 
-              <div className="flex items-center justify-between">
+            {/* ════ NOTIFICATIONS ════ */}
+            {activeTab === "notifications" && (
+              <div className={`${card} p-6`}>
+                <p className={sectionTitle}><Bell className="w-4 h-4 text-indigo-400" /> Notifications</p>
+                <p className={sectionDesc}>Choose what you hear about</p>
+                {[
+                  { key: "pushNotifications", label: "Push Notifications", sub: "Browser notifications" },
+                  { key: "emailNotifications", label: "Email Notifications", sub: "Email digest updates" },
+                  { key: "mentionNotifications", label: "Mentions", sub: "When someone mentions you" },
+                  { key: "messageNotifications", label: "Direct Messages", sub: "New message alerts" },
+                  { key: "circleUpdates", label: "Night Circle Updates", sub: "Activity in your circles" },
+                ].map(({ key, label, sub }) => (
+                  <div key={key} className={row}>
+                    <div><p className={rowLabel}>{label}</p><p className={rowSub}>{sub}</p></div>
+                    <Switch checked={settings[key]} onCheckedChange={v => set(key, v)} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ════ APPEARANCE ════ */}
+            {activeTab === "appearance" && (
+              <div className={`${card} p-6`}>
+                <p className={sectionTitle}><Moon className="w-4 h-4 text-indigo-400" /> Appearance</p>
+                <p className={sectionDesc}>Customize the look of Nocturne</p>
                 <div>
-                  <Label className="text-gray-300">Anonymous Posting</Label>
-                  <p className="text-sm text-gray-500">Allow posting without your name</p>
+                  {[
+                    { key: "darkMode", label: "Dark Mode", sub: "Optimized for late-night browsing" },
+                    { key: "compactMode", label: "Compact Mode", sub: "Reduce spacing for more content" },
+                  ].map(({ key, label, sub }) => (
+                    <div key={key} className={row}>
+                      <div><p className={rowLabel}>{label}</p><p className={rowSub}>{sub}</p></div>
+                      <Switch checked={settings[key]} onCheckedChange={v => set(key, v)} />
+                    </div>
+                  ))}
+                  {[
+                    { key: "accentColor", label: "Accent Color", options: ["purple", "blue", "green", "orange"] },
+                    { key: "fontSize", label: "Font Size", options: ["small", "medium", "large"] },
+                  ].map(({ key, label, options }) => (
+                    <div key={key} className={row}>
+                      <div><p className={rowLabel}>{label}</p></div>
+                      <Select value={settings[key]} onValueChange={v => set(key, v)}>
+                        <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white text-sm capitalize">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#12121f] border-white/10 text-white">
+                          {options.map(o => <SelectItem key={o} value={o} className="capitalize">{o}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
                 </div>
-                <Switch
-                  checked={settings.anonymousPosting}
-                  onCheckedChange={(checked) => handleSettingChange('anonymousPosting', checked)}
-                />
               </div>
+            )}
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Show Activity Status</Label>
-                  <p className="text-sm text-gray-500">Display your activity in feeds</p>
+            {/* ════ SERVICES ════ */}
+            {activeTab === "services" && (
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Service picker */}
+                <div className={`${card} p-3 sm:w-44 flex-shrink-0 space-y-1`}>
+                  {SERVICES.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => setActiveService(s.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all text-left
+                        ${activeService === s.id ? "bg-indigo-500/20 text-indigo-300" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                    >
+                      <div className={`${s.bg} rounded-lg p-1.5`}>
+                        <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
+                      </div>
+                      <span className="truncate">{s.label}</span>
+                    </button>
+                  ))}
                 </div>
-                <Switch
-                  checked={settings.showActivity}
-                  onCheckedChange={(checked) => handleSettingChange('showActivity', checked)}
-                />
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Notification Settings */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notifications
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Choose what notifications you want to receive
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Push Notifications</Label>
-                  <p className="text-sm text-gray-500">Receive browser notifications</p>
+                {/* Service settings panel */}
+                <div className={`${card} p-6 flex-1`}>
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className={`${currentService.bg} rounded-xl p-2`}>
+                      <currentService.icon className={`w-5 h-5 ${currentService.color}`} />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold">{currentService.label}</p>
+                      <p className="text-gray-500 text-xs">{currentService.description}</p>
+                    </div>
+                  </div>
+                  <Separator className="my-4 bg-white/5" />
+                  <div>
+                    {currentService.settings.map(setting => (
+                      <div key={setting.key} className={row}>
+                        <p className={rowLabel}>{setting.label}</p>
+                        {setting.type === "toggle" ? (
+                          <Switch checked={!!settings[setting.key]} onCheckedChange={v => set(setting.key, v)} />
+                        ) : (
+                          <Select value={settings[setting.key]} onValueChange={v => set(setting.key, v)}>
+                            <SelectTrigger className="w-36 bg-white/5 border-white/10 text-white text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#12121f] border-white/10 text-white">
+                              {setting.options!.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <Switch
-                  checked={settings.pushNotifications}
-                  onCheckedChange={(checked) => handleSettingChange('pushNotifications', checked)}
-                />
               </div>
+            )}
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Email Notifications</Label>
-                  <p className="text-sm text-gray-500">Receive email updates</p>
+            {/* ════ ACCOUNT ════ */}
+            {activeTab === "account" && (
+              <div className={`${card} p-6 space-y-4`}>
+                <p className={sectionTitle}><AlertTriangle className="w-4 h-4 text-yellow-400" /> Account Management</p>
+                <p className={sectionDesc}>Manage your account and session</p>
+
+                {/* Sign out */}
+                <div className="flex items-center justify-between p-4 bg-white/[0.03] rounded-xl border border-white/[0.06]">
+                  <div>
+                    <p className={rowLabel}>Sign Out</p>
+                    <p className={rowSub}>End your current session</p>
+                  </div>
+                  <Button
+                    onClick={() => logoutMutation.mutate()}
+                    variant="ghost"
+                    className="border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" /> Sign Out
+                  </Button>
                 </div>
-                <Switch
-                  checked={settings.emailNotifications}
-                  onCheckedChange={(checked) => handleSettingChange('emailNotifications', checked)}
-                />
-              </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Mentions</Label>
-                  <p className="text-sm text-gray-500">When someone mentions you</p>
+                {/* Export data */}
+                <div className="flex items-center justify-between p-4 bg-white/[0.03] rounded-xl border border-white/[0.06]">
+                  <div>
+                    <p className={rowLabel}>Export Data</p>
+                    <p className={rowSub}>Download all your posts, messages & activity</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="border-white/10 text-white hover:bg-white/10"
+                    onClick={() => toast({ title: "Export Started", description: "Your archive will be ready shortly." })}
+                  >
+                    <Download className="w-4 h-4 mr-2" /> Export
+                  </Button>
                 </div>
-                <Switch
-                  checked={settings.mentionNotifications}
-                  onCheckedChange={(checked) => handleSettingChange('mentionNotifications', checked)}
-                />
-              </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Direct Messages</Label>
-                  <p className="text-sm text-gray-500">New message notifications</p>
+                {/* Delete account */}
+                <div className="flex items-center justify-between p-4 bg-red-900/10 rounded-xl border border-red-800/30">
+                  <div>
+                    <p className="text-red-300 text-sm font-medium">Delete Account</p>
+                    <p className={rowSub}>Permanently remove your account and all data</p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    className="bg-red-700/80 hover:bg-red-700"
+                    onClick={() => toast({ title: "Contact Support", description: "Email us to request account deletion.", variant: "destructive" })}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete
+                  </Button>
                 </div>
-                <Switch
-                  checked={settings.messageNotifications}
-                  onCheckedChange={(checked) => handleSettingChange('messageNotifications', checked)}
-                />
               </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Circle Updates</Label>
-                  <p className="text-sm text-gray-500">Activity in your circles</p>
-                </div>
-                <Switch
-                  checked={settings.circleUpdates}
-                  onCheckedChange={(checked) => handleSettingChange('circleUpdates', checked)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Theme Settings */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Moon className="h-5 w-5" />
-                Appearance
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Customize the look and feel of Nocturne
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Dark Mode</Label>
-                  <p className="text-sm text-gray-500">Perfect for late-night browsing</p>
-                </div>
-                <Switch
-                  checked={settings.darkMode}
-                  onCheckedChange={(checked) => handleSettingChange('darkMode', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Accent Color</Label>
-                  <p className="text-sm text-gray-500">Choose your theme color</p>
-                </div>
-                <Select
-                  value={settings.accentColor}
-                  onValueChange={(value) => handleSettingChange('accentColor', value)}
-                >
-                  <SelectTrigger className="w-32 bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    <SelectItem value="purple">Purple</SelectItem>
-                    <SelectItem value="blue">Blue</SelectItem>
-                    <SelectItem value="green">Green</SelectItem>
-                    <SelectItem value="orange">Orange</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Font Size</Label>
-                  <p className="text-sm text-gray-500">Adjust text size</p>
-                </div>
-                <Select
-                  value={settings.fontSize}
-                  onValueChange={(value) => handleSettingChange('fontSize', value)}
-                >
-                  <SelectTrigger className="w-32 bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    <SelectItem value="small">Small</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="large">Large</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Compact Mode</Label>
-                  <p className="text-sm text-gray-500">Reduce spacing for more content</p>
-                </div>
-                <Switch
-                  checked={settings.compactMode}
-                  onCheckedChange={(checked) => handleSettingChange('compactMode', checked)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Content Settings */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                Content & Media
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Control how content is displayed and loaded
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Show Explicit Content</Label>
-                  <p className="text-sm text-gray-500">Display mature content warnings</p>
-                </div>
-                <Switch
-                  checked={settings.showExplicitContent}
-                  onCheckedChange={(checked) => handleSettingChange('showExplicitContent', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Auto-play Media</Label>
-                  <p className="text-sm text-gray-500">Automatically play videos and audio</p>
-                </div>
-                <Switch
-                  checked={settings.autoPlayMedia}
-                  onCheckedChange={(checked) => handleSettingChange('autoPlayMedia', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Show Read Receipts</Label>
-                  <p className="text-sm text-gray-500">Let others know when you've read messages</p>
-                </div>
-                <Switch
-                  checked={settings.showReadReceipts}
-                  onCheckedChange={(checked) => handleSettingChange('showReadReceipts', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Data Usage</Label>
-                  <p className="text-sm text-gray-500">Control data consumption</p>
-                </div>
-                <Select
-                  value={settings.dataUsage}
-                  onValueChange={(value) => handleSettingChange('dataUsage', value)}
-                >
-                  <SelectTrigger className="w-32 bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Account Management */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Account Management
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Export your data or delete your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
-                <div>
-                  <Label className="text-gray-300">Export Data</Label>
-                  <p className="text-sm text-gray-500">Download all your posts, messages, and activity</p>
-                </div>
-                <Button 
-                  onClick={exportData}
-                  variant="outline" 
-                  className="border-slate-600 text-white hover:bg-slate-700"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-red-900/20 border border-red-800/50 rounded-lg">
-                <div>
-                  <Label className="text-red-300">Delete Account</Label>
-                  <p className="text-sm text-red-400">Permanently remove your account and all data</p>
-                </div>
-                <Button 
-                  onClick={deleteAccount}
-                  variant="destructive" 
-                  className="bg-red-700 hover:bg-red-800"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Save Button */}
-        <div className="mt-8 flex justify-center">
-          <Button 
-            onClick={() => toast({ title: "Settings Saved", description: "All your preferences have been saved." })}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-8"
-          >
-            Save All Changes
-          </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

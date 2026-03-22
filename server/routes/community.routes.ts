@@ -1,5 +1,5 @@
 import express from "express";
-import { communityService } from "../services/communityService";
+import { communityService } from "../services/socialService";
 import { insertAmFounderSchema, insertStarlitSpeakerSchema, insertMoonMessengerSchema } from "@shared/schema";
 import { logger } from "../utils/logger";
 

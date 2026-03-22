@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { User } from "@shared/schema";
 
@@ -11,25 +11,25 @@ interface AuthButtonProps {
 
 export function AuthButton({ user, onLogin, onLogout }: AuthButtonProps) {
   return user ? (
-    <div className="flex items-center space-x-4">
+    <div className="flex items-center gap-3">
       <Link href="/profile">
-        <div className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity">
+        <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
           <img
             src={user.profileImageUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=40&h=40"}
             alt="User avatar"
-            className="w-10 h-10 rounded-full border-2 border-indigo-400"
+            className="w-9 h-9 rounded-full border-2 border-indigo-400"
           />
-          <span className="font-medium">{user.displayName || user.username}</span>
+          <span className="font-medium text-sm hidden sm:block">{user.displayName || user.username}</span>
         </div>
       </Link>
-      <Button
-        onClick={onLogout}
-        variant="ghost"
-        className="glassmorphism px-4 py-2 rounded-lg hover:bg-red-500/20 transition-colors"
-      >
-        <LogOut className="w-4 h-4 mr-2" />
-        Sign Out
-      </Button>
+      <Link href="/settings">
+        <button
+          className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+          title="Settings"
+        >
+          <Settings className="w-4 h-4 text-gray-400" />
+        </button>
+      </Link>
     </div>
   ) : (
     <Button

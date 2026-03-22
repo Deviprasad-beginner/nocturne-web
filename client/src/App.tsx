@@ -1,11 +1,11 @@
 import { Switch, Route, Link } from "wouter";
-import { Loader2 } from "lucide-react";
 import { Suspense, lazy } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { SEO } from "@/components/SEO";
 import { MusicProvider } from "@/context/MusicContext";
 import { MusicPlayer } from "@/components/music/MusicPlayer";
 import { Background } from "@/components/layout/Background";
+import { SectionLoader } from "@/components/ui/loaders";
 
 // Lazy Load Pages
 const Home = lazy(() => import("@/pages/home"));
@@ -70,14 +70,14 @@ function Router() {
   // Show First Night onboarding for authenticated users who haven't seen it
   if (isAuthenticated && user && !user.hasSeenOnboarding) {
     return (
-      <Suspense fallback={<LoadingScreen />}>
+      <Suspense fallback={<SectionLoader />}>
         <FirstNight />
       </Suspense>
     );
   }
 
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <Suspense fallback={<SectionLoader />}>
       <Switch>
         {/* Auth Routes */}
         <Route path="/auth" component={AuthPage} />
@@ -122,14 +122,129 @@ function Router() {
   );
 }
 
-function LoadingScreen() {
+// ─── Loading Screen (Dark Glowing Circle Design) ─────────────────────
+function LoadingScreen({ message = "Loading..." }: { message?: string }) {
   return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center flex-col text-white">
-      <div className="mb-4">
-        <Loader2 className="h-12 w-12 animate-spin text-indigo-500" />
-      </div>
-      <div className="text-lg font-light tracking-wide text-indigo-200/80 animate-pulse">
-        Loading...
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#030712",
+        backgroundImage: "radial-gradient(circle at center, rgba(30, 27, 75, 0.4) 0%, #030712 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        overflow: "hidden",
+        fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+      }}
+    >
+      <style>{`
+        @keyframes spinSlow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes spinSlowReverse {
+          0% { transform: rotate(360deg); }
+          100% { transform: rotate(0deg); }
+        }
+        @keyframes breathe {
+          0%, 100% { transform: scale(0.95); opacity: 0.8; }
+          50% { transform: scale(1.05); opacity: 1; }
+        }
+        @keyframes textGlow {
+          0%, 100% { text-shadow: 0 0 10px rgba(167, 139, 250, 0.2); opacity: 0.8; }
+          50% { text-shadow: 0 0 20px rgba(196, 181, 253, 0.6); opacity: 1; }
+        }
+      `}</style>
+
+      {/* Main glowing ring container */}
+      <div style={{
+        position: "relative",
+        width: 300,
+        height: 300,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        
+        {/* Outer diffused ring */}
+        <div style={{
+          position: "absolute",
+          inset: -10,
+          borderRadius: "50%",
+          border: "1px solid rgba(139, 92, 246, 0.15)",
+          animation: "breathe 4s ease-in-out infinite",
+        }} />
+
+        {/* First Gradient Ring (Purple/Violet) */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "50%",
+          background: "conic-gradient(from 0deg, transparent 0%, rgba(139, 92, 246, 0.05) 30%, rgba(167, 139, 250, 0.9) 50%, rgba(139, 92, 246, 0.05) 70%, transparent 100%)",
+          animation: "spinSlow 4s linear infinite",
+          filter: "blur(3px)",
+        }} />
+
+        {/* Second Reverse Gradient Ring (Indigo/Cyan) */}
+        <div style={{
+          position: "absolute",
+          inset: 16,
+          borderRadius: "50%",
+          background: "conic-gradient(from 180deg, transparent 0%, rgba(56, 189, 248, 0.05) 30%, rgba(99, 102, 241, 0.7) 50%, rgba(56, 189, 248, 0.05) 70%, transparent 100%)",
+          animation: "spinSlowReverse 5.5s linear infinite",
+          filter: "blur(2px)",
+        }} />
+        
+        {/* Core hollow masking - makes the center dark */}
+        <div style={{
+          position: "absolute",
+          inset: 4,
+          borderRadius: "50%",
+          backgroundColor: "#030712",
+          boxShadow: "inset 0 0 40px rgba(99, 102, 241, 0.15)",
+        }} />
+
+        {/* The Text Content Inside */}
+        <div style={{
+          position: "relative",
+          zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 12,
+        }}>
+          <div style={{
+            fontSize: 15,
+            fontWeight: 400,
+            letterSpacing: "0.2em",
+            color: "#e2e8f0",
+            textTransform: "uppercase",
+            animation: "textGlow 3s ease-in-out infinite",
+            textAlign: "center",
+            padding: "0 20px"
+          }}>
+            {message}
+          </div>
+          
+          {/* Tiny glowing dots below text */}
+          <div style={{ display: "flex", gap: 6 }}>
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  backgroundColor: "#c4b5fd",
+                  boxShadow: "0 0 10px #c4b5fd",
+                  animation: `breathe 1.5s ease-in-out ${i * 0.2}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -141,16 +256,7 @@ function App() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center flex-col text-white">
-        <div className="mb-4">
-          <Loader2 className="h-12 w-12 animate-spin text-indigo-500" />
-        </div>
-        <div className="text-lg font-light tracking-wide text-indigo-200/80 animate-pulse">
-          Entering the sanctuary...
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Entering the night" />
   }
 
   // Allow access without authentication (guest mode)

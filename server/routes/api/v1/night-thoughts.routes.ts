@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { nightThoughtsService } from '../../../services/night-thoughts.service';
-import { insertNightThoughtSchema } from '@shared/schema';
+import { insertNightThoughtSchema, insertNightThoughtReplySchema } from '@shared/schema';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
 import { logger } from '../../../utils/logger';
@@ -164,18 +164,65 @@ router.post('/:id/heart', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/v1/thoughts/:id/reply
- * Increment reply count (actual reply system would be separate)
+ * GET /api/v1/thoughts/:id/replies
+ * Fetch all replies for a thought
  */
-router.post('/:id/reply', async (req: Request, res: Response) => {
+router.get('/:id/replies', async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id);
-        const thought = await nightThoughtsService.incrementReplies(id);
+        const thought = await nightThoughtsService.getById(id);
 
-        res.json(thought);
+        if (!thought) {
+            return res.status(404).json({ error: 'Thought not found' });
+        }
+
+        if (thought.isPrivate && (!req.user || thought.authorId !== req.user.id)) {
+            return res.status(403).json({ error: 'This thought is private' });
+        }
+
+        const replies = await nightThoughtsService.getReplies(id);
+        res.json(replies);
     } catch (error: any) {
-        logger.error('Error incrementing replies:', error);
-        res.status(500).json({ error: 'Failed to increment replies' });
+        logger.error('Error fetching replies:', error);
+        res.status(500).json({ error: 'Failed to fetch replies' });
+    }
+});
+
+/**
+ * POST /api/v1/thoughts/:id/replies
+ * Post a new reply to a thought
+ */
+router.post('/:id/replies', async (req: Request, res: Response) => {
+    try {
+        const id = parseInt(req.params.id);
+        const thought = await nightThoughtsService.getById(id);
+
+        if (!thought) {
+            return res.status(404).json({ error: 'Thought not found' });
+        }
+
+        if (!thought.allowReplies) {
+            return res.status(403).json({ error: 'Replies are disabled for this thought' });
+        }
+
+        if (thought.isPrivate && (!req.user || thought.authorId !== req.user.id)) {
+            return res.status(403).json({ error: 'This thought is private' });
+        }
+
+        const validated = insertNightThoughtReplySchema.parse({
+            thoughtId: id,
+            content: req.body.content,
+            authorId: req.user?.id ?? null,
+        });
+
+        const reply = await nightThoughtsService.addReply(validated);
+        res.status(201).json(reply);
+    } catch (error: any) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ error: 'Validation error', details: error.errors });
+        }
+        logger.error('Error posting reply:', error);
+        res.status(500).json({ error: 'Failed to post reply' });
     }
 });
 

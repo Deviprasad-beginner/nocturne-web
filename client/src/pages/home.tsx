@@ -338,28 +338,6 @@ export default function Home() {
                 </div>
               </CategoryCard>
 
-              {/* Moon Messenger */}
-              <CategoryCard
-                title="Moon Messenger"
-                description="Random text pairing for anonymous conversations with strangers in the night."
-                icon={MessageCircle}
-                iconColor="bg-gradient-to-br from-blue-500 to-cyan-500"
-                count="156"
-                countLabel="active chats"
-                countColor="bg-blue-500/20 text-blue-300"
-                onClick={() => setLocation('/moon-messenger')}
-              >
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Paired today</span>
-                    <span className="text-blue-300">89</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Messages sent</span>
-                    <span className="text-blue-300">234</span>
-                  </div>
-                </div>
-              </CategoryCard>
             </div>
           </div>
 

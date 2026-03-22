@@ -1,5 +1,12 @@
 import { db } from '../db';
-import { nightThoughts, type InsertNightThought, type NightThought } from '@shared/schema';
+import {
+    nightThoughts,
+    nightThoughtReplies,
+    type InsertNightThought,
+    type NightThought,
+    type NightThoughtReply,
+    type InsertNightThoughtReply,
+} from '@shared/schema';
 import { eq, desc, and, or, sql } from 'drizzle-orm';
 
 export class NightThoughtsService {
@@ -118,12 +125,9 @@ export class NightThoughtsService {
     }
 
     async addHeart(id: number): Promise<NightThought> {
-        const thought = await this.getById(id);
-        if (!thought) throw new Error('Thought not found');
-
         const [updated] = await db
             .update(nightThoughts)
-            .set({ hearts: (thought.hearts || 0) + 1 })
+            .set({ hearts: sql`${nightThoughts.hearts} + 1` })
             .where(eq(nightThoughts.id, id))
             .returning();
 
@@ -131,16 +135,42 @@ export class NightThoughtsService {
     }
 
     async incrementReplies(id: number): Promise<NightThought> {
-        const thought = await this.getById(id);
-        if (!thought) throw new Error('Thought not found');
-
         const [updated] = await db
             .update(nightThoughts)
-            .set({ replies: (thought.replies || 0) + 1 })
+            .set({ replies: sql`${nightThoughts.replies} + 1` })
             .where(eq(nightThoughts.id, id))
             .returning();
 
         return updated;
+    }
+
+    /**
+     * Get all replies for a thought, oldest first
+     */
+    async getReplies(thoughtId: number): Promise<NightThoughtReply[]> {
+        return db
+            .select()
+            .from(nightThoughtReplies)
+            .where(eq(nightThoughtReplies.thoughtId, thoughtId))
+            .orderBy(nightThoughtReplies.createdAt);
+    }
+
+    /**
+     * Create a reply and atomically increment the replies counter
+     */
+    async addReply(data: InsertNightThoughtReply): Promise<NightThoughtReply> {
+        const [reply] = await db
+            .insert(nightThoughtReplies)
+            .values(data)
+            .returning();
+
+        // Increment the counter on the parent thought
+        await db
+            .update(nightThoughts)
+            .set({ replies: sql`${nightThoughts.replies} + 1` })
+            .where(eq(nightThoughts.id, data.thoughtId));
+
+        return reply;
     }
 
     async cleanupExpired(): Promise<number> {

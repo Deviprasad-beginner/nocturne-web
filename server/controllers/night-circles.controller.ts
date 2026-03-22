@@ -1,5 +1,7 @@
 /**
- * Night Circles Controller - Route Handlers
+ * Night Circles Controller - Route Handlers (v2)
+ * Routes are now handled directly in night-circles.routes.ts
+ * This controller is kept for backwards compatibility but delegates to the service.
  */
 
 import { Request, Response } from "express";
@@ -13,8 +15,7 @@ export class NightCirclesController {
      * Get all night circles
      */
     getAll = asyncHandler(async (req: Request, res: Response) => {
-        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-        const circles = await nightCirclesService.getAllCircles(limit);
+        const circles = await nightCirclesService.getAllCircles();
         res.json(successResponse(circles));
     });
 
@@ -35,17 +36,6 @@ export class NightCirclesController {
     create = asyncHandler(async (req: Request, res: Response) => {
         const circle = await nightCirclesService.createCircle(req.body);
         res.status(201).json(successResponse(circle));
-    });
-
-    /**
-     * PATCH /api/v1/circles/:id/members
-     * Update member count for a circle
-     */
-    updateMembers = asyncHandler(async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
-        const { members } = req.body;
-        await nightCirclesService.updateMembers(id, members);
-        res.json(successResponse({ message: "Members updated successfully" }));
     });
 }
 

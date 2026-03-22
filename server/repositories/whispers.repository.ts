@@ -60,7 +60,7 @@ export class WhispersRepository {
     async incrementHearts(id: number): Promise<void> {
         await db
             .update(whispers)
-            .set({ hearts: (whispers.hearts as any) + 1 })
+            .set({ hearts: sql`${whispers.hearts} + 1` })
             .where(eq(whispers.id, id));
     }
 
