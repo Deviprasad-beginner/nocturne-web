@@ -1,7 +1,11 @@
 <p align="center">
-  <img src="logo.png" width="50%" style="max-width:700px;" />
+  <img src="banner.png" width="100%" />
 </p>
-# 🌙 Nocturne
+
+<h1 align="center">Nocturne</h1>
+
+<p align="center">
+  # 🌙 Nocturne
 
 **Nocturne** is an anonymous, night-focused social platform designed for deep thoughts, emotional expression, and real-time interaction after dark. It creates a safe digital space where users can connect without identity pressure.
 
@@ -146,3 +150,13 @@ Builder of Nocturne
 
 ---
 
+
+</p>
+
+<p align="center">
+  <a href="https://nocturnesocial.in/">🌐 Live Demo</a> •
+  <a href="#features">✨ Features</a> •
+  <a href="#installation">⚙️ Setup</a>
+</p>
+
+---
