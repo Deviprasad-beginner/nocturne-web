@@ -38,8 +38,13 @@ export function useAuth() {
           syncInProgress.current = true;
           setIsSyncing(true);
 
+          // Get the Firebase ID token — required by the backend in production
+          // to securely verify the user server-side.
+          const idToken = await currentUser.getIdToken(/* forceRefresh= */ false);
+
           // Sync with backend
           await apiRequest("POST", "/api/auth/firebase", {
+            idToken,
             uid: currentUser.uid,
             email: currentUser.email,
             displayName: currentUser.displayName,
@@ -49,24 +54,37 @@ export function useAuth() {
           // Update local user state from backend
           await refetch();
         } catch (error: any) {
-          // Check for 401 Unauthorized (Session invalid)
+          // 401 means the token was rejected (expired token, revoked account, etc.).
+          // Try a force-refresh of the ID token once before giving up.
           if (error.status === 401) {
-            console.warn("Backend session invalid, logging out of Firebase");
-            await signOut(auth);
-            toast({
-              title: "Session Expired",
-              description: "Please sign in again.",
-              variant: "default"
-            });
-            return;
+            try {
+              const freshToken = await currentUser.getIdToken(/* forceRefresh= */ true);
+              await apiRequest("POST", "/api/auth/firebase", {
+                idToken: freshToken,
+                uid: currentUser.uid,
+                email: currentUser.email,
+                displayName: currentUser.displayName,
+                photoURL: currentUser.photoURL
+              });
+              await refetch();
+              return; // Retry succeeded — no toast needed
+            } catch {
+              // Token genuinely invalid — sign out silently (no alarming toast)
+              console.warn("Firebase token invalid after refresh — signing out");
+              await signOut(auth);
+              return;
+            }
           }
 
           console.error("Failed to sync firebase user with backend", error);
-          toast({
-            title: "Sync Error",
-            description: "Failed to sync authentication. Please refresh the page.",
-            variant: "destructive"
-          });
+          // Only show a toast for unexpected non-auth errors
+          if (error.status !== 401) {
+            toast({
+              title: "Sync Error",
+              description: "Failed to sync authentication. Please refresh the page.",
+              variant: "destructive"
+            });
+          }
         } finally {
           syncInProgress.current = false;
           setIsSyncing(false);
