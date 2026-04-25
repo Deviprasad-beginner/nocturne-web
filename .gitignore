@@ -1,0 +1,72 @@
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+
+# ─── Environment / Secrets (NEVER commit these) ───────────────────────────────
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+*.env
+.env.backup
+.env.bak
+.env.copy
+
+# Firebase service account key
+firebase-service-account.json
+*-service-account.json
+service-account*.json
+
+# ─── Build outputs ────────────────────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+.vite/
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ─── IDE ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── Cache / Temp ─────────────────────────────────────────────────────────────
+.cache/
+.temp/
+tmp/
+temp/
+
+# ─── Database ─────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+sessions/
+
+# ─── Firebase ─────────────────────────────────────────────────────────────────
+.firebase/
+
+# ─── Replit ───────────────────────────────────────────────────────────────────
+.replit
+replit.md
+replit_zip_error_log.txt
