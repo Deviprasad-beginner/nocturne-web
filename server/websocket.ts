@@ -113,7 +113,12 @@ export class WebSocketManager {
 
       ws.on('message', (data) => {
         // Enforce message size limit (DoS prevention)
-        const byteLength = Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data as string);
+        // RawData is Buffer | ArrayBuffer | Buffer[] — handle each variant explicitly
+        const byteLength = Array.isArray(data)
+          ? data.reduce((sum, chunk) => sum + chunk.length, 0) // chunked Buffer[]
+          : Buffer.isBuffer(data)
+            ? data.length                                       // single Buffer
+            : data.byteLength;                                  // ArrayBuffer
         if (byteLength > MAX_MESSAGE_BYTES) {
           logger.warn(`WebSocket message too large (${byteLength} bytes), dropping`);
           return;
@@ -291,25 +296,28 @@ export class WebSocketManager {
 
     room.participants.delete(ws);
 
-    // Notify remaining participants
-    if (room.participants.size > 0) {
-      this.broadcastToRoom(connection.roomId, {
-        type: 'user_left',
-        memberCount: room.participants.size
-      });
-    } else {
-      // Remove empty room
-      this.rooms.delete(connection.roomId);
-    }
-
-    // For random chats, notify partner about disconnection
-    if (room.type === 'random' && room.participants.size === 1) {
-      const remainingParticipant = Array.from(room.participants)[0];
-      this.sendToSocket(remainingParticipant, {
-        type: 'partner_disconnected'
-      });
+    if (room.type === 'random') {
+      // For random chats, notify the remaining partner about disconnection
+      if (room.participants.size === 1) {
+        const remainingParticipant = Array.from(room.participants)[0];
+        this.sendToSocket(remainingParticipant, {
+          type: 'partner_disconnected'
+        });
+      }
+      // Clean up the random room regardless of remaining count
       room.participants.clear();
       this.rooms.delete(connection.roomId);
+    } else {
+      // Notify remaining participants in non-random rooms
+      if (room.participants.size > 0) {
+        this.broadcastToRoom(connection.roomId, {
+          type: 'user_left',
+          memberCount: room.participants.size
+        });
+      } else {
+        // Remove empty room
+        this.rooms.delete(connection.roomId);
+      }
     }
 
     this.connections.delete(ws);
@@ -403,7 +411,7 @@ export class WebSocketManager {
       content,
       emotion,
       timestamp: new Date().toISOString(),
-    } as any, ws);
+    } as any, ws); // exclude sender — ws is passed as excludeWs
   }
 
   // Broadcast lifecycle change to all in a circle

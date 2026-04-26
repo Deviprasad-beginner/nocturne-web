@@ -106,54 +106,55 @@ export function setupAuth(app: Express) {
             let verifiedUid = uid;
             let verifiedEmail = email ? email.toLowerCase() : null; // Enforce lowercase email
 
+            // ── Phase 1: Initialize Firebase Admin (once) ──────────────────────────
+            // Separated from token verification so that a missing / bad credential
+            // env-var does NOT produce a 401 — it just falls back to trusting the
+            // client-side UID with a warning, matching dev-mode behaviour.
+            let adminInitialised = false;
             try {
-                // Phase 1: Try to initialize Firebase Admin if not already done
                 const admin = await import("firebase-admin").then(m => m.default).catch(() => null);
 
                 if (admin) {
                     if (!admin.apps.length) {
-                        try {
-                            // First, check for service account as a JSON string in environment variable
-                            // This is the preferred way for hosting platforms like Render/Vercel
-                            if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-                                const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-                                admin.initializeApp({
-                                    credential: admin.credential.cert(serviceAccount)
-                                });
-                                logger.info("Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT env var");
-                            }
-                            // Fallback to the local file path if specified
-                            else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-                                admin.initializeApp({
-                                    credential: admin.credential.applicationDefault()
-                                });
-                                logger.info("Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS file path");
-                            }
-                            // Last resort: simple initialization (may fail if credentials aren't found in env)
-                            else {
-                                admin.initializeApp();
-                                logger.info("Firebase Admin initialized with default credentials");
-                            }
-                        } catch (initErr: any) {
-                            logger.warn("Firebase Admin initialization failed, proceeding with limited functionality:", initErr.message);
+                        if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+                            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+                            admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+                            logger.info("Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT env var");
+                        } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+                            admin.initializeApp({ credential: admin.credential.applicationDefault() });
+                            logger.info("Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS file path");
+                        } else {
+                            logger.warn("No Firebase Admin credentials found (FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS). Token verification skipped — trusting client UID.");
                         }
                     }
+                    adminInitialised = admin.apps.length > 0;
 
-                    // Phase 2: Verify ID Token if provided
-                    if (idToken && admin.apps.length) {
-                        const decodedToken = await admin.auth().verifyIdToken(idToken);
-                        verifiedUid = decodedToken.uid;
-                        verifiedEmail = decodedToken.email ? decodedToken.email.toLowerCase() : verifiedEmail;
-                        logger.info("Firebase ID token verified server-side");
-                    } else if (!idToken) {
-                        logger.warn("No idToken provided in request — trusting client-side Firebase UID (Insecure).");
+                    // ── Phase 2: Verify ID Token ────────────────────────────────────
+                    // Only reached when Admin is properly initialised AND an idToken
+                    // was sent. Any rejection here means the token is genuinely bad.
+                    if (idToken && adminInitialised) {
+                        try {
+                            const decodedToken = await admin.auth().verifyIdToken(idToken);
+                            verifiedUid = decodedToken.uid;
+                            verifiedEmail = decodedToken.email ? decodedToken.email.toLowerCase() : verifiedEmail;
+                            logger.info("Firebase ID token verified server-side");
+                        } catch (verifyError: any) {
+                            logger.error("Firebase token verification failed", verifyError.message);
+                            return res.status(401).json({ error: "Invalid Firebase token" });
+                        }
+                    } else if (idToken && !adminInitialised) {
+                        // Admin not available — cannot verify, fall back to trusting client UID
+                        logger.warn("Firebase Admin not initialised — skipping token verification, trusting client UID. Set FIREBASE_SERVICE_ACCOUNT for production security.");
+                    } else {
+                        logger.warn("No idToken provided — trusting client-side Firebase UID (insecure).");
                     }
                 } else {
-                    logger.warn("firebase-admin not installed — trusting client-side Firebase UID. Install firebase-admin for production security.");
+                    logger.warn("firebase-admin package not available — trusting client-side Firebase UID.");
                 }
-            } catch (verifyError: any) {
-                logger.error("Firebase token verification failed", verifyError);
-                return res.status(401).json({ error: "Invalid Firebase token" });
+            } catch (initError: any) {
+                // Admin init failed (e.g. malformed JSON in FIREBASE_SERVICE_ACCOUNT).
+                // Log it and fall back — do NOT return 401 here.
+                logger.error("Firebase Admin initialization error:", initError.message);
             }
 
             // Strategy: 
