@@ -112,15 +112,30 @@ export const getQueryFn: <T>(options: {
       }
     };
 
-// Enhanced retry logic
+// Enhanced retry logic — cold-start aware
 const retryFn = (failureCount: number, error: unknown) => {
-  // Don't retry on 4xx errors (client errors)
-  if (error instanceof APIError && error.status >= 400 && error.status < 500) {
+  // Never retry client errors (except 408 request timeout)
+  if (error instanceof APIError && error.status >= 400 && error.status < 500 && error.status !== 408) {
     return false;
   }
 
-  // Retry up to 3 times for 5xx errors and network errors
-  return failureCount < 3;
+  // 503 = server is waking up from Render cold start — retry up to 5 times
+  if (error instanceof APIError && error.status === 503) {
+    return failureCount < 5;
+  }
+
+  // Retry up to 4 times for other 5xx errors and network errors
+  return failureCount < 4;
+};
+
+// Retry delay: longer waits for 503 (cold start) than normal errors
+const retryDelayFn = (attemptIndex: number, error: unknown) => {
+  // 503 cold start: wait longer — 2s, 4s, 8s, 15s, 20s
+  if (error instanceof APIError && error.status === 503) {
+    return Math.min(2000 * 2 ** attemptIndex, 20000);
+  }
+  // Normal backoff: 1s, 2s, 4s, 8s
+  return Math.min(1000 * 2 ** attemptIndex, 8000);
 };
 
 export const queryClient = new QueryClient({
@@ -144,13 +159,13 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "returnNull" }),
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      staleTime: 1000 * 60 * 5, // Cache feeds and data lists for 5 minutes instead of refetching on load
+      staleTime: 1000 * 60 * 5,
       retry: retryFn,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      retryDelay: retryDelayFn,
     },
     mutations: {
       retry: retryFn,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      retryDelay: retryDelayFn,
     },
   },
 });
