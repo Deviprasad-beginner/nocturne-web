@@ -30,6 +30,40 @@ export class UserService {
         logger.debug(`Fetching favorite stations for user: ${userId}`);
         return await storage.getSavedStations(userId);
     }
+
+    /**
+     * Update user settings
+     */
+    async updateUserSettings(userId: number, data: any): Promise<any> {
+        logger.debug(`Updating settings for user: ${userId}`);
+        
+        // Extract top-level fields
+        const { displayName, bio, location, nightPersona, ...preferences } = data;
+        
+        const updateData: any = {};
+        if (displayName !== undefined) updateData.displayName = displayName;
+        if (bio !== undefined) updateData.bio = bio;
+        if (location !== undefined) updateData.location = location;
+        if (nightPersona !== undefined) updateData.nightPersona = nightPersona;
+        
+        // Get existing preferences
+        const existingUser = await storage.getUser(userId);
+        if (existingUser) {
+            const currentPreferences = (existingUser.preferences as any) || {};
+            updateData.preferences = { ...currentPreferences, ...preferences };
+        } else {
+            updateData.preferences = preferences;
+        }
+
+        const updatedUser = await storage.updateUser(userId, updateData);
+        if (!updatedUser) {
+            throw new Error("Failed to update user");
+        }
+        
+        // Exclude sensitive info before returning
+        const { password, googleId, ...safeUser } = updatedUser;
+        return safeUser;
+    }
 }
 
 // Singleton instance

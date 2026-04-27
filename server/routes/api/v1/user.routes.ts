@@ -20,4 +20,7 @@ router.get("/me/cafe", userController.getMyCafePosts);
 // GET /api/v1/users/me/favorites - Get current user's favorite stations
 router.get("/me/favorites", userController.getMyFavorites);
 
+// PATCH /api/v1/users/me/settings - Update user settings
+router.patch("/me/settings", userController.updateMySettings);
+
 export default router;

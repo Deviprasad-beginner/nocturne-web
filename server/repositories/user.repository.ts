@@ -63,3 +63,17 @@ export async function updateUserOnboarding(userId: number, completed: boolean): 
     .set({ hasSeenOnboarding: completed })
     .where(eq(users.id, userId));
 }
+
+export async function updateUser(userId: number, data: Partial<User>): Promise<User | undefined> {
+  try {
+    const [updatedUser] = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser || undefined;
+  } catch (error) {
+    logger.error("Error updating user:", error);
+    return undefined;
+  }
+}

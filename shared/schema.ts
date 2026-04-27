@@ -23,6 +23,13 @@ export const users = pgTable("users", {
   email: text("email").unique(),
   profileImageUrl: text("profile_image_url"),
   hasSeenOnboarding: boolean("has_seen_onboarding").default(false),
+  
+  // Profile Information
+  nightPersona: varchar("night_persona", { length: 50 }),
+  bio: text("bio"),
+  location: varchar("location", { length: 100 }),
+  preferences: jsonb("preferences").default({}),
+
   currentStreak: integer("current_streak").default(0),
   lastEntryDate: timestamp("last_entry_date"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -207,6 +214,10 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 }).extend({
   id: z.number().optional(),
+  nightPersona: z.string().optional().nullable(),
+  bio: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  preferences: z.any().optional(),
   nightStreak: z.number().optional(),
   meaningfulReplies: z.number().optional(),
   reportCount: z.number().optional(),

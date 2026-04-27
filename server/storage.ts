@@ -65,6 +65,7 @@ export interface IStorage {
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
   updateUserOnboarding(userId: number, completed: boolean): Promise<void>;
 
   // Diary operations
@@ -210,6 +211,15 @@ export class MemoryStorage implements IStorage {
 
   async upsertUser(user: UpsertUser): Promise<User> {
     throw new Error("Upsert not implemented for MemoryStorage");
+  }
+
+  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
+    const index = this.users.findIndex(u => u.id === id);
+    if (index !== -1) {
+      this.users[index] = { ...this.users[index], ...data };
+      return this.users[index];
+    }
+    return undefined;
   }
 
   async updateUserOnboarding(userId: number, completed: boolean): Promise<void> {
@@ -705,6 +715,7 @@ export class DatabaseStorage implements IStorage {
   getUserByGoogleId = UserRepo.getUserByGoogleId;
   createUser = UserRepo.createUser;
   upsertUser = UserRepo.upsertUser;
+  updateUser = UserRepo.updateUser;
   updateUserOnboarding = UserRepo.updateUserOnboarding;
 
   // ── Diaries ───────────────────────────────────────────────────────────────

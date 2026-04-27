@@ -16,6 +16,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Tab = "profile" | "privacy" | "notifications" | "appearance" | "services" | "account";
@@ -153,59 +155,87 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [activeService, setActiveService] = useState<string>("diaries");
 
-  const [settings, setSettings] = useState<Record<string, any>>({
-    // Profile
-    displayName: user?.displayName ?? "Night Wanderer",
-    nightPersona: "",
-    bio: "A fellow insomniac exploring the depths of midnight thoughts",
-    location: "Somewhere in the night",
-    // Privacy
-    profileVisibility: "public",
-    showOnlineStatus: true,
-    allowDirectMessages: true,
-    showActivity: false,
-    anonymousPosting: true,
-    // Notifications
-    pushNotifications: true,
-    emailNotifications: false,
-    mentionNotifications: true,
-    messageNotifications: true,
-    circleUpdates: true,
-    // Appearance
-    darkMode: true,
-    accentColor: "purple",
-    fontSize: "medium",
-    compactMode: false,
-    // Service defaults
-    diariesPrivacy: "Private",
-    diariesAllowComments: true,
-    diariesShowInFeed: false,
-    whispersAutoAnon: true,
-    whispersReplyNotif: true,
-    whispersVisibility: "Everyone",
-    cafeAutoJoin: false,
-    cafeShowInFeed: true,
-    cafeTopic: "Anything",
-    mazeNotif: true,
-    mazeDifficulty: "Any",
-    mazeShowSolved: true,
-    founderAnon: true,
-    founderVisibility: "Everyone",
-    founderNotif: true,
-    speakerAutoMic: true,
-    speakerNotif: true,
-    speakerDiscoverable: true,
-    circlesAutoJoin: true,
-    circlesNotif: true,
-    circlesDiscoverable: false,
-    messengerPairing: true,
-    messengerRequests: "Everyone",
-    messengerReadReceipts: true,
+  const [settings, setSettings] = useState<Record<string, any>>(() => {
+    const prefs = user?.preferences || {};
+    return {
+      // Profile
+      displayName: user?.displayName ?? "Night Wanderer",
+      nightPersona: user?.nightPersona ?? "",
+      bio: user?.bio ?? "A fellow insomniac exploring the depths of midnight thoughts",
+      location: user?.location ?? "Somewhere in the night",
+      // Privacy
+      profileVisibility: prefs.profileVisibility ?? "public",
+      showOnlineStatus: prefs.showOnlineStatus ?? true,
+      allowDirectMessages: prefs.allowDirectMessages ?? true,
+      showActivity: prefs.showActivity ?? false,
+      anonymousPosting: prefs.anonymousPosting ?? true,
+      // Notifications
+      pushNotifications: prefs.pushNotifications ?? true,
+      emailNotifications: prefs.emailNotifications ?? false,
+      mentionNotifications: prefs.mentionNotifications ?? true,
+      messageNotifications: prefs.messageNotifications ?? true,
+      circleUpdates: prefs.circleUpdates ?? true,
+      // Appearance
+      darkMode: prefs.darkMode ?? true,
+      accentColor: prefs.accentColor ?? "purple",
+      fontSize: prefs.fontSize ?? "medium",
+      compactMode: prefs.compactMode ?? false,
+      // Service defaults
+      diariesPrivacy: prefs.diariesPrivacy ?? "Private",
+      diariesAllowComments: prefs.diariesAllowComments ?? true,
+      diariesShowInFeed: prefs.diariesShowInFeed ?? false,
+      whispersAutoAnon: prefs.whispersAutoAnon ?? true,
+      whispersReplyNotif: prefs.whispersReplyNotif ?? true,
+      whispersVisibility: prefs.whispersVisibility ?? "Everyone",
+      cafeAutoJoin: prefs.cafeAutoJoin ?? false,
+      cafeShowInFeed: prefs.cafeShowInFeed ?? true,
+      cafeTopic: prefs.cafeTopic ?? "Anything",
+      mazeNotif: prefs.mazeNotif ?? true,
+      mazeDifficulty: prefs.mazeDifficulty ?? "Any",
+      mazeShowSolved: prefs.mazeShowSolved ?? true,
+      founderAnon: prefs.founderAnon ?? true,
+      founderVisibility: prefs.founderVisibility ?? "Everyone",
+      founderNotif: prefs.founderNotif ?? true,
+      speakerAutoMic: prefs.speakerAutoMic ?? true,
+      speakerNotif: prefs.speakerNotif ?? true,
+      speakerDiscoverable: prefs.speakerDiscoverable ?? true,
+      circlesAutoJoin: prefs.circlesAutoJoin ?? true,
+      circlesNotif: prefs.circlesNotif ?? true,
+      circlesDiscoverable: prefs.circlesDiscoverable ?? false,
+      messengerPairing: prefs.messengerPairing ?? true,
+      messengerRequests: prefs.messengerRequests ?? "Everyone",
+      messengerReadReceipts: prefs.messengerReadReceipts ?? true,
+    };
   });
 
-  const set = (key: string, value: any) => {
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (newSettings: Record<string, any>) => {
+      const res = await apiRequest("PATCH", "/api/v1/users/me/settings", newSettings);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+  });
+
+  // Debounced save for text inputs
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const set = (key: string, value: any, instant: boolean = true) => {
     setSettings(prev => ({ ...prev, [key]: value }));
-    toast({ title: "Saved", description: "Preference updated.", duration: 1500 });
+    
+    if (instant) {
+      updateSettingsMutation.mutate({ [key]: value });
+      toast({ title: "Saved", description: "Preference updated.", duration: 1500 });
+    } else {
+      // Debounce for text inputs (bio, location, etc.)
+      if (saveTimeout) clearTimeout(saveTimeout);
+      const timeout = setTimeout(() => {
+        updateSettingsMutation.mutate({ [key]: value });
+        toast({ title: "Saved", description: "Profile updated.", duration: 1500 });
+      }, 1000);
+      setSaveTimeout(timeout);
+    }
   };
 
   const card = "bg-white/[0.03] border border-white/[0.07] rounded-2xl";
@@ -257,23 +287,23 @@ export default function Settings() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-400 text-xs mb-1.5 block">Display Name</Label>
-                      <Input value={settings.displayName} onChange={e => set("displayName", e.target.value)}
+                      <Input value={settings.displayName} onChange={e => set("displayName", e.target.value, false)}
                         className="bg-white/5 border-white/10 text-white" />
                     </div>
                     <div>
                       <Label className="text-gray-400 text-xs mb-1.5 block">Night Persona <span className="text-indigo-400">(anonymous alias)</span></Label>
-                      <Input placeholder="e.g. SleeplessOwl_42" value={settings.nightPersona} onChange={e => set("nightPersona", e.target.value)}
+                      <Input placeholder="e.g. SleeplessOwl_42" value={settings.nightPersona} onChange={e => set("nightPersona", e.target.value, false)}
                         className="bg-white/5 border-white/10 text-white placeholder:text-gray-600" />
                     </div>
                   </div>
                   <div>
                     <Label className="text-gray-400 text-xs mb-1.5 block">Location</Label>
-                    <Input value={settings.location} onChange={e => set("location", e.target.value)}
+                    <Input value={settings.location} onChange={e => set("location", e.target.value, false)}
                       className="bg-white/5 border-white/10 text-white" />
                   </div>
                   <div>
                     <Label className="text-gray-400 text-xs mb-1.5 block">Bio</Label>
-                    <Textarea value={settings.bio} onChange={e => set("bio", e.target.value)}
+                    <Textarea value={settings.bio} onChange={e => set("bio", e.target.value, false)}
                       className="bg-white/5 border-white/10 text-white" rows={3} />
                   </div>
                 </div>

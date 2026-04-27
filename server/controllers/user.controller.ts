@@ -22,6 +22,11 @@ export class UserController {
         const stations = await userService.getUserFavoriteStations(req.user!.id);
         res.json(successResponse(stations));
     });
+
+    updateMySettings = asyncHandler(async (req: Request, res: Response) => {
+        const updatedUser = await userService.updateUserSettings(req.user!.id, req.body);
+        res.json(successResponse(updatedUser));
+    });
 }
 
 export const userController = new UserController();
