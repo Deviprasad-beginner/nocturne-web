@@ -14,7 +14,7 @@ export async function getUser(id: number): Promise<User | undefined> {
     return user || undefined;
   } catch (error) {
     logger.error("Error getting user:", error);
-    return undefined;
+    throw error; // Propagate error so passport.deserializeUser doesn't silently log out the user
   }
 }
 

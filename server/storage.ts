@@ -196,6 +196,10 @@ export class MemoryStorage implements IStorage {
       email: insertUser.email || null,
       profileImageUrl: insertUser.profileImageUrl || null,
       hasSeenOnboarding: insertUser.hasSeenOnboarding ?? null,
+      nightPersona: insertUser.nightPersona ?? null,
+      bio: insertUser.bio ?? null,
+      location: insertUser.location ?? null,
+      preferences: insertUser.preferences ?? {},
       currentStreak: 0,
       lastEntryDate: null,
       nightStreak: insertUser.nightStreak ?? 0,
@@ -695,6 +699,7 @@ export class DatabaseStorage implements IStorage {
     try {
       this.sessionStore = new PostgresSessionStore({
         pool,
+        tableName: 'sessions', // Explicitly use the Drizzle-managed table
         createTableIfMissing: true,
         errorLog: (error: Error) => {
           // Suppress harmless "index/table already exists" errors (PG code 42P07)

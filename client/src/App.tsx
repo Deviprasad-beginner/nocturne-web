@@ -6,6 +6,7 @@ import { MusicProvider } from "@/context/MusicContext";
 import { MusicPlayer } from "@/components/music/MusicPlayer";
 import { Background } from "@/components/layout/Background";
 import { SectionLoader } from "@/components/ui/loaders";
+import { SettingsProvider } from "@/context/SettingsContext";
 
 // Lazy Load Pages
 const Home = lazy(() => import("@/pages/home"));
@@ -262,12 +263,14 @@ function App() {
   // Allow access without authentication (guest mode)
   // This makes the app work regardless of auth status
   return (
-    <MusicProvider>
-      <div className="min-h-screen bg-gray-950">
-        <Router />
-      </div>
-      <MusicPlayer />
-    </MusicProvider>
+    <SettingsProvider>
+      <MusicProvider>
+        <div className="min-h-screen bg-gray-950">
+          <Router />
+        </div>
+        <MusicPlayer />
+      </MusicProvider>
+    </SettingsProvider>
   );
 }
 

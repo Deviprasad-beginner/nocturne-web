@@ -90,6 +90,14 @@ app.get("/health", (_req, res) => {
   // Mount legacy routes (will be gradually migrated)
   const server = await registerRoutes(app, httpServer);
 
+  // Prevent Edge caching (Vercel/Cloudflare) on API routes to avoid serving cached 401s
+  app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    next();
+  });
+
   // Mount new v1 API routes
   app.use("/api/v1", apiV1Routes);
 

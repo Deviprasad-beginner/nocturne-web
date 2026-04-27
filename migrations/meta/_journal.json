@@ -15,6 +15,13 @@
       "when": 1771543751365,
       "tag": "0001_furry_shaman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777268560260,
+      "tag": "0002_blue_dragon_lord",
+      "breakpoints": true
     }
   ]
 }
