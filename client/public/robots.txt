@@ -1,2 +1,8 @@
+# robots.txt for Nocturne — https://nocturnesocial.in
+# Allow all search engine crawlers to index the site.
+
 User-agent: *
 Allow: /
+
+# Point crawlers to the sitemap so they can discover all pages efficiently.
+Sitemap: https://nocturnesocial.in/sitemap.xml

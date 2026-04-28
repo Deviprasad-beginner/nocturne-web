@@ -2,9 +2,44 @@ import { defineConfig } from "vite";
 // Forced restart trigger for storage fix
 import react from "@vitejs/plugin-react";
 import path from "path";
+import sitemap from "vite-plugin-sitemap";
+
+// All publicly-accessible routes (no auth required) for sitemap generation
+const publicRoutes = [
+  "/",
+  "/auth",
+  "/diaries",
+  "/whispers",
+  "/mind-maze",
+  "/night-circles",
+  "/midnight-cafe",
+  "/music-mood",
+  "/nightly-reflection",
+  "/night-conversations",
+  "/digital-journals",
+  "/mindful-spaces",
+  "/3am-founder",
+  "/starlit-speaker",
+  "/moon-messenger",
+  "/night-thoughts",
+  "/read-card",
+  "/read-alone",
+  "/read-tonight",
+  "/privacy",
+  "/help",
+];
+
 export default defineConfig({
   plugins: [
     react(),
+    sitemap({
+      hostname: "https://nocturnesocial.in",
+      dynamicRoutes: publicRoutes,
+      changefreq: "weekly",
+      priority: 0.8,
+      lastmod: new Date(),
+      outDir: path.resolve(import.meta.dirname, "dist/public"),
+    }),
   ],
   resolve: {
     alias: {

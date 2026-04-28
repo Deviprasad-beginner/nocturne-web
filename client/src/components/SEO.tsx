@@ -1,20 +1,30 @@
 import { Helmet } from 'react-helmet-async';
 
+const BASE_URL = 'https://nocturnesocial.in';
+
 interface SEOProps {
     title?: string;
     description?: string;
     image?: string;
-    url?: string;
+    /**
+     * Pass a path like "/whispers" and the canonical will be built
+     * as "https://nocturnesocial.in/whispers".
+     * Omit (or leave undefined) to use window.location.pathname.
+     */
+    path?: string;
 }
 
 export function SEO({
-    title = "Nocturne | Connect in the Silence",
-    description = "A social platform for night owls to connect and share thoughts during late hours.",
-    image = "/og-image.png", // Assuming we have or will add a default OG image
-    url
+    title = "Nocturne | The Night-Time Social Platform",
+    description = "Step into Nocturne. The exclusive social space designed for the night. Share Whispers, curate your ambient vibe, and connect when the rest of the world goes quiet.",
+    image = "https://nocturnesocial.in/social-preview.png",
+    path,
 }: SEOProps) {
     const siteTitle = title.includes("Nocturne") ? title : `${title} | Nocturne`;
-    const currentUrl = url || window.location.href;
+
+    // Build canonical from the production base URL so mirrors/repos never outrank us.
+    const canonicalPath = path ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
+    const canonicalUrl = `${BASE_URL}${canonicalPath}`;
 
     return (
         <Helmet>
@@ -22,16 +32,19 @@ export function SEO({
             <title>{siteTitle}</title>
             <meta name="description" content={description} />
 
+            {/* Canonical – tells Google the definitive URL for this page */}
+            <link rel="canonical" href={canonicalUrl} />
+
             {/* Open Graph / Facebook */}
             <meta property="og:type" content="website" />
-            <meta property="og:url" content={currentUrl} />
+            <meta property="og:url" content={canonicalUrl} />
             <meta property="og:title" content={siteTitle} />
             <meta property="og:description" content={description} />
             <meta property="og:image" content={image} />
 
             {/* Twitter */}
             <meta property="twitter:card" content="summary_large_image" />
-            <meta property="twitter:url" content={currentUrl} />
+            <meta property="twitter:url" content={canonicalUrl} />
             <meta property="twitter:title" content={siteTitle} />
             <meta property="twitter:description" content={description} />
             <meta property="twitter:image" content={image} />

@@ -18,6 +18,8 @@ import { requestId } from "./middleware/requestId.middleware";
 import apiV1Routes from "./routes/api/v1/index";
 import { testDatabaseConnection } from "./config/database";
 import { logger } from "./utils/logger";
+import sitemapRouter from "./routes/sitemap.routes";
+
 
 const app = express();
 
@@ -76,6 +78,11 @@ app.use(morgan("dev"));
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
+
+// SEO: serve sitemap.xml and robots.txt BEFORE any SPA catch-all or static middleware
+// so Firebase/Vercel/Render rewrites never intercept them.
+app.use("/", sitemapRouter);
+
 
 (async () => {
   const httpServer = createServer(app);

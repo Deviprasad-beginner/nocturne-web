@@ -76,10 +76,23 @@ export function serveStatic(app: Express) {
     );
   }
 
+  // Serve static assets (JS, CSS, images, sitemap.xml, robots.txt, etc.) first.
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  // SPA fallback: only send index.html for paths that look like React routes
+  // (i.e. no file extension in the last path segment).
+  // This prevents /sitemap.xml, /robots.txt, /favicon.ico etc. from receiving HTML.
+  app.use("*", (req, res) => {
+    const lastSegment = req.path.split("/").pop() ?? "";
+    const hasExtension = lastSegment.includes(".");
+
+    if (hasExtension) {
+      // True 404 — a static file that doesn't exist.
+      res.status(404).send("Not found");
+      return;
+    }
+
+    // React route — hand off to the SPA.
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
