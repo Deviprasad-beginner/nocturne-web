@@ -57,7 +57,10 @@ export function EnhancedHeader({ className }: EnhancedHeaderProps) {
   ];
 
   return (
-    <header className={`bg-slate-900/95 border-b border-slate-700 backdrop-blur-sm sticky top-0 z-50 ${className}`}>
+    <header
+      className={`bg-slate-900/95 border-b border-slate-700 sticky top-0 z-50 ${className}`}
+      style={{ transform: "translateZ(0)", willChange: "transform" }}
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Left Section - Logo & Menu */}

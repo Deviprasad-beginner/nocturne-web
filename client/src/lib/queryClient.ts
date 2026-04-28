@@ -30,7 +30,11 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  timeoutMs: number = 15000,  // 15s default — covers Render cold starts
 ): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const baseUrl = getApiBaseUrl();
 
@@ -50,13 +54,19 @@ export async function apiRequest(
       headers: data ? { "Content-Type": "application/json" } : {},
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
+      signal: controller.signal,
     });
 
     await throwIfResNotOk(res);
     return res;
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.name === "AbortError") {
+      throw new APIError(408, "Request timed out. The server may be starting up — please try again.", "Request Timeout");
+    }
     console.error(`API Request failed: ${method} ${url}`, error);
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -100,8 +110,12 @@ export const getQueryFn: <T>(options: {
         const json = await res.json();
 
         // Unwrap v1 API responses that have {success: true, data: ...} format
+        // Normalize null data to [] for collection endpoints to prevent .length crashes
         if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
-          return json.data;
+          const data = json.data;
+          // If the API explicitly returns null for a collection, normalize to []
+          // This prevents TypeError: Cannot read properties of null (reading 'length')
+          return data === null ? [] : data;
         }
 
         return json;

@@ -231,12 +231,24 @@ export function setupAuth(app: Express) {
     passport.use(
         new LocalStrategy(async (username, password, done) => {
             try {
-                const user = await storage.getUserByUsername(username);
-                if (!user || !user.password || !(await comparePasswords(password, user.password))) {
-                    return done(null, false);
-                } else {
-                    return done(null, user);
+                // Support login by username OR email
+                let user = await storage.getUserByUsername(username);
+
+                if (!user && username.includes('@')) {
+                    // Treat as email if it contains '@'
+                    user = await storage.getUserByEmail(username.toLowerCase());
                 }
+
+                if (!user || !user.password) {
+                    return done(null, false, { message: "Invalid credentials" });
+                }
+
+                const passwordMatch = await comparePasswords(password, user.password);
+                if (!passwordMatch) {
+                    return done(null, false, { message: "Invalid credentials" });
+                }
+
+                return done(null, user);
             } catch (error) {
                 return done(error);
             }

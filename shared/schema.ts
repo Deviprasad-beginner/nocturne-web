@@ -294,6 +294,59 @@ export type User = typeof users.$inferSelect;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
+// ─── Strongly-typed user preferences (stored in the jsonb `preferences` column) ──
+export interface UserPreferences {
+  // Privacy
+  profileVisibility: "public" | "friends" | "private";
+  showOnlineStatus: boolean;
+  allowDirectMessages: boolean;
+  showActivity: boolean;
+  anonymousPosting: boolean;
+  // Notifications
+  pushNotifications: boolean;
+  emailNotifications: boolean;
+  mentionNotifications: boolean;
+  messageNotifications: boolean;
+  circleUpdates: boolean;
+  // Appearance
+  darkMode: boolean;
+  accentColor: "purple" | "blue" | "green" | "orange";
+  fontSize: "small" | "medium" | "large";
+  compactMode: boolean;
+  // Night Diaries
+  diariesPrivacy: "Private" | "Friends" | "Public";
+  diariesAllowComments: boolean;
+  diariesShowInFeed: boolean;
+  // Whispers
+  whispersAutoAnon: boolean;
+  whispersReplyNotif: boolean;
+  whispersVisibility: "Everyone" | "Night Owls" | "No one";
+  // Midnight Cafe
+  cafeAutoJoin: boolean;
+  cafeShowInFeed: boolean;
+  cafeTopic: "Anything" | "Tech" | "Philosophy" | "Art" | "Music";
+  // Mind Maze
+  mazeNotif: boolean;
+  mazeDifficulty: "Easy" | "Medium" | "Hard" | "Any";
+  mazeShowSolved: boolean;
+  // 3AM Founder
+  founderAnon: boolean;
+  founderVisibility: "Everyone" | "Founders Only" | "Private";
+  founderNotif: boolean;
+  // Starlit Speaker
+  speakerAutoMic: boolean;
+  speakerNotif: boolean;
+  speakerDiscoverable: boolean;
+  // Night Circles
+  circlesAutoJoin: boolean;
+  circlesNotif: boolean;
+  circlesDiscoverable: boolean;
+  // Moon Messenger
+  messengerPairing: boolean;
+  messengerRequests: "Everyone" | "Mutuals Only" | "No one";
+  messengerReadReceipts: boolean;
+}
+
 export type Diary = typeof diaries.$inferSelect;
 export type InsertDiary = z.infer<typeof insertDiarySchema>;
 

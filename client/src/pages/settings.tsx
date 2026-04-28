@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { UserPreferences } from "@shared/schema";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Tab = "profile" | "privacy" | "notifications" | "appearance" | "services" | "account";
@@ -156,7 +157,7 @@ export default function Settings() {
   const [activeService, setActiveService] = useState<string>("diaries");
 
   const [settings, setSettings] = useState<Record<string, any>>(() => {
-    const prefs = user?.preferences || {};
+    const prefs = (user?.preferences ?? {}) as Partial<UserPreferences>;
     return {
       // Profile
       displayName: user?.displayName ?? "Night Wanderer",

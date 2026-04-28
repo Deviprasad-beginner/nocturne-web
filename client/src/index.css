@@ -81,6 +81,7 @@
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  will-change: transform;
 }
 
 .glass-card {
@@ -89,7 +90,8 @@
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  will-change: transform;
 }
 
 .glass-card:hover {
@@ -104,10 +106,12 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  will-change: transform;
 }
 
 .category-card {
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease;
+  will-change: transform;
 }
 
 .category-card:hover {
@@ -180,18 +184,22 @@
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-float-slow {
   animation: float-slow 12s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-twinkle {
   animation: twinkle 4s ease-in-out infinite;
+  will-change: opacity, transform;
 }
 
 .animate-pulse-glow {
   animation: pulse-glow 3s ease-in-out infinite alternate;
+  will-change: box-shadow;
 }
 
 .bg-aurora {
@@ -202,7 +210,35 @@
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
+  /*
+   * PERFORMANCE: Disable backdrop-filter globally on mobile.
+   * backdrop-blur is the single biggest GPU bottleneck on mobile — it forces
+   * the compositor to create a separate layer and re-blur on every frame.
+   * We replace with a slightly more opaque solid background instead.
+   */
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 
+  /* Kill backdrop-filter blur on named utility classes */
+  .glassmorphism,
+  .glass-card,
+  .glass-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(17, 25, 40, 0.85) !important;
+  }
+
+  /* Disable heavy continuous animations on mobile */
+  .animate-float,
+  .animate-float-slow,
+  .animate-pulse-glow,
+  .bg-aurora {
+    animation: none !important;
+  }
+
+  /* Reduce hover transform on cards */
   .animate-float,
   .animate-float-slow {
     animation-duration: 10s;
@@ -212,11 +248,32 @@
     transform: translateY(-4px);
     box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.3);
   }
+
+  /* Smooth scrolling on touch */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Remove transitions on all-property shorthand — only animate transform/opacity */
+  .glass-card {
+    transition: opacity 0.2s ease !important;
+  }
+}
+
+/* Respect user OS preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Ensure minimum touch target sizes on mobile */
 @media (max-width: 640px) {
-
   button,
   a {
     min-height: 44px;

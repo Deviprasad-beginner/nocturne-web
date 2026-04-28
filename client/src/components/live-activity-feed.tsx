@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Activity, Heart, MessageCircle, Users, Star, Music, Coffee } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRef } from "react";
 
 interface ActivityItem {
   id: string;
@@ -14,9 +15,11 @@ interface ActivityItem {
 }
 
 export function LiveActivityFeed() {
+  // Refetch less aggressively on mobile to avoid unnecessary re-renders
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
   const { data: response, isLoading } = useQuery<{ success: boolean; data: ActivityItem[] }>({
     queryKey: ["/api/v1/activity/recent"],
-    refetchInterval: 5000, // Faster updates for live feel
+    refetchInterval: isMobile ? 15000 : 5000,
   });
 
   const activities = response?.data || [];
@@ -67,43 +70,69 @@ export function LiveActivityFeed() {
           </div>
         ) : (
           <div className="space-y-1">
-            <AnimatePresence mode="popLayout">
-              {displayActivities.map((activity) => (
-                <motion.div
-                  key={activity.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
+            {/* Skip AnimatePresence on mobile — JS animation overhead hurts low-power CPUs */}
+            {isMobile ? (
+              displayActivities.map((activity) => (
+                <div key={activity.id}>
                   <Link href={activity.link || '/'}>
-                    <div className="group flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-all duration-200 cursor-pointer border border-transparent hover:border-white/5">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/10 transition-colors">
+                    <div className="group flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors duration-150 cursor-pointer border border-transparent hover:border-white/5">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
                         {getActivityIcon(activity.type)}
                       </div>
-
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <div className="flex items-baseline space-x-2 min-w-0">
-                          <span className="text-xs font-semibold text-gray-300 truncate group-hover:text-white transition-colors">
+                          <span className="text-xs font-semibold text-gray-300 truncate">
                             {activity.user}
                           </span>
                           <span className="text-[10px] text-gray-500 truncate">
                             {activity.category}
                           </span>
                         </div>
-                        <p className="text-[11px] text-gray-400 truncate leading-tight group-hover:text-gray-300 transition-colors">
+                        <p className="text-[11px] text-gray-400 truncate leading-tight">
                           {activity.content}
                         </p>
                       </div>
-
-                      <span className="text-[9px] text-gray-600 tabular-nums flex-shrink-0 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-                        Now
-                      </span>
                     </div>
                   </Link>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                </div>
+              ))
+            ) : (
+              <AnimatePresence mode="popLayout">
+                {displayActivities.map((activity) => (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Link href={activity.link || '/'}>
+                      <div className="group flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-all duration-200 cursor-pointer border border-transparent hover:border-white/5">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/10 transition-colors">
+                          {getActivityIcon(activity.type)}
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <div className="flex items-baseline space-x-2 min-w-0">
+                            <span className="text-xs font-semibold text-gray-300 truncate group-hover:text-white transition-colors">
+                              {activity.user}
+                            </span>
+                            <span className="text-[10px] text-gray-500 truncate">
+                              {activity.category}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-400 truncate leading-tight group-hover:text-gray-300 transition-colors">
+                            {activity.content}
+                          </p>
+                        </div>
+                        <span className="text-[9px] text-gray-600 tabular-nums flex-shrink-0 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                          Now
+                        </span>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />

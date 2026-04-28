@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import type { UserPreferences } from "@shared/schema";
 
 type SettingsContextType = {
   // We can expose settings here if needed, but mostly this component handles side-effects
@@ -19,7 +20,7 @@ export const useSettings = () => useContext(SettingsContext);
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   
-  const prefs = user?.preferences || {};
+  const prefs = (user?.preferences ?? {}) as Partial<UserPreferences>;
   
   const isCompactMode = prefs.compactMode ?? false;
   const fontSize = prefs.fontSize ?? "medium";

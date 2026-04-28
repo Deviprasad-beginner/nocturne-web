@@ -38,21 +38,26 @@ export default function Profile() {
   const { user, isLoading } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
 
-  const { data: whispers = [] } = useQuery<Whisper[]>({
+  const { data: _whispers } = useQuery<Whisper[] | null>({
     queryKey: ["/api/v1/users/me/whispers"],
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
-  const { data: cafePosts = [] } = useQuery<MidnightCafe[]>({
+  const { data: _cafePosts } = useQuery<MidnightCafe[] | null>({
     queryKey: ["/api/v1/users/me/cafe"],
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
-  const { data: savedStations = [] } = useQuery<string[]>({
+  const { data: _savedStations } = useQuery<string[] | null>({
     queryKey: ["/api/v1/users/me/favorites"],
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Safely default null (API returns null for empty collections) to []
+  const whispers = _whispers ?? [];
+  const cafePosts = _cafePosts ?? [];
+  const savedStations = _savedStations ?? [];
 
   // ── Derived data ────────────────────────────────────────────────────────────
   const accountAgeDays = useMemo(() =>

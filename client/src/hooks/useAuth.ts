@@ -233,10 +233,13 @@ export function useAuth() {
       });
       setLocation("/");
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const isTimeout = error?.status === 408;
       toast({
-        title: "Login failed",
-        description: error.message,
+        title: isTimeout ? "Server is starting up" : "Login failed",
+        description: isTimeout
+          ? "The server is waking up. Please wait a moment and try again."
+          : (error?.message || "Invalid username or password."),
         variant: "destructive",
       });
     },
@@ -255,10 +258,13 @@ export function useAuth() {
       });
       setLocation("/");
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const isTimeout = error?.status === 408;
       toast({
-        title: "Registration failed",
-        description: error.message,
+        title: isTimeout ? "Server is starting up" : "Registration failed",
+        description: isTimeout
+          ? "The server is waking up. Please wait a moment and try again."
+          : (error?.message || "Could not create account. Please try again."),
         variant: "destructive",
       });
     },
