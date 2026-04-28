@@ -37,7 +37,18 @@ export function SEO({
 
             {/* Open Graph / Facebook */}
             <meta property="og:type" content="website" />
+            <meta property="og:site_name" content="Nocturne" />
             <meta property="og:url" content={canonicalUrl} />
+            <script type="application/ld+json">
+                {`
+                    {
+                        "@context": "https://schema.org",
+                        "@type": "WebSite",
+                        "name": "Nocturne",
+                        "url": "https://nocturnesocial.in/"
+                    }
+                `}
+            </script>
             <meta property="og:title" content={siteTitle} />
             <meta property="og:description" content={description} />
             <meta property="og:image" content={image} />
