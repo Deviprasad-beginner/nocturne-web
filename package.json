@@ -12,6 +12,10 @@
     "vercel-build": "vite build",
     "test": "vitest run"
   },
+  "engines": {
+    "node": ">=20.11.0",
+    "npm": ">=10.0.0"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
