@@ -2,8 +2,7 @@
   "include": [
     "client/src/**/*",
     "shared/**/*",
-    "server/**/*",
-    "scripts/**/*"
+    "server/**/*"
   ],
   "exclude": [
     "node_modules",
