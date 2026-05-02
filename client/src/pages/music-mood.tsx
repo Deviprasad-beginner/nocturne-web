@@ -9,97 +9,99 @@ import { AtmosphereBackground } from "@/components/music/AtmosphereBackground";
 import { tracks, getTracksByMood } from "@/data/tracks";
 
 export default function MusicMood() {
-  const { mood } = useMusic();
+    const { mood } = useMusic();
+    const filteredTracks = getTracksByMood(mood);
 
-  const filteredTracks = getTracksByMood(mood);
+    return (
+        <div className="min-h-screen bg-[#06060a] text-white relative overflow-hidden pb-32">
+            <AtmosphereBackground />
 
-  return (
-    <div className="min-h-screen bg-[#07070A] text-white relative overflow-hidden pb-32">
-      {/* Atmosphere Background */}
-      <AtmosphereBackground />
+            <div className="relative z-10 max-w-[1700px] mx-auto px-6 py-8">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-12">
+                    <div className="flex items-center gap-5">
+                        <Link href="/">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-white/25 hover:text-white/60 hover:bg-white/4 transition-colors -ml-2"
+                            >
+                                <ArrowLeft className="w-4 h-4 mr-1.5" />
+                                Back
+                            </Button>
+                        </Link>
 
-      {/* Main Content */}
-      <div className="relative z-10 max-w-[1800px] mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-white/5">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-900/50">
-                <Music className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
-                  Music & Mood
-                </h1>
-                <p className="text-sm text-gray-500">Immersive nocturnal soundscapes</p>
-              </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full border border-white/8 flex items-center justify-center">
+                                <Music className="w-3.5 h-3.5 text-white/35" />
+                            </div>
+                            <div>
+                                <h1 className="text-base font-medium text-white/75 tracking-wide">
+                                    Music & Mood
+                                </h1>
+                                <p className="text-[11px] text-white/22 tracking-wider uppercase">
+                                    Nocturnal soundscapes
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mood selector */}
+                <div className="mb-10">
+                    <MoodSelector />
+                </div>
+
+                {/* Layout */}
+                <div className="grid lg:grid-cols-[1fr_280px] gap-10">
+                    {/* Cards */}
+                    <div>
+                        {/* Subtle section label */}
+                        <div className="flex items-baseline gap-3 mb-6">
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-white/22 font-medium">
+                                {mood
+                                    ? `${mood.charAt(0).toUpperCase()}${mood.slice(1).replace("-", " ")}`
+                                    : "All stations"}
+                            </p>
+                            <span className="text-[10px] text-white/14">
+                                {filteredTracks.length}
+                            </span>
+                        </div>
+
+                        {filteredTracks.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {filteredTracks.map((track) => (
+                                    <MusicCard key={track.id} track={track} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-24 text-center">
+                                <p className="text-white/18 text-sm">No stations for this mood</p>
+                                <button
+                                    className="mt-4 text-xs text-white/25 hover:text-white/45 transition-colors underline underline-offset-4"
+                                    onClick={() => {}}
+                                >
+                                    Clear filter
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sidebar */}
+                    <div className="hidden lg:block">
+                        <div className="sticky top-8 rounded-2xl border border-white/[0.04] bg-white/[0.015] backdrop-blur-sm p-6">
+                            <LiveActivity />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="mt-20 text-center">
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-white/14">
+                        Curated for the nocturnal soul
+                    </p>
+                </div>
             </div>
-          </div>
         </div>
-
-        {/* Mood Selector */}
-        <div className="mb-10">
-          <MoodSelector />
-        </div>
-
-        {/* Main Layout Grid */}
-        <div className="grid lg:grid-cols-[1fr_320px] gap-8">
-          {/* Music Cards Grid */}
-          <div>
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <span className="text-2xl">🎵</span>
-                {mood ? `${mood.charAt(0).toUpperCase()}${mood.slice(1).replace('-', ' ')} Vibes` : 'All Tracks'}
-                <span className="text-sm text-gray-500 font-normal ml-2">({filteredTracks.length} tracks)</span>
-              </h2>
-            </div>
-
-            {filteredTracks.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredTracks.map((track) => (
-                  <MusicCard key={track.id} track={track} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-20">
-                <div className="text-6xl mb-4">🎧</div>
-                <p className="text-gray-400">No tracks found for this mood</p>
-                <Button
-                  variant="outline"
-                  className="mt-4 border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-                  onClick={() => { }}
-                >
-                  Clear Filter
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Live Activity Sidebar */}
-          <div className="hidden lg:block">
-            <div className="sticky top-8">
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
-                <LiveActivity />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Info */}
-        <div className="mt-16 text-center">
-          <div className="flex items-center justify-center gap-2 text-gray-500 text-sm mb-2">
-            <Music className="w-4 h-4" />
-            <span>Curated soundscapes for the nocturnal soul</span>
-          </div>
-          <p className="text-xs text-gray-600">Connect your headphones for the best experience</p>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

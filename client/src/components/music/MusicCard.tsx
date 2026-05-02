@@ -1,8 +1,6 @@
 import { Track } from "@/lib/youtubePlayer";
 import { useMusic } from "@/context/MusicContext";
-import { Play, Users, Heart } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
+import { Play, Pause, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -20,18 +18,17 @@ export function MusicCard({ track }: MusicCardProps) {
     const queryClient = useQueryClient();
 
     const isCurrentTrack = currentTrack?.id === track.id;
-    const listeners = Math.floor(Math.random() * 100) + 10; // Mock listener count
+    const isCurrentlyPlaying = isCurrentTrack && isPlaying;
 
-    // Fetch current saved stations for this user
-    const { data: savedStations = [] } = useQuery<string[]>({
+    const { data: savedStationsRaw } = useQuery<string[]>({
         queryKey: ["/api/v1/users/me/favorites"],
         enabled: !!user,
         staleTime: 5 * 60 * 1000,
     });
 
+    const savedStations = Array.isArray(savedStationsRaw) ? savedStationsRaw : [];
     const isFavorited = savedStations.includes(track.id);
 
-    // Toggle favorite mutation
     const toggleFavoriteMutation = useMutation({
         mutationFn: async () => {
             const res = await apiRequest("POST", `/api/v1/music/favorites/${track.id}`);
@@ -41,117 +38,129 @@ export function MusicCard({ track }: MusicCardProps) {
             queryClient.invalidateQueries({ queryKey: ["/api/v1/users/me/favorites"] });
             const saved = data?.data?.saved ?? data?.saved;
             toast({
-                title: saved ? "Station Saved!" : "Station Removed",
-                description: saved ? `${track.title} added to your profile.` : `${track.title} removed from saved stations.`,
+                title: saved ? "Saved" : "Removed",
+                description: saved ? `${track.title} saved.` : `${track.title} removed.`,
             });
         },
         onError: () => {
             toast({
-                title: "Login Required",
-                description: "Sign in to save your favorite stations.",
+                title: "Sign in to save stations",
                 variant: "destructive",
             });
         },
     });
 
     const handleFavoriteClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // don't play track when clicking heart
+        e.stopPropagation();
         if (!user) {
-            toast({
-                title: "Login Required",
-                description: "Sign in to save your favorite stations.",
-                variant: "destructive",
-            });
+            toast({ title: "Sign in to save stations", variant: "destructive" });
             return;
         }
         toggleFavoriteMutation.mutate();
     };
 
     return (
-        <motion.div
-            whileHover={{ scale: 1.03, y: -4 }}
-            transition={{ duration: 0.2 }}
+        <div
             onClick={() => playTrack(track)}
-            className="group relative bg-gradient-to-br from-gray-900/40 to-gray-800/40 backdrop-blur-sm border border-white/5 rounded-xl overflow-hidden cursor-pointer hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+            className={cn(
+                "group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-400",
+                "border bg-white/[0.02]",
+                isCurrentTrack
+                    ? "border-white/15 shadow-[0_0_40px_rgba(120,100,200,0.08)]"
+                    : "border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
+            )}
         >
-            {/* Cover Art / Gradient */}
-            <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-purple-600/20 via-indigo-600/20 to-blue-600/20">
+            {/* Cover Art */}
+            <div className="aspect-square relative overflow-hidden bg-[#0d0d14]">
                 {track.coverArt ? (
                     <img
                         src={track.coverArt}
                         alt={track.title}
                         loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        className="w-full h-full object-cover opacity-60 group-hover:opacity-75 transition-opacity duration-500 scale-105 group-hover:scale-100 transition-transform"
+                        style={{ filter: "saturate(0.5) brightness(0.85)" }}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-6xl font-bold text-white/10">
+                    <div className="w-full h-full flex items-center justify-center text-5xl font-light text-white/8 font-serif">
                         {track.title.charAt(0)}
                     </div>
                 )}
 
-                {/* Hover overlay with play button */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-900/50">
-                        {isCurrentTrack && isPlaying ? (
-                            <div className="flex gap-1">
-                                <div className="w-1 h-4 bg-white animate-pulse" />
-                                <div className="w-1 h-4 bg-white animate-pulse delay-75" />
-                                <div className="w-1 h-4 bg-white animate-pulse delay-150" />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                {/* Play indicator */}
+                <div className={cn(
+                    "absolute inset-0 flex items-center justify-center transition-opacity duration-300",
+                    isCurrentTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                )}>
+                    <div className={cn(
+                        "w-11 h-11 rounded-full flex items-center justify-center",
+                        "bg-black/50 backdrop-blur-md border border-white/15",
+                        "transition-transform duration-200 group-hover:scale-105"
+                    )}>
+                        {isCurrentlyPlaying ? (
+                            <div className="flex gap-[3px] items-end h-4">
+                                {[0, 1, 2].map(i => (
+                                    <div
+                                        key={i}
+                                        className="w-[3px] bg-white/70 rounded-full"
+                                        style={{
+                                            height: "100%",
+                                            animation: `barBounce 0.9s ease-in-out ${i * 0.15}s infinite alternate`,
+                                        }}
+                                    />
+                                ))}
                             </div>
                         ) : (
-                            <Play className="h-6 w-6 text-white ml-0.5" />
+                            <Play className="h-5 w-5 text-white/80 ml-0.5" />
                         )}
                     </div>
                 </div>
 
-                {/* Mood badge */}
-                <div className="absolute top-2 right-2">
-                    <Badge
-                        variant="secondary"
-                        className="bg-black/50 backdrop-blur-sm border-white/10 text-white text-xs"
-                    >
+                {/* Mood label bottom-left */}
+                <div className="absolute bottom-2.5 left-3">
+                    <span className="text-[10px] uppercase tracking-widest text-white/30 font-medium">
                         {track.mood}
-                    </Badge>
+                    </span>
                 </div>
 
-                {/* Heart / Save button */}
+                {/* Heart */}
                 <button
                     onClick={handleFavoriteClick}
                     className={cn(
-                        "absolute bottom-2 right-2 p-1.5 rounded-full transition-all duration-200",
+                        "absolute top-2.5 right-2.5 p-1.5 rounded-full transition-all duration-200",
                         isFavorited
-                            ? "bg-pink-500/80 text-white opacity-100"
-                            : "bg-black/50 text-gray-300 opacity-0 group-hover:opacity-100 hover:bg-pink-500/60 hover:text-white"
+                            ? "text-white/60 opacity-100"
+                            : "text-white/20 opacity-0 group-hover:opacity-100 hover:text-white/50"
                     )}
-                    title={isFavorited ? "Remove from favorites" : "Save to favorites"}
                 >
-                    <Heart className={cn("h-4 w-4", isFavorited && "fill-current")} />
+                    <Heart className={cn("h-3.5 w-3.5", isFavorited && "fill-current")} />
                 </button>
             </div>
 
             {/* Track info */}
-            <div className="p-4 space-y-1">
-                <h3 className="font-semibold text-white truncate group-hover:text-purple-300 transition-colors">
+            <div className="px-4 py-3.5">
+                <p className={cn(
+                    "text-sm font-medium truncate transition-colors duration-200",
+                    isCurrentTrack ? "text-white/90" : "text-white/55 group-hover:text-white/80"
+                )}>
                     {track.title}
-                </h3>
-                <p className="text-sm text-gray-400 truncate">{track.artist}</p>
-
-                {/* Listener count */}
-                <div className="flex items-center gap-1 text-xs text-gray-500 pt-1">
-                    <Users className="h-3 w-3" />
-                    <span>{listeners} listening</span>
-                    {isFavorited && (
-                        <span className="ml-auto text-pink-400 flex items-center gap-0.5">
-                            <Heart className="h-3 w-3 fill-current" /> Saved
-                        </span>
-                    )}
-                </div>
+                </p>
+                <p className="text-xs text-white/28 truncate mt-0.5">{track.artist}</p>
             </div>
 
-            {/* Active indicator */}
+            {/* Active bar at bottom */}
             {isCurrentTrack && (
-                <div className="absolute inset-0 border-2 border-purple-500 rounded-xl pointer-events-none animate-pulse" />
+                <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/20" />
             )}
-        </motion.div>
+
+            <style>{`
+                @keyframes barBounce {
+                    from { transform: scaleY(0.3); }
+                    to   { transform: scaleY(1); }
+                }
+            `}</style>
+        </div>
     );
 }

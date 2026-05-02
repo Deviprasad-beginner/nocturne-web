@@ -7,8 +7,9 @@ import {
     Heart, Lightbulb, BookOpen,
     Mic, MessageSquare, Sparkles,
     Bell, Settings, User, LogOut,
-    Flame, Zap, Compass, ArrowRight,
+    Flame, Zap, Compass, ArrowRight, Music,
 } from "lucide-react";
+import { NightlyReflectionPopup } from "@/components/nightly-reflection-popup";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TabId = "sanctuary" | "connect" | "discover";
@@ -95,6 +96,16 @@ const SERVICES: Record<TabId, ServiceDef[]> = {
             accent: "#a78bfa",
             accentRgb: "167,139,250",
             status: "Drifting",
+        },
+        {
+            title: "Music & Mood",
+            description: "Nocturnal soundscapes tuned to how you feel right now. Lofi, jazz, synthwave, ambient rain — let the night play through you.",
+            route: "/music-mood",
+            icon: Music,
+            gradient: "from-violet-500 to-purple-700",
+            accent: "#a78bfa",
+            accentRgb: "167,139,250",
+            status: "Playing",
         },
     ],
     connect: [
@@ -284,6 +295,9 @@ export default function Home() {
 
             {/* Stars */}
             <Stars />
+            
+            {/* Popups */}
+            <NightlyReflectionPopup />
 
             {/* Ambient orbs */}
             <div className="nc-orb nc-orb-a" style={{ background: `radial-gradient(circle, ${tab.orb1}, transparent 70%)` }} />

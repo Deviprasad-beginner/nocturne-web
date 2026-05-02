@@ -38,4 +38,19 @@ router.delete(
     diariesController.delete
 );
 
+// GET /api/v1/diaries/:id/comments - Get comments for diary
+router.get(
+    "/:id/comments",
+    validate(z.object({ id: z.string().regex(/^\d+$/) }), "params"),
+    diariesController.getComments
+);
+
+// POST /api/v1/diaries/:id/comments - Add comment to diary
+router.post(
+    "/:id/comments",
+    requireAuth,
+    validate(z.object({ id: z.string().regex(/^\d+$/) }), "params"),
+    diariesController.addComment
+);
+
 export default router;

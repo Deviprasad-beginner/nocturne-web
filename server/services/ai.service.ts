@@ -212,7 +212,7 @@ let aiServiceInstance: IAIService | null = null;
 export function getAIService(): IAIService {
     if (!aiServiceInstance) {
         const apiKey = process.env.GEMINI_API_KEY || "";
-        const model = process.env.GEMINI_MODEL || "gemini-pro";
+        const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
         if (!apiKey) {
             console.warn("⚠️ No valid GEMINI_API_KEY found. Using Mock AI Service.");

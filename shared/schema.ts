@@ -59,6 +59,16 @@ export const diaries = pgTable("diaries", {
   index("idx_diaries_created_at").on(table.createdAt),
 ]);
 
+export const diaryComments = pgTable("diary_comments", {
+  id: serial("id").primaryKey(),
+  diaryId: integer("diary_id").references(() => diaries.id, { onDelete: "cascade" }).notNull(),
+  authorId: integer("author_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_diary_comments_diary_id").on(table.diaryId),
+]);
+
 export const whispers = pgTable("whispers", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
@@ -230,6 +240,11 @@ export const insertDiarySchema = createInsertSchema(diaries).omit({
   createdAt: true,
 });
 
+export const insertDiaryCommentSchema = createInsertSchema(diaryComments).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertWhisperSchema = createInsertSchema(whispers).omit({
   id: true,
   hearts: true,
@@ -350,7 +365,8 @@ export interface UserPreferences {
 export type Diary = typeof diaries.$inferSelect;
 export type InsertDiary = z.infer<typeof insertDiarySchema>;
 
-
+export type DiaryComment = typeof diaryComments.$inferSelect;
+export type InsertDiaryComment = z.infer<typeof insertDiaryCommentSchema>;
 
 export type GlobalConsciousness = typeof globalConsciousness.$inferSelect;
 export type InsertGlobalConsciousness = z.infer<typeof insertGlobalConsciousnessSchema>;

@@ -1,8 +1,10 @@
 import { db } from "../db";
-import { diaries, users } from "@shared/schema";
+import { diaries, users, diaryComments } from "@shared/schema";
 import {
   type Diary,
   type InsertDiary,
+  type DiaryComment,
+  type InsertDiaryComment,
 } from "@shared/schema";
 import { eq, desc, or } from "drizzle-orm";
 import { logger } from "../utils/logger";
@@ -110,6 +112,33 @@ export async function getUserDiaries(userId: number, limit?: number): Promise<Di
       .limit(capLimit(limit));
   } catch (error) {
     logger.error("Error getting user diaries:", error);
+    return [];
+  }
+}
+
+export async function createDiaryComment(comment: InsertDiaryComment): Promise<DiaryComment> {
+  try {
+    const [newComment] = await db.insert(diaryComments).values(comment).returning();
+    return newComment;
+  } catch (error) {
+    logger.error("Error creating diary comment:", error);
+    throw error;
+  }
+}
+
+export async function getDiaryComments(diaryId: number, limit?: number): Promise<(DiaryComment & { author?: typeof users.$inferSelect })[]> {
+  try {
+    const results = await db
+      .select({ comment: diaryComments, author: users })
+      .from(diaryComments)
+      .leftJoin(users, eq(diaryComments.authorId, users.id))
+      .where(eq(diaryComments.diaryId, diaryId))
+      .orderBy(desc(diaryComments.createdAt))
+      .limit(capLimit(limit));
+      
+    return results.map(r => ({ ...r.comment, author: r.author || undefined })) as any;
+  } catch (error) {
+    logger.error("Error getting diary comments:", error);
     return [];
   }
 }

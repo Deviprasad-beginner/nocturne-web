@@ -45,12 +45,37 @@ app.use(helmet({
       connectSrc: ["'self'", "https:", "wss:"],
       mediaSrc: ["'self'", "https:", "blob:"],
       frameSrc: ["'self'", "https://accounts.google.com", "https://*.firebaseapp.com", "https://www.youtube.com"],
+      frameAncestors: ["'none'"],   // blocks clickjacking
+      upgradeInsecureRequests: [], // force HTTPS sub-resources
     },
   },
+  // HSTS — explicitly enabled for production HTTPS
+  strictTransportSecurity: {
+    maxAge: 31536000,        // 1 year
+    includeSubDomains: true,
+    preload: true,
+  },
+  // X-Frame-Options: DENY
+  frameguard: { action: "deny" },
+  // X-Content-Type-Options: nosniff
+  noSniff: true,
+  // X-XSS-Protection: 1; mode=block (legacy browsers)
+  xssFilter: true,
+  // Referrer-Policy
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   crossOriginEmbedderPolicy: false,
-  crossOriginOpenerPolicy: false, // Allow communication with popups (Firebase Auth)
-  originAgentCluster: false, // Required for some cross-origin interactions
+  crossOriginOpenerPolicy: false,
+  originAgentCluster: false,
 }));
+
+// Permissions-Policy — helmet doesn't set this; add manually
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+  );
+  next();
+});
 
 // CORS configuration — explicit origin required in production
 const allowedOrigin = process.env.FRONTEND_URL || (isProduction ? false : "http://localhost:5173");

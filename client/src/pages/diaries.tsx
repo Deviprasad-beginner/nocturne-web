@@ -19,6 +19,7 @@ import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import type { User } from "@shared/schema";
+import { DiaryEchoes } from "@/components/diary-echoes";
 
 // Live Clock Component
 const LiveClock = () => {
@@ -44,6 +45,7 @@ const LiveClock = () => {
 export default function Diaries() {
   const [isCreating, setIsCreating] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'mine' | 'private'>('all');
   const { toast } = useToast();
   const confirmDialog = useConfirmDialog();
   const { handleError } = useErrorHandler();
@@ -160,6 +162,15 @@ export default function Diaries() {
   };
 
   const hasEntries = diaries.length > 0;
+  
+  // Filter diaries based on active tab
+  const filteredDiaries = diaries.filter(diary => {
+    if (activeTab === 'all') return true; // Assuming the backend already filters based on permissions
+    if (activeTab === 'mine') return user && diary.authorId === user.id;
+    if (activeTab === 'private') return user && diary.authorId === user.id && !diary.isPublic;
+    return true;
+  });
+
   // If no entries, we want the "Begin Tonight" experience.
   // If we have entries, we show the standard list but with the new header style.
 
@@ -302,6 +313,25 @@ export default function Diaries() {
                 </div>
               )}
 
+              {/* Tabs for filtering */}
+              {hasEntries && !isCreating && (
+                <div className="flex items-center justify-center space-x-2 pb-4">
+                  {(['all', 'mine', 'private'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-4 py-1.5 rounded-full text-xs tracking-wider uppercase transition-all duration-300 ${
+                        activeTab === tab
+                          ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
+                          : 'text-gray-500 hover:text-gray-300 border border-transparent'
+                      }`}
+                    >
+                      {tab === 'all' ? 'All Echoes' : tab === 'mine' ? 'My Pages' : 'Private Vault'}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Create Form */}
               {isCreating && (
                 <Card className="mb-8 bg-gray-900/80 border-indigo-500/20 shadow-2xl shadow-indigo-900/10 backdrop-blur-xl">
@@ -373,7 +403,7 @@ export default function Diaries() {
                       </Card>
                     ))
                   ) : (
-                    diaries.map((diary, index) => {
+                    filteredDiaries.map((diary, index) => {
                       const isOwner = user && diary.authorId === user.id;
 
                       return (
@@ -419,6 +449,9 @@ export default function Diaries() {
                               <p className="text-gray-300 leading-relaxed font-serif text-lg pl-4 border-l-2 border-indigo-900/50">
                                 {diary.content}
                               </p>
+                              
+                              {/* Echoes / Comments Section */}
+                              <DiaryEchoes diaryId={diary.id} />
                             </CardContent>
                           </Card>
                         </motion.div>
