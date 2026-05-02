@@ -4,10 +4,11 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import sitemap from "vite-plugin-sitemap";
 
-// All publicly-accessible routes (no auth required) for sitemap generation
+// Publicly-accessible routes for sitemap generation
+// Keep this in sync with sitemap.routes.ts
+// ⚠️  Do NOT include: google verification files, /auth, user-only routes
 const publicRoutes = [
   "/",
-  "/auth",
   "/diaries",
   "/whispers",
   "/mind-maze",
