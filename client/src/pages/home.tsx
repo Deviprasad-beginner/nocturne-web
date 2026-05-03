@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { SEO } from "@/components/SEO";
@@ -177,35 +177,45 @@ const SERVICES: Record<TabId, ServiceDef[]> = {
     ],
 };
 
-// ─── Stars Background ─────────────────────────────────────────────────────────
-function Stars() {
-    const stars = useMemo(() =>
-        Array.from({ length: 48 }, (_, i) => ({
-            id: i,
-            x: ((i * 71 + 17) % 100),
-            y: ((i * 47 + 11) % 100),
-            size: i % 5 === 0 ? 2 : 1,
-            delay: (i * 0.41) % 5,
-            duration: 2 + ((i * 0.47) % 3),
-        })), []);
-
+// ─── Moon Atmosphere Background ──────────────────────────────────────────────
+function MoonAtmosphere() {
     return (
         <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
-            {stars.map(s => (
-                <div
-                    key={s.id}
-                    style={{
-                        position: "absolute",
-                        left: `${s.x}%`,
-                        top: `${s.y}%`,
-                        width: s.size,
-                        height: s.size,
-                        borderRadius: "50%",
-                        background: "rgba(255,255,255,0.65)",
-                        animation: `starTwinkle ${s.duration}s ${s.delay}s ease-in-out infinite`,
-                    }}
-                />
-            ))}
+            {/* Distant moon halo — top right */}
+            <div style={{
+                position: "absolute",
+                top: "-8vw", right: "-6vw",
+                width: "38vw", height: "38vw",
+                borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(200,210,255,0.055) 0%, rgba(139,92,246,0.03) 50%, transparent 72%)",
+                filter: "blur(2px)",
+                animation: "moonFloat 18s ease-in-out infinite alternate, moonBreathe 6s ease-in-out infinite",
+            }} />
+            {/* Crescent edge glow */}
+            <div style={{
+                position: "absolute",
+                top: "-4vw", right: "-2vw",
+                width: "22vw", height: "22vw",
+                borderRadius: "50%",
+                boxShadow: "inset -6px -4px 0 0 rgba(180,190,255,0.06), 0 0 60px rgba(139,92,246,0.04)",
+                animation: "moonFloat 18s ease-in-out infinite alternate, moonBreathe 6s ease-in-out infinite",
+            }} />
+            {/* Soft lunar ray sweep */}
+            <div style={{
+                position: "absolute",
+                top: "-20%", right: "-20%",
+                width: "90vw", height: "90vw",
+                borderRadius: "50%",
+                background: "conic-gradient(from 200deg, transparent 0deg, rgba(139,92,246,0.018) 30deg, transparent 60deg)",
+                animation: "moonRay 28s linear infinite",
+            }} />
+            {/* Ground mist — bottom */}
+            <div style={{
+                position: "absolute",
+                bottom: 0, left: 0, right: 0,
+                height: "30vh",
+                background: "linear-gradient(to top, rgba(99,102,241,0.04) 0%, transparent 100%)",
+            }} />
         </div>
     );
 }
@@ -223,21 +233,22 @@ function ServiceCard({ svc, idx, onClick }: { svc: ServiceDef; idx: number; onCl
                 animationDelay: `${idx * 80}ms`,
             } as React.CSSProperties}
         >
-            {svc.hot && (
-                <span className="nc-hot">
-                    <Flame className="nc-hot-icon" /> Hot
-                </span>
-            )}
-
-            <div className="nc-card-header">
+                <div className="nc-card-header">
                 <div className={`nc-icon bg-gradient-to-br ${svc.gradient}`}>
                     <Icon className="nc-icon-svg" />
                     <div className="nc-icon-sheen" />
                 </div>
-                <span className="nc-badge">
-                    <span className="nc-badge-dot" />
-                    {svc.status}
-                </span>
+                <div className="nc-card-header-right">
+                    {svc.hot && (
+                        <span className="nc-hot">
+                            <Flame className="nc-hot-icon" /> Hot
+                        </span>
+                    )}
+                    <span className="nc-badge">
+                        <span className="nc-badge-dot" />
+                        {svc.status}
+                    </span>
+                </div>
             </div>
 
             <div className="nc-card-body">
@@ -293,8 +304,8 @@ export default function Home() {
             <SEO title="Nocturne — Where night owls gather" />
             <style>{STYLES}</style>
 
-            {/* Stars */}
-            <Stars />
+            {/* Moon Atmosphere */}
+            <MoonAtmosphere />
             
             {/* Popups */}
             <NightlyReflectionPopup />
@@ -457,10 +468,18 @@ const STYLES = `
   overflow-x: hidden;
 }
 
-/* ── Stars ─────────────────────────────────── */
-@keyframes starTwinkle {
-  0%, 100% { opacity: 0.15; transform: scale(1); }
-  50%       { opacity: 0.85; transform: scale(1.5); }
+/* ── Moon Atmosphere ───────────────────────── */
+@keyframes moonFloat {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-1.5%, 2%) scale(1.03); }
+}
+@keyframes moonBreathe {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.04); }
+}
+@keyframes moonRay {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* ── Orbs ──────────────────────────────────── */
@@ -700,7 +719,6 @@ const STYLES = `
 
 /* Hot badge */
 .nc-hot {
-  position: absolute; top: 16px; right: 16px;
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 9.5px; font-weight: 700;
   letter-spacing: 0.07em; text-transform: uppercase;
@@ -715,6 +733,9 @@ const STYLES = `
 .nc-card-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   margin-bottom: 20px;
+}
+.nc-card-header-right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
 }
 
 /* Icon */

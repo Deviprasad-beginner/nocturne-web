@@ -149,11 +149,88 @@ export default function ReaderEnvironment({
         [atm.particleCount]
     );
 
-    // Split paragraphs
-    const paragraphs = useMemo(
-        () => content.split(/\n\n+/).filter((p) => p.trim().length > 0),
-        [content]
-    );
+    // ── Lightweight content parser ────────────────────────────────────────────
+    // Parses the raw text into typed blocks: heading, blockquote, divider, paragraph
+    type Block =
+        | { type: "h1"; text: string }
+        | { type: "h2"; text: string }
+        | { type: "h3"; text: string }
+        | { type: "blockquote"; text: string }
+        | { type: "divider" }
+        | { type: "paragraph"; lines: string[] };
+
+    const blocks = useMemo((): Block[] => {
+        // ── Tier 1: Try double-newline split
+        let rawBlocks = content.split(/\n\n+/).map(b => b.trim()).filter(Boolean);
+
+        // ── Tier 2: If entire content is 1–2 big blobs, try single-newline split instead
+        const avgLen = rawBlocks.reduce((s, b) => s + b.length, 0) / (rawBlocks.length || 1);
+        if (rawBlocks.length <= 2 || avgLen > 800) {
+            const singleSplit = content.split(/\n/).map(b => b.trim()).filter(Boolean);
+            if (singleSplit.length > rawBlocks.length) rawBlocks = singleSplit;
+        }
+
+        // ── Helper: auto-split a wall-of-text blob by sentence boundaries (~3 sentences each)
+        const sentenceChunk = (text: string): string[] => {
+            // Match sentence endings: period/!/? followed by space or end, but not abbreviations like "a.m."
+            const sentences = text.match(/[^.!?]*(?:[.!?](?:["']?\s+(?=[A-Z])|["']?$))/g) ?? [text];
+            const chunks: string[] = [];
+            const size = 3;
+            for (let s = 0; s < sentences.length; s += size) {
+                const chunk = sentences.slice(s, s + size).join("").trim();
+                if (chunk) chunks.push(chunk);
+            }
+            // Leftover sentences that didn't complete a full chunk
+            const remainder = text.slice(chunks.join("").length).trim();
+            if (remainder) chunks.push(remainder);
+            return chunks.length > 1 ? chunks : [text];
+        };
+
+        const result: Block[] = [];
+        for (const block of rawBlocks) {
+            const trimmed = block.trim();
+            if (!trimmed) continue;
+
+            if (/^#{3}\s+/.test(trimmed)) {
+                result.push({ type: "h3", text: trimmed.replace(/^#{3}\s+/, "") });
+            } else if (/^#{2}\s+/.test(trimmed)) {
+                result.push({ type: "h2", text: trimmed.replace(/^#{2}\s+/, "") });
+            } else if (/^#\s+/.test(trimmed)) {
+                result.push({ type: "h1", text: trimmed.replace(/^#\s+/, "") });
+            } else if (/^>{1,2}\s?/.test(trimmed)) {
+                result.push({ type: "blockquote", text: trimmed.replace(/^>{1,2}\s?/, "") });
+            } else if (/^[-*]{3,}$/.test(trimmed.replace(/\s/g, ""))) {
+                result.push({ type: "divider" });
+            } else {
+                const lines = trimmed.split("\n");
+                const hasMultipleLines = lines.length > 1;
+
+                if (!hasMultipleLines && trimmed.length > 500) {
+                    // ── Tier 3: Wall of text — auto-split by sentence boundaries
+                    for (const chunk of sentenceChunk(trimmed)) {
+                        result.push({ type: "paragraph", lines: [chunk] });
+                    }
+                } else {
+                    result.push({ type: "paragraph", lines: lines });
+                }
+            }
+        }
+        return result;
+    }, [content]);
+
+    // Render inline markdown: **bold**, *italic*, `code`
+    const renderInline = (text: string): React.ReactNode => {
+        const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+        return parts.map((part, i) => {
+            if (/^\*\*[^*]+\*\*$/.test(part))
+                return <strong key={i}>{part.slice(2, -2)}</strong>;
+            if (/^\*[^*]+\*$/.test(part))
+                return <em key={i}>{part.slice(1, -1)}</em>;
+            if (/^`[^`]+`$/.test(part))
+                return <code key={i} style={{ fontFamily: "monospace", fontSize: "0.9em", opacity: 0.8 }}>{part.slice(1, -1)}</code>;
+            return part;
+        });
+    };
 
     // Reading duration timer (adaptive contrast)
     useEffect(() => {
@@ -340,30 +417,148 @@ export default function ReaderEnvironment({
                     lineHeight: mode.typography.lineHeight,
                     letterSpacing: mode.typography.letterSpacing,
                     fontWeight: mode.typography.fontWeight as any,
-                    textAlign: mode.layout.alignment,
+                    textAlign: "left",
                     opacity: adaptiveOpacity,
                     transition: "opacity 2s ease",
                     ...({ "--selection-bg": textColors.selection } as React.CSSProperties),
                 }}
             >
-                {paragraphs.map((para, i) => {
+                {blocks.map((block, i) => {
                     const isFocused = activeParagraph === i;
                     const dimmed = mode.features.focusMode && activeParagraph >= 0 && !isFocused;
+                    const paraSpacing =
+                        mode.id === "sleep" ? "3.2em" :
+                        mode.id === "think" ? "2.4em" : "1.8em";
+                    const dimStyle = {
+                        color: dimmed ? textColors.dimText : textColors.text,
+                        transition: "color 0.5s ease, transform 0.5s ease",
+                        transform: isFocused && mode.features.focusMode ? "scale(1.006)" : "scale(1)",
+                    };
 
+                    if (block.type === "divider") {
+                        return (
+                            <hr
+                                key={i}
+                                data-paragraph={i}
+                                style={{
+                                    border: "none",
+                                    borderTop: `1px solid ${textColors.accent}33`,
+                                    margin: `${paraSpacing} auto`,
+                                    width: "40%",
+                                }}
+                            />
+                        );
+                    }
+
+                    if (block.type === "blockquote") {
+                        return (
+                            <blockquote
+                                key={i}
+                                data-paragraph={i}
+                                style={{
+                                    ...dimStyle,
+                                    marginBottom: paraSpacing,
+                                    marginLeft: 0,
+                                    marginRight: 0,
+                                    paddingLeft: "1.4em",
+                                    borderLeft: `3px solid ${textColors.accent}`,
+                                    fontStyle: "italic",
+                                    opacity: dimmed ? 0.35 : 0.85,
+                                    letterSpacing: "0.01em",
+                                }}
+                            >
+                                {renderInline(block.text)}
+                            </blockquote>
+                        );
+                    }
+
+                    if (block.type === "h1") {
+                        return (
+                            <h1
+                                key={i}
+                                data-paragraph={i}
+                                style={{
+                                    ...dimStyle,
+                                    fontSize: "1.9em",
+                                    fontWeight: 700,
+                                    color: textColors.accent,
+                                    marginBottom: "0.6em",
+                                    marginTop: i === 0 ? 0 : "1.6em",
+                                    lineHeight: 1.25,
+                                    letterSpacing: "-0.01em",
+                                    paddingBottom: "0.3em",
+                                    borderBottom: `1px solid ${textColors.accent}30`,
+                                }}
+                            >
+                                {renderInline(block.text)}
+                            </h1>
+                        );
+                    }
+
+                    if (block.type === "h2") {
+                        return (
+                            <h2
+                                key={i}
+                                data-paragraph={i}
+                                style={{
+                                    ...dimStyle,
+                                    fontSize: "1.4em",
+                                    fontWeight: 600,
+                                    color: textColors.accent,
+                                    marginBottom: "0.5em",
+                                    marginTop: i === 0 ? 0 : "1.4em",
+                                    lineHeight: 1.3,
+                                    opacity: dimmed ? 0.35 : 0.9,
+                                }}
+                            >
+                                {renderInline(block.text)}
+                            </h2>
+                        );
+                    }
+
+                    if (block.type === "h3") {
+                        return (
+                            <h3
+                                key={i}
+                                data-paragraph={i}
+                                style={{
+                                    ...dimStyle,
+                                    fontSize: "1.1em",
+                                    fontWeight: 600,
+                                    color: textColors.text,
+                                    marginBottom: "0.4em",
+                                    marginTop: i === 0 ? 0 : "1.2em",
+                                    lineHeight: 1.4,
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.08em",
+                                    opacity: dimmed ? 0.35 : 0.7,
+                                }}
+                            >
+                                {renderInline(block.text)}
+                            </h3>
+                        );
+                    }
+
+                    // paragraph
                     return (
                         <p
                             key={i}
                             data-paragraph={i}
                             style={{
-                                marginBottom:
-                                    mode.id === "sleep" ? "3.2em" :
-                                    mode.id === "think" ? "2.4em" : "1.8em",
-                                color: dimmed ? textColors.dimText : textColors.text,
-                                transform: isFocused && mode.features.focusMode ? "scale(1.006)" : "scale(1)",
-                                transition: "color 0.5s ease, transform 0.5s ease",
+                                ...dimStyle,
+                                marginBottom: paraSpacing,
+                                textIndent:
+                                    (mode.id === "feel" || mode.id === "sleep") && i > 0 && blocks[i - 1]?.type === "paragraph"
+                                        ? "1.8em"
+                                        : "0",
                             }}
                         >
-                            {para}
+                            {block.lines.map((line, li) => (
+                                <span key={li}>
+                                    {renderInline(line)}
+                                    {li < block.lines.length - 1 && <br />}
+                                </span>
+                            ))}
                         </p>
                     );
                 })}
