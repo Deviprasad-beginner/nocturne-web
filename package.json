@@ -13,7 +13,7 @@
     "test": "vitest run"
   },
   "engines": {
-    "node": ">=20.11.0",
+    "node": ">=22.12.0",
     "npm": ">=10.0.0"
   },
   "dependencies": {
@@ -137,5 +137,10 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "overrides": {
+    "@tailwindcss/vite": {
+      "vite": "$vite"
+    }
   }
 }
