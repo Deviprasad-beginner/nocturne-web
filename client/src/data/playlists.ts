@@ -110,5 +110,35 @@ export const playlists: Playlist[] = [
             { id: "bedroom-pop", name: "Bedroom Pop", streamUrl: "https://www.youtube.com/watch?v=0TvWJZ3k3Ls" },
             { id: "nice-guys", name: "Nice Guys Chill", streamUrl: "https://www.youtube.com/watch?v=oViO2q2k18g" }
         ]
+    },
+    {
+        id: "asmr-triggers",
+        name: "ASMR Sleep Triggers",
+        description: "Tingling sounds for deep relaxation",
+        mood: "ASMR",
+        listeners: 154,
+        duration: "Live",
+        tracks: 24,
+        color: "from-slate-600 to-slate-700",
+        stations: [
+            { id: "asmr-rain", name: "Rain & Thunder ASMR", streamUrl: "https://www.youtube.com/watch?v=mPZkdNFkNps" },
+            { id: "asmr-fireplace", name: "Cozy Fireplace ASMR", streamUrl: "https://www.youtube.com/watch?v=FjHGZj2IjA4" },
+            { id: "asmr-typing", name: "Keyboard Typing ASMR", streamUrl: "https://www.youtube.com/watch?v=-5KAN9_CzSA" }
+        ]
+    },
+    {
+        id: "evening-journal",
+        name: "Evening Journal",
+        description: "Quiet lofi beats for reflection and writing",
+        mood: "Journal",
+        listeners: 89,
+        duration: "Live",
+        tracks: 42,
+        color: "from-slate-600 to-slate-700",
+        stations: [
+            { id: "journal-lofi", name: "Lofi Girl Study", streamUrl: "https://www.youtube.com/watch?v=jfKfPfyJRdk" },
+            { id: "journal-chill", name: "Chillhop Radio", streamUrl: "https://www.youtube.com/watch?v=5yx6BWlEVcY" },
+            { id: "journal-piano", name: "Soft Piano Reflection", streamUrl: "https://www.youtube.com/watch?v=8XzxWhk3Wgs" }
+        ]
     }
 ];

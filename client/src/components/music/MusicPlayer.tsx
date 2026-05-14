@@ -1,10 +1,10 @@
 import { useMusic, useMusicProgress } from "@/context/MusicContext";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, Volume2, VolumeX, ChevronDown, ChevronUp, Music } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, ChevronDown, ChevronUp, Music, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 export function MusicPlayer() {
-    const { currentTrack, isPlaying, volume, listeners, togglePlay, setVolume, seek } = useMusic();
+    const { currentTrack, isPlaying, isBuffering, volume, listeners, togglePlay, setVolume, seek } = useMusic();
     const { progress, duration } = useMusicProgress();
     const [isMuted, setIsMuted] = useState(false);
     const [previousVolume, setPreviousVolume] = useState(volume);
@@ -107,9 +107,16 @@ export function MusicPlayer() {
                             {/* Play/Pause */}
                             <button
                                 onClick={togglePlay}
-                                className="h-9 w-9 rounded-full border border-white/12 bg-white/6 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white/90 transition-all duration-200 flex-shrink-0"
+                                disabled={isBuffering}
+                                className="h-9 w-9 rounded-full border border-white/12 bg-white/6 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white/90 transition-all duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+                                {isBuffering ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : isPlaying ? (
+                                    <Pause className="h-4 w-4" />
+                                ) : (
+                                    <Play className="h-4 w-4 ml-0.5" />
+                                )}
                             </button>
 
                             {/* Volume */}

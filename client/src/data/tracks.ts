@@ -1,4 +1,4 @@
-import { Track } from "@/lib/youtubePlayer";
+import { Track } from "@/lib/audioPlayer";
 import { playlists } from "./playlists";
 
 // Convert existing playlists/stations to Track format
@@ -22,7 +22,9 @@ function mapMoodToCategory(originalMood: string): string {
         'Peaceful': 'relax',
         'Contemplative': 'lonely',
         'Melancholic': 'deep-night',
-        'Energetic': 'coding'
+        'Energetic': 'coding',
+        'ASMR': 'asmr',
+        'Journal': 'journal'
     };
     return map[originalMood] || 'focus'; // Default to focus
 }
@@ -36,6 +38,8 @@ function getMoodCoverArt(mood: string): string | undefined {
         'Energetic': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop',
         'Peaceful': 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=400&h=400&fit=crop',
         'Melancholic': 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=400&h=400&fit=crop',
+        'ASMR': 'https://images.unsplash.com/photo-1517404215738-15263e9f9178?w=400&h=400&fit=crop',
+        'Journal': 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=400&h=400&fit=crop',
     };
     return coverMap[mood];
 }

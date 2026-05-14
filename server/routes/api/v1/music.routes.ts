@@ -11,25 +11,12 @@ import { z } from "zod";
 const router = Router();
 
 // GET /api/v1/music/search?query= - Search for music
-router.get(
-    "/search",
-    validate(z.object({ query: z.string().min(1) }), "query"),
-    musicController.search
-);
+router.get("/search", validate(z.object({ query: z.string().optional().default("") }), "query"), musicController.search);
 
 // POST /api/v1/music/favorites/:stationId - Toggle favorite
-router.post(
-    "/favorites/:stationId",
-    requireAuth,
-    validate(z.object({ stationId: z.string() }), "params"),
-    musicController.toggleFavorite
-);
+router.post("/favorites/:stationId", requireAuth, validate(z.object({ stationId: z.string() }), "params"), musicController.toggleFavorite);
 
 // GET /api/v1/music/favorites - Get favorites
-router.get(
-    "/favorites",
-    requireAuth,
-    musicController.getFavorites
-);
+router.get("/favorites", requireAuth, musicController.getFavorites);
 
 export default router;

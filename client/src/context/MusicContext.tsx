@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { youtubePlayer, Track } from "@/lib/youtubePlayer";
+import { audioPlayer, Track } from "@/lib/audioPlayer";
 
 interface MusicContextType {
     // Current playback state
     currentTrack: Track | null;
     isPlaying: boolean;
+    isBuffering: boolean;
     progress: number; // 0-100
     duration: number; // seconds
     volume: number; // 0-1
@@ -27,6 +28,7 @@ const MusicProgressContext = createContext<{ progress: number; duration: number 
 export function MusicProvider({ children }: { children: ReactNode }) {
     const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isBuffering, setIsBuffering] = useState(false);
     const [volume, setVolumeState] = useState(0.5);
     const [mood, setMoodState] = useState<string | null>(null);
     const [listeners, setListeners] = useState(0);
@@ -39,14 +41,17 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         const handlePlay = (track: Track) => {
             setCurrentTrack(track);
             setIsPlaying(true);
+            setIsBuffering(false);
             setListeners(Math.floor(Math.random() * 50) + 10);
         };
 
         const handlePause = () => setIsPlaying(false);
-        const handleResume = () => setIsPlaying(true);
+        const handleResume = () => { setIsPlaying(true); setIsBuffering(false); };
+        const handleBuffering = () => setIsBuffering(true);
 
         const handleStop = () => {
             setIsPlaying(false);
+            setIsBuffering(false);
             setProgressState(prev => ({ ...prev, progress: 0 }));
         };
 
@@ -66,6 +71,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
         const handleEnded = () => {
             setIsPlaying(false);
+            setIsBuffering(false);
             setProgressState(prev => ({ ...prev, progress: 0 }));
         };
 
@@ -73,18 +79,26 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             setVolumeState(data.volume);
         };
 
+        const handleError = () => {
+            setIsPlaying(false);
+            setIsBuffering(false);
+            // We could set a global error state here if needed
+        };
+
         // Subscribe to events
-        youtubePlayer.on('play', handlePlay);
-        youtubePlayer.on('pause', handlePause);
-        youtubePlayer.on('resume', handleResume);
-        youtubePlayer.on('stop', handleStop);
-        youtubePlayer.on('timeupdate', handleTimeUpdate);
-        youtubePlayer.on('loadedmetadata', handleLoadedMetadata);
-        youtubePlayer.on('ended', handleEnded);
-        youtubePlayer.on('volumechange', handleVolumeChange);
+        audioPlayer.on('play', handlePlay);
+        audioPlayer.on('pause', handlePause);
+        audioPlayer.on('resume', handleResume);
+        audioPlayer.on('stop', handleStop);
+        audioPlayer.on('timeupdate', handleTimeUpdate);
+        audioPlayer.on('loadedmetadata', handleLoadedMetadata);
+        audioPlayer.on('ended', handleEnded);
+        audioPlayer.on('volumechange', handleVolumeChange);
+        audioPlayer.on('buffering', handleBuffering);
+        audioPlayer.on('error', handleError);
 
         // Get initial state
-        const state = youtubePlayer.getState();
+        const state = audioPlayer.getState();
         if (state.track) {
             setCurrentTrack(state.track);
             setIsPlaying(state.isPlaying);
@@ -93,33 +107,38 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
         return () => {
             // Cleanup separate listeners
-            youtubePlayer.off('play', handlePlay);
-            youtubePlayer.off('pause', handlePause);
-            youtubePlayer.off('resume', handleResume);
-            youtubePlayer.off('stop', handleStop);
-            youtubePlayer.off('timeupdate', handleTimeUpdate);
-            youtubePlayer.off('loadedmetadata', handleLoadedMetadata);
-            youtubePlayer.off('ended', handleEnded);
-            youtubePlayer.off('volumechange', handleVolumeChange);
+            audioPlayer.off('play', handlePlay);
+            audioPlayer.off('pause', handlePause);
+            audioPlayer.off('resume', handleResume);
+            audioPlayer.off('stop', handleStop);
+            audioPlayer.off('timeupdate', handleTimeUpdate);
+            audioPlayer.off('loadedmetadata', handleLoadedMetadata);
+            audioPlayer.off('ended', handleEnded);
+            audioPlayer.off('volumechange', handleVolumeChange);
+            audioPlayer.off('buffering', handleBuffering);
+            audioPlayer.off('error', handleError);
         };
     }, []);
 
-    const playTrack = useCallback((track: Track) => youtubePlayer.play(track), []);
+    const playTrack = useCallback((track: Track) => {
+        setIsBuffering(true);
+        audioPlayer.play(track);
+    }, []);
 
     const togglePlay = useCallback(() => {
-        if (isPlaying) youtubePlayer.pause();
-        else youtubePlayer.resume();
+        if (isPlaying) audioPlayer.pause();
+        else audioPlayer.resume();
     }, [isPlaying]);
 
-    const setVolume = useCallback((vol: number) => youtubePlayer.setVolume(vol * 100), []);
+    const setVolume = useCallback((vol: number) => audioPlayer.setVolume(vol * 100), []);
 
     // Note: seek needs duration but we get it from player or keep it in ref if needed
     // For now we'll just pass percentage to player which handles time calc internally if needed
     // actually our seek takes percentage, so straightforward
     const seek = useCallback((percentage: number) => {
-        const duration = youtubePlayer.getState().duration; // Get directly from player to avoid dependency
+        const duration = audioPlayer.getState().duration; // Get directly from player to avoid dependency
         const time = (percentage / 100) * duration;
-        youtubePlayer.seek(time);
+        audioPlayer.seek(time);
     }, []);
 
     const setMood = useCallback((newMood: string | null) => setMoodState(newMood), []);
@@ -128,6 +147,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const contextValue = React.useMemo(() => ({
         currentTrack,
         isPlaying,
+        isBuffering,
         // Removed progress/duration from main context
         progress: 0, // Deprecated in main context
         duration: 0, // Deprecated in main context
@@ -139,7 +159,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         setVolume,
         seek,
         setMood,
-    }), [currentTrack, isPlaying, volume, mood, listeners, playTrack, togglePlay, setVolume, seek, setMood]);
+    }), [currentTrack, isPlaying, isBuffering, volume, mood, listeners, playTrack, togglePlay, setVolume, seek, setMood]);
 
     return (
         <MusicContext.Provider value={contextValue}>

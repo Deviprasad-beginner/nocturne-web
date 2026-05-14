@@ -1,4 +1,4 @@
-import { Track } from "@/lib/youtubePlayer";
+import { Track } from "@/lib/audioPlayer";
 import { useMusic } from "@/context/MusicContext";
 import { Play, Pause, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,7 +27,7 @@ export function MusicCard({ track }: MusicCardProps) {
     });
 
     const savedStations = Array.isArray(savedStationsRaw) ? savedStationsRaw : [];
-    const isFavorited = savedStations.includes(track.id);
+    const isFavorited = savedStations.includes(String(track.id));
 
     const toggleFavoriteMutation = useMutation({
         mutationFn: async () => {

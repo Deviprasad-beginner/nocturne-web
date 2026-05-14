@@ -13,8 +13,11 @@ export class MusicController {
      */
     search = asyncHandler(async (req: Request, res: Response) => {
         const query = req.query.query as string;
+        if (!query || !query.trim()) {
+            return res.json([]);
+        }
         const stations = await musicService.searchMusic(query);
-        res.json(successResponse(stations));
+        res.json(stations); // plain array — no wrapper needed
     });
 
     /**
