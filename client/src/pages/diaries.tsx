@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { SEO } from "@/components/SEO";
 import { Diary, InsertDiary, NightlyPrompt } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -176,6 +177,10 @@ export default function Diaries() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black text-white p-6 md:p-10 overflow-x-hidden relative">
+      <SEO 
+        title="Digital Night Journals & Reflection" 
+        description="Chronicle your quiet late-night thoughts. Reflect, write, and safely express your inner world in a private nocturnal journal." 
+      />
       {/* Background Atmosphere - Radial Moon Glow */}
       <div className="fixed top-[-20%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none z-0 mix-blend-screen animate-pulse-slow" />
 

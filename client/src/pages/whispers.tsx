@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { SEO } from "@/components/SEO";
 import { Whisper, InsertWhisper, GlobalConsciousness } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -118,6 +119,10 @@ export default function Whispers() {
 
   return (
     <div className="min-h-screen text-white p-3 sm:p-6 relative overflow-hidden">
+      <SEO 
+        title="Anonymous Late-Night Whispers" 
+        description="Share anonymous confessions, raw emotions, and secrets into the quiet dark with other night owls around the world." 
+      />
 
       <EmotionVisualizer dominantEmotion={consciousness?.currentDominantEmotion || 'neutral'} />
 

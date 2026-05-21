@@ -6,6 +6,8 @@ import cors from 'cors';
 
 // Import your existing server logic
 import { registerRoutes } from '../server/routes';
+import { setupAuth } from '../server/auth';
+import apiV1Routes from '../server/routes/api/v1/index';
 
 const app = express();
 
@@ -23,11 +25,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Setup authentication
+setupAuth(app);
+
+// Mount new v1 API routes
+app.use("/api/v1", apiV1Routes);
+
 // Create HTTP server
 const server = createServer(app);
 
 // Register all your existing routes
-registerRoutes(app).then(() => {
+registerRoutes(app, server).then(() => {
   console.log('Routes registered successfully');
 }).catch((error) => {
   console.error('Error registering routes:', error);

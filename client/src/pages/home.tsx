@@ -7,7 +7,7 @@ import {
     Heart, Lightbulb, BookOpen,
     Mic, MessageSquare, Sparkles,
     Bell, Settings, User, LogOut,
-    Flame, Zap, Compass, ArrowRight, Music,
+    Flame, Zap, Compass, ArrowRight, Music, Coffee,
 } from "lucide-react";
 import { NightlyReflectionPopup } from "@/components/nightly-reflection-popup";
 
@@ -139,6 +139,17 @@ const SERVICES: Record<TabId, ServiceDef[]> = {
             accent: "#c084fc",
             accentRgb: "192,132,252",
             status: "On Air",
+            hot: true,
+        },
+        {
+            title: "Midnight Café",
+            description: "A virtual coffee shop for quiet company and ambient sounds. Pull up a chair, sip your drink, and enjoy the presence of others.",
+            route: "/midnight-cafe",
+            icon: Coffee,
+            gradient: "from-amber-400 to-orange-600",
+            accent: "#f59e0b",
+            accentRgb: "245,158,11",
+            status: "Open",
             hot: true,
         },
     ],

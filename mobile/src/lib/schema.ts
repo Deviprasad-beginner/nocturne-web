@@ -67,7 +67,6 @@ export const diaryComments = pgTable("diary_comments", {
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_diary_comments_diary_id").on(table.diaryId),
-  index("idx_diary_comments_author_id").on(table.authorId),
 ]);
 
 export const whispers = pgTable("whispers", {
@@ -192,10 +191,7 @@ export const cafeReplies = pgTable("cafe_replies", {
   content: text("content").notNull(),
   authorId: integer("author_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_cafe_replies_cafe_id").on(table.cafeId),
-  index("idx_cafe_replies_author_id").on(table.authorId),
-]);
+});
 
 // Saved Stations for Music
 export const savedStations = pgTable("saved_stations", {
@@ -457,10 +453,7 @@ export const amFounderReplies = pgTable("am_founder_replies", {
   content: text("content").notNull(),
   authorId: integer("author_id").references(() => users.id), // Nullable for anonymous
   createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_am_founder_replies_founder_id").on(table.founderId),
-  index("idx_am_founder_replies_author_id").on(table.authorId),
-]);
+});
 
 // Starlit Speaker - Voice chat rooms for audio conversations
 export const starlitSpeaker = pgTable("starlit_speaker", {
@@ -503,10 +496,7 @@ export const userReflections = pgTable("user_reflections", {
   responseContent: text("response_content").notNull(),
   aiEvaluation: jsonb("ai_evaluation"), // Stores AI's reflection on the response
   createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_user_reflections_prompt_id").on(table.promptId),
-  index("idx_user_reflections_user_id").on(table.userId),
-]);
+});
 
 export const personalReflections = pgTable("personal_reflections", {
   id: serial("id").primaryKey(),
@@ -514,9 +504,7 @@ export const personalReflections = pgTable("personal_reflections", {
   userQuery: text("user_query").notNull(),
   aiReflection: text("ai_reflection").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_personal_reflections_user_id").on(table.userId),
-]);
+});
 
 export const insertAmFounderSchema = createInsertSchema(amFounder).omit({
   id: true,
@@ -699,7 +687,6 @@ export const silentLines = pgTable("silent_lines", {
   expiresAt: timestamp("expires_at"),
 }, (table) => [
   index("idx_silent_lines_read_expires").on(table.readId, table.expiresAt),
-  index("idx_silent_lines_user_id").on(table.userId),
 ]);
 
 // Read Card Insert Schemas
@@ -743,42 +730,3 @@ export type InsertPrivateHighlight = z.infer<typeof insertPrivateHighlightSchema
 
 export type SilentLine = typeof silentLines.$inferSelect;
 export type InsertSilentLine = z.infer<typeof insertSilentLineSchema>;
-
-// Playlists for Music
-export const playlists = pgTable("playlists", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_playlists_user_id").on(table.userId),
-]);
-
-export const playlistTracks = pgTable("playlist_tracks", {
-  id: serial("id").primaryKey(),
-  playlistId: integer("playlist_id").references(() => playlists.id, { onDelete: "cascade" }).notNull(),
-  trackId: text("track_id").notNull(),
-  trackTitle: text("track_title").notNull(),
-  trackArtist: text("track_artist").notNull(),
-  trackUrl: text("track_url").notNull(),
-  trackCoverArt: text("track_cover_art"),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("idx_playlist_tracks_playlist_id").on(table.playlistId),
-]);
-
-export const insertPlaylistSchema = createInsertSchema(playlists).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertPlaylistTrackSchema = createInsertSchema(playlistTracks).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type Playlist = typeof playlists.$inferSelect;
-export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
-
-export type PlaylistTrack = typeof playlistTracks.$inferSelect;
-export type InsertPlaylistTrack = z.infer<typeof insertPlaylistTrackSchema>;

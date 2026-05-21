@@ -5,7 +5,7 @@ import path from 'path';
 
 async function run() {
   try {
-    const migrationPath = path.join(process.cwd(), 'migrations', '0002_blue_dragon_lord.sql');
+    const migrationPath = path.join(process.cwd(), 'migrations', '0003_curly_victor_mancha.sql');
     const sqlContent = fs.readFileSync(migrationPath, 'utf8');
     
     console.log("Running migration...");
@@ -18,8 +18,10 @@ async function run() {
       try {
         await db.execute(sql.raw(statement));
       } catch (err: any) {
-        // 42P07 = duplicate_table, 42701 = duplicate_column, 42710 = duplicate_object
-        if (err.code === '42P07' || err.code === '42701' || err.code === '42710') {
+        const code = err.code || err.cause?.code;
+        const msg = err.message || '';
+        // 42P07 = duplicate_table/relation, 42701 = duplicate_column, 42710 = duplicate_object
+        if (code === '42P07' || code === '42701' || code === '42710' || msg.includes('already exists')) {
           console.log(`Skipped (already exists): ${statement.substring(0, 30)}...`);
         } else {
           throw err;

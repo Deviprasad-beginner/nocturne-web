@@ -6,8 +6,6 @@ interface MusicContextType {
     currentTrack: Track | null;
     isPlaying: boolean;
     isBuffering: boolean;
-    progress: number; // 0-100
-    duration: number; // seconds
     volume: number; // 0-1
 
     // UI state
@@ -38,15 +36,18 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
     // Initialize audioEngine listeners
     useEffect(() => {
-        const handlePlay = (track: Track) => {
-            setCurrentTrack(track);
+        const handlePlay = (track: Track | null) => {
+            setCurrentTrack(prev => {
+                if (prev?.id !== track?.id) {
+                    setListeners(Math.floor(Math.random() * 50) + 10);
+                }
+                return track;
+            });
             setIsPlaying(true);
             setIsBuffering(false);
-            setListeners(Math.floor(Math.random() * 50) + 10);
         };
 
         const handlePause = () => setIsPlaying(false);
-        const handleResume = () => { setIsPlaying(true); setIsBuffering(false); };
         const handleBuffering = () => setIsBuffering(true);
 
         const handleStop = () => {
@@ -88,7 +89,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         // Subscribe to events
         audioPlayer.on('play', handlePlay);
         audioPlayer.on('pause', handlePause);
-        audioPlayer.on('resume', handleResume);
         audioPlayer.on('stop', handleStop);
         audioPlayer.on('timeupdate', handleTimeUpdate);
         audioPlayer.on('loadedmetadata', handleLoadedMetadata);
@@ -109,7 +109,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             // Cleanup separate listeners
             audioPlayer.off('play', handlePlay);
             audioPlayer.off('pause', handlePause);
-            audioPlayer.off('resume', handleResume);
             audioPlayer.off('stop', handleStop);
             audioPlayer.off('timeupdate', handleTimeUpdate);
             audioPlayer.off('loadedmetadata', handleLoadedMetadata);
@@ -148,9 +147,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         currentTrack,
         isPlaying,
         isBuffering,
-        // Removed progress/duration from main context
-        progress: 0, // Deprecated in main context
-        duration: 0, // Deprecated in main context
         volume,
         mood,
         listeners,

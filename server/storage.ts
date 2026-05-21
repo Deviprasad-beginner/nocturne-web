@@ -46,10 +46,15 @@ import {
   amFounderReplies,
   type AmFounderReply,
   type InsertAmFounderReply,
-
+  playlists,
+  playlistTracks,
+  type Playlist,
+  type InsertPlaylist,
+  type PlaylistTrack,
+  type InsertPlaylistTrack,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, sql, or, and, ne } from "drizzle-orm";
+import { eq, desc, asc, sql, or, and, ne, count } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -136,6 +141,22 @@ export interface IStorage {
   getUserReflections(userId: number, limit?: number): Promise<UserReflection[]>;
   createPersonalReflection(reflection: InsertPersonalReflection, aiReflection: string): Promise<PersonalReflection>;
   getPersonalReflections(userId: number, limit?: number): Promise<PersonalReflection[]>;
+
+  // Custom platform metrics and analytics
+  getUserProfileStats(userId: number): Promise<any>;
+  getUserAchievements(userId: number): Promise<any[]>;
+  getTrendingTopics(): Promise<any[]>;
+  getRecentActivity(limit: number): Promise<any[]>;
+  getActivityStats(): Promise<any>;
+
+  // Playlist operations
+  createPlaylist(userId: number, name: string): Promise<Playlist>;
+  getUserPlaylists(userId: number): Promise<Playlist[]>;
+  getPlaylist(playlistId: number): Promise<Playlist | undefined>;
+  addTrackToPlaylist(playlistId: number, track: Omit<InsertPlaylistTrack, "playlistId">): Promise<PlaylistTrack>;
+  removeTrackFromPlaylist(playlistId: number, trackId: string): Promise<void>;
+  getPlaylistTracks(playlistId: number): Promise<PlaylistTrack[]>;
+  deletePlaylist(playlistId: number): Promise<void>;
 }
 
 // In-memory storage implementation
@@ -152,6 +173,8 @@ export class MemoryStorage implements IStorage {
   starlitSpeakers: StarlitSpeaker[];
   moonMessages: MoonMessenger[];
   savedStations: SavedStation[];
+  playlists: Playlist[];
+  playlistTracks: PlaylistTrack[];
   private nextId = 1;
 
   constructor() {
@@ -167,6 +190,8 @@ export class MemoryStorage implements IStorage {
     this.starlitSpeakers = [];
     this.moonMessages = [];
     this.savedStations = [];
+    this.playlists = [];
+    this.playlistTracks = [];
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -673,6 +698,297 @@ export class MemoryStorage implements IStorage {
     // In memory storage doesn't persist personal reflections
     return [];
   }
+
+  async getUserProfileStats(userId: number): Promise<any> {
+    const diary_posts = this.diaries.filter(d => d.authorId === userId).length;
+    const whisper_posts = this.whispers.filter(w => w.authorId === userId).length;
+    const cafe_posts = this.midnightCafes.filter(c => c.authorId === userId).length;
+    const total_hearts = this.whispers.filter(w => w.authorId === userId).reduce((sum, w) => sum + (w.hearts || 0), 0);
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const activeDaysSet = new Set<string>();
+    const addActiveDay = (d: Date | null) => {
+      if (d && d > sevenDaysAgo) {
+        activeDaysSet.add(d.toDateString());
+      }
+    };
+    this.diaries.filter(d => d.authorId === userId).forEach(d => addActiveDay(d.createdAt));
+    this.whispers.filter(w => w.authorId === userId).forEach(w => addActiveDay(w.createdAt));
+    this.midnightCafes.filter(c => c.authorId === userId).forEach(c => addActiveDay(c.createdAt));
+    const activeDaysLastWeek = activeDaysSet.size;
+
+    const user = this.users.find(u => u.id === userId);
+    const createdAt = user?.createdAt ? new Date(user.createdAt) : new Date();
+    const accountAgeDays = Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
+
+    const totalPosts = diary_posts + whisper_posts + cafe_posts;
+    const experiencePoints = (totalPosts * 10) + (total_hearts * 2);
+    const nightOwlLevel = Math.floor(experiencePoints / 100) || 1;
+    const streakDays = activeDaysLastWeek;
+
+    return {
+      nightOwlLevel,
+      totalHearts: total_hearts,
+      postsShared: totalPosts,
+      conversationsJoined: cafe_posts,
+      streakDays,
+      experiencePoints,
+      breakdown: {
+        diaryPosts: diary_posts,
+        whisperPosts: whisper_posts,
+        cafePosts: cafe_posts
+      },
+      accountAgeDays
+    };
+  }
+
+  async getUserAchievements(userId: number): Promise<any[]> {
+    const diary_posts = this.diaries.filter(d => d.authorId === userId).length;
+    const whisper_posts = this.whispers.filter(w => w.authorId === userId).length;
+    const cafe_posts = this.midnightCafes.filter(c => c.authorId === userId).length;
+    const total_hearts = this.whispers.filter(w => w.authorId === userId).reduce((sum, w) => sum + (w.hearts || 0), 0);
+    const has_first_heart = this.whispers.some(w => w.authorId === userId && (w.hearts || 0) > 0);
+
+    const achievements = [];
+    if (diary_posts >= 1) {
+      achievements.push({
+        id: 'first_diary',
+        icon: 'moon',
+        title: 'Night Owl Initiate',
+        description: 'Wrote your first diary entry',
+        color: 'purple'
+      });
+    }
+    if (whisper_posts >= 1) {
+      achievements.push({
+        id: 'first_whisper',
+        icon: 'star',
+        title: 'Whisper in the Dark',
+        description: 'Shared your first whisper',
+        color: 'pink'
+      });
+    }
+    if (has_first_heart) {
+      achievements.push({
+        id: 'first_heart',
+        icon: 'heart',
+        title: 'First Heart Received',
+        description: 'Someone loved your whisper',
+        color: 'red'
+      });
+    }
+    if (cafe_posts >= 1) {
+      achievements.push({
+        id: 'first_cafe',
+        icon: 'message',
+        title: 'Conversation Starter',
+        description: 'Started a cafe conversation',
+        color: 'blue'
+      });
+    }
+    if (diary_posts >= 10) {
+      achievements.push({
+        id: 'ten_diaries',
+        icon: 'trophy',
+        title: 'Dedicated Diarist',
+        description: 'Wrote 10 diary entries',
+        color: 'yellow'
+      });
+    }
+    if (whisper_posts >= 10) {
+      achievements.push({
+        id: 'ten_whispers',
+        icon: 'trophy',
+        title: 'Voice of the Night',
+        description: 'Shared 10 whispers',
+        color: 'purple'
+      });
+    }
+    if (total_hearts >= 50) {
+      achievements.push({
+        id: 'fifty_hearts',
+        icon: 'trophy',
+        title: 'Beloved Night Soul',
+        description: 'Received 50 hearts total',
+        color: 'gold'
+      });
+    }
+    return achievements;
+  }
+
+  async getTrendingTopics(): Promise<any[]> {
+    const hashtagMap = new Map<string, { tag: string; posts: number; recent: number; previous: number; lastUsed: Date }>();
+    const addHashtags = (content: string, date: Date | null) => {
+      if (!content) return;
+      const matches = content.match(/#[a-zA-Z0-9_]+/g);
+      if (!matches) return;
+      const now = Date.now();
+      const isRecent = date ? (now - date.getTime() <= 24 * 60 * 60 * 1000) : false;
+      const isPrevious = date ? (now - date.getTime() > 24 * 60 * 60 * 1000 && now - date.getTime() <= 48 * 60 * 60 * 1000) : false;
+
+      matches.forEach(match => {
+        const tag = match.slice(1).toLowerCase();
+        const existing = hashtagMap.get(tag) || { tag, posts: 0, recent: 0, previous: 0, lastUsed: date || new Date() };
+        existing.posts++;
+        if (isRecent) existing.recent++;
+        if (isPrevious) existing.previous++;
+        if (date && date > existing.lastUsed) existing.lastUsed = date;
+        hashtagMap.set(tag, existing);
+      });
+    };
+
+    this.diaries.forEach(d => addHashtags(d.content, d.createdAt));
+    this.whispers.forEach(w => addHashtags(w.content, w.createdAt));
+    this.midnightCafes.forEach(c => addHashtags(c.content, c.createdAt));
+
+    const items = Array.from(hashtagMap.values());
+    const formattedTopics = items.map((topic, index) => {
+      let growth = 0;
+      if (topic.previous > 0) {
+        growth = Math.round(((topic.recent - topic.previous) / topic.previous) * 100);
+      } else if (topic.recent > 0) {
+        growth = 100;
+      }
+
+      let category = 'social';
+      if (/(thought|philosophy|wisdom|mind|contemplat)/.test(topic.tag)) category = 'philosophy';
+      else if (/(music|song|sound|melody|beat)/.test(topic.tag)) category = 'music';
+      else if (/(art|creat|design|draw|paint|write)/.test(topic.tag)) category = 'creative';
+      else if (/(startup|business|founder|entrepreneur)/.test(topic.tag)) category = 'business';
+      else if (/(journal|diary|personal|feeling|emotion)/.test(topic.tag)) category = 'personal';
+
+      let destination = '/whispers';
+      if (/(journal|diary)/.test(topic.tag)) destination = '/diaries';
+      else if (/(whisper|secret|confess)/.test(topic.tag)) destination = '/whispers';
+      else if (/(cafe|conversation|discuss)/.test(topic.tag)) destination = '/midnight-cafe';
+      else if (/(music|song)/.test(topic.tag)) destination = '/music-mood';
+      else if (/(founder|startup)/.test(topic.tag)) destination = '/3am-founder';
+      else if (/(puzzle|riddle|maze)/.test(topic.tag)) destination = '/mind-maze';
+      else if (/(circle|community|group)/.test(topic.tag)) destination = '/night-circles';
+
+      return {
+        id: index + 1,
+        tag: topic.tag,
+        posts: topic.posts,
+        growth,
+        category,
+        destination
+      };
+    });
+
+    if (formattedTopics.length === 0) {
+      return [
+        { id: 1, tag: "3amthoughts", posts: 0, growth: 0, category: "philosophy", destination: "/diaries" },
+        { id: 2, tag: "insomniacreations", posts: 0, growth: 0, category: "creative", destination: "/whispers" },
+        { id: 3, tag: "midnightmusic", posts: 0, growth: 0, category: "music", destination: "/music-mood" },
+        { id: 4, tag: "nightowlstartup", posts: 0, growth: 0, category: "business", destination: "/3am-founder" },
+        { id: 5, tag: "dreamjournal", posts: 0, growth: 0, category: "personal", destination: "/diaries" },
+        { id: 6, tag: "starlitconversations", posts: 0, growth: 0, category: "social", destination: "/midnight-cafe" }
+      ];
+    }
+
+    return formattedTopics.sort((a, b) => b.posts - a.posts).slice(0, 10);
+  }
+
+  async getRecentActivity(limit: number): Promise<any[]> {
+    const recentDiaries = [...this.diaries].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)).slice(0, 5);
+    const recentWhispers = [...this.whispers].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)).slice(0, 5);
+    const recentCafe = [...this.midnightCafes].sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)).slice(0, 5);
+
+    const combined = [
+      ...recentDiaries.map((d) => ({
+        id: `post-${d.id}`,
+        type: "post",
+        user: "A Night Owl",
+        content: "shared a diary entry",
+        timestamp: d.createdAt,
+        category: "diaries",
+        link: "/diaries",
+      })),
+      ...recentWhispers.map((w) => ({
+        id: `whisper-${w.id}`,
+        type: "whisper",
+        user: "Anonymous",
+        content: "whispered into the night",
+        timestamp: w.createdAt,
+        category: "whispers",
+        link: "/whispers",
+      })),
+      ...recentCafe.map((m) => ({
+        id: `comment-${m.id}`,
+        type: "comment",
+        user: "A Night Wanderer",
+        content: `started a conversation about ${m.topic?.slice(0, 30) ?? "..."}`,
+        timestamp: m.createdAt,
+        category: "cafe",
+        link: "/midnight-cafe",
+      })),
+    ]
+      .sort((a, b) => new Date(b.timestamp ?? 0).getTime() - new Date(a.timestamp ?? 0).getTime())
+      .slice(0, limit);
+
+    return combined;
+  }
+
+  async getActivityStats(): Promise<any> {
+    return {
+      diaries_today: this.diaries.length,
+      whispers_today: this.whispers.length,
+      cafe_today: this.midnightCafes.length,
+      active_users_today: 0,
+    };
+  }
+
+  // Playlist operations
+  async createPlaylist(userId: number, name: string): Promise<Playlist> {
+    const playlist: Playlist = {
+      id: this.nextId++,
+      userId,
+      name,
+      createdAt: new Date()
+    };
+    this.playlists.push(playlist);
+    return playlist;
+  }
+
+  async getUserPlaylists(userId: number): Promise<Playlist[]> {
+    return this.playlists.filter(p => p.userId === userId);
+  }
+
+  async getPlaylist(playlistId: number): Promise<Playlist | undefined> {
+    return this.playlists.find(p => p.id === playlistId);
+  }
+
+  async addTrackToPlaylist(playlistId: number, track: Omit<InsertPlaylistTrack, "playlistId">): Promise<PlaylistTrack> {
+    const playlistTrack: PlaylistTrack = {
+      id: this.nextId++,
+      playlistId,
+      trackId: track.trackId,
+      trackTitle: track.trackTitle,
+      trackArtist: track.trackArtist,
+      trackUrl: track.trackUrl,
+      trackCoverArt: track.trackCoverArt ?? null,
+      createdAt: new Date()
+    };
+    this.playlistTracks.push(playlistTrack);
+    return playlistTrack;
+  }
+
+  async removeTrackFromPlaylist(playlistId: number, trackId: string): Promise<void> {
+    const index = this.playlistTracks.findIndex(t => t.playlistId === playlistId && t.trackId === trackId);
+    if (index >= 0) {
+      this.playlistTracks.splice(index, 1);
+    }
+  }
+
+  async getPlaylistTracks(playlistId: number): Promise<PlaylistTrack[]> {
+    return this.playlistTracks.filter(t => t.playlistId === playlistId);
+  }
+
+  async deletePlaylist(playlistId: number): Promise<void> {
+    this.playlists = this.playlists.filter(p => p.id !== playlistId);
+    this.playlistTracks = this.playlistTracks.filter(t => t.playlistId !== playlistId);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -686,6 +1002,7 @@ import * as CafeRepo from "./repositories/midnight-cafe.repository";
 import * as FounderRepo from "./repositories/am-founder.repository";
 import * as MiscRepo from "./repositories/misc.repository";
 import * as ReflectionRepo from "./repositories/reflection.repository";
+import * as PlaylistRepo from "./repositories/playlist.repository";
 
 /**
  * DatabaseStorage is a thin delegation layer over domain-specific repositories.
@@ -761,6 +1078,15 @@ export class DatabaseStorage implements IStorage {
   getAmFounderReplies = FounderRepo.getAmFounderReplies;
   getUserFounders = FounderRepo.getUserFounders;
 
+  // ── Playlists ─────────────────────────────────────────────────────────────
+  createPlaylist = PlaylistRepo.createPlaylist;
+  getUserPlaylists = PlaylistRepo.getUserPlaylists;
+  getPlaylist = PlaylistRepo.getPlaylist;
+  addTrackToPlaylist = PlaylistRepo.addTrackToPlaylist;
+  removeTrackFromPlaylist = PlaylistRepo.removeTrackFromPlaylist;
+  getPlaylistTracks = PlaylistRepo.getPlaylistTracks;
+  deletePlaylist = PlaylistRepo.deletePlaylist;
+
   // ── MindMaze ──────────────────────────────────────────────────────────────
   createMindMaze = MiscRepo.createMindMaze;
   getMindMaze = MiscRepo.getMindMaze;
@@ -788,6 +1114,316 @@ export class DatabaseStorage implements IStorage {
   getUserReflections = ReflectionRepo.getUserReflections;
   createPersonalReflection = ReflectionRepo.createPersonalReflection;
   getPersonalReflections = ReflectionRepo.getPersonalReflections;
+
+  async getUserProfileStats(userId: number): Promise<any> {
+    const stats = await db.execute(sql`
+        SELECT 
+            COALESCE((SELECT COUNT(*) FROM ${diaries} WHERE author_id = ${userId}), 0) as diary_posts,
+            COALESCE((SELECT COUNT(*) FROM ${whispers} WHERE author_id = ${userId}), 0) as whisper_posts,
+            COALESCE((SELECT COUNT(*) FROM ${midnightCafe} WHERE author_id = ${userId}), 0) as cafe_posts,
+            COALESCE((SELECT SUM(hearts) FROM ${whispers} WHERE author_id = ${userId}), 0) as total_hearts,
+            COALESCE((
+                SELECT COUNT(DISTINCT DATE(created_at))
+                FROM (
+                    SELECT created_at FROM ${diaries} WHERE author_id = ${userId} AND created_at > NOW() - INTERVAL '7 days'
+                    UNION ALL
+                    SELECT created_at FROM ${whispers} WHERE author_id = ${userId} AND created_at > NOW() - INTERVAL '7 days'
+                    UNION ALL
+                    SELECT created_at FROM ${midnightCafe} WHERE author_id = ${userId} AND created_at > NOW() - INTERVAL '7 days'
+                ) as all_posts
+            ), 0) as active_days_last_week,
+            COALESCE(EXTRACT(DAY FROM (NOW() - (SELECT created_at FROM ${users} WHERE id = ${userId}))), 0) as account_age_days
+    `);
+
+    const rawStats = stats.rows[0] as any;
+
+    const totalPosts = Number(rawStats.diary_posts || 0) +
+        Number(rawStats.whisper_posts || 0) +
+        Number(rawStats.cafe_posts || 0);
+
+    const totalHearts = Number(rawStats.total_hearts || 0);
+    const activeDaysLastWeek = Number(rawStats.active_days_last_week || 0);
+    const accountAgeDays = Number(rawStats.account_age_days || 0);
+
+    const experiencePoints = (totalPosts * 10) + (totalHearts * 2);
+    const nightOwlLevel = Math.floor(experiencePoints / 100) || 1;
+    const streakDays = activeDaysLastWeek;
+
+    return {
+        nightOwlLevel,
+        totalHearts,
+        postsShared: totalPosts,
+        conversationsJoined: Number(rawStats.cafe_posts || 0),
+        streakDays,
+        experiencePoints,
+        breakdown: {
+            diaryPosts: Number(rawStats.diary_posts || 0),
+            whisperPosts: Number(rawStats.whisper_posts || 0),
+            cafePosts: Number(rawStats.cafe_posts || 0)
+        },
+        accountAgeDays
+    };
+  }
+
+  async getUserAchievements(userId: number): Promise<any[]> {
+    const achievementChecks = await db.execute(sql`
+        SELECT 
+            EXISTS(SELECT 1 FROM ${diaries} WHERE author_id = ${userId} LIMIT 1) as has_first_diary,
+            EXISTS(SELECT 1 FROM ${whispers} WHERE author_id = ${userId} LIMIT 1) as has_first_whisper,
+            EXISTS(SELECT 1 FROM ${whispers} WHERE author_id = ${userId} AND hearts > 0 LIMIT 1) as has_first_heart,
+            EXISTS(SELECT 1 FROM ${midnightCafe} WHERE author_id = ${userId} LIMIT 1) as has_first_cafe,
+            (SELECT COUNT(*) FROM ${diaries} WHERE author_id = ${userId}) >= 10 as has_ten_diaries,
+            (SELECT COUNT(*) FROM ${whispers} WHERE author_id = ${userId}) >= 10 as has_ten_whispers,
+            (SELECT SUM(hearts) FROM ${whispers} WHERE author_id = ${userId}) >= 50 as has_fifty_hearts
+    `);
+
+    const checks = achievementChecks.rows[0] as any;
+    const achievements = [];
+
+    if (checks.has_first_diary) {
+        achievements.push({
+            id: 'first_diary',
+            icon: 'moon',
+            title: 'Night Owl Initiate',
+            description: 'Wrote your first diary entry',
+            color: 'purple'
+        });
+    }
+
+    if (checks.has_first_whisper) {
+        achievements.push({
+            id: 'first_whisper',
+            icon: 'star',
+            title: 'Whisper in the Dark',
+            description: 'Shared your first whisper',
+            color: 'pink'
+        });
+    }
+
+    if (checks.has_first_heart) {
+        achievements.push({
+            id: 'first_heart',
+            icon: 'heart',
+            title: 'First Heart Received',
+            description: 'Someone loved your whisper',
+            color: 'red'
+        });
+    }
+
+    if (checks.has_first_cafe) {
+        achievements.push({
+            id: 'first_cafe',
+            icon: 'message',
+            title: 'Conversation Starter',
+            description: 'Started a cafe conversation',
+            color: 'blue'
+        });
+    }
+
+    if (checks.has_ten_diaries) {
+        achievements.push({
+            id: 'ten_diaries',
+            icon: 'trophy',
+            title: 'Dedicated Diarist',
+            description: 'Wrote 10 diary entries',
+            color: 'yellow'
+        });
+    }
+
+    if (checks.has_ten_whispers) {
+        achievements.push({
+            id: 'ten_whispers',
+            icon: 'trophy',
+            title: 'Voice of the Night',
+            description: 'Shared 10 whispers',
+            color: 'purple'
+        });
+    }
+
+    if (checks.has_fifty_hearts) {
+        achievements.push({
+            id: 'fifty_hearts',
+            icon: 'trophy',
+            title: 'Beloved Night Soul',
+            description: 'Received 50 hearts total',
+            color: 'gold'
+        });
+    }
+
+    return achievements;
+  }
+
+  async getTrendingTopics(): Promise<any[]> {
+    const trendingTopics = await db.execute(sql`
+        WITH hashtag_counts AS (
+            SELECT 
+                LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)')) as hashtag,
+                COUNT(*) as post_count,
+                MAX(created_at) as last_used,
+                'diaries' as source
+            FROM ${diaries}
+            WHERE content ~ '#[a-zA-Z0-9_]+'
+            GROUP BY LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)'))
+            
+            UNION ALL
+            
+            SELECT 
+                LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)')) as hashtag,
+                COUNT(*) as post_count,
+                MAX(created_at) as last_used,
+                'whispers' as source
+            FROM ${whispers}
+            WHERE content ~ '#[a-zA-Z0-9_]+'
+            GROUP BY LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)'))
+            
+            UNION ALL
+            
+            SELECT 
+                LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)')) as hashtag,
+                COUNT(*) as post_count,
+                MAX(created_at) as last_used,
+                'cafe' as source
+            FROM ${midnightCafe}
+            WHERE content ~ '#[a-zA-Z0-9_]+'
+            GROUP BY LOWER(SUBSTRING(content FROM '#([a-zA-Z0-9_]+)'))
+        ),
+        aggregated AS (
+            SELECT 
+                hashtag,
+                SUM(post_count) as total_posts,
+                MAX(last_used) as last_used,
+                SUM(CASE WHEN last_used > NOW() - INTERVAL '24 hours' THEN post_count ELSE 0 END) as recent_posts,
+                SUM(CASE WHEN last_used BETWEEN NOW() - INTERVAL '48 hours' AND NOW() - INTERVAL '24 hours' THEN post_count ELSE 0 END) as previous_posts
+            FROM hashtag_counts
+            GROUP BY hashtag
+        )
+        SELECT 
+            hashtag as tag,
+            total_posts as posts,
+            CASE 
+                WHEN previous_posts > 0 THEN ROUND(((recent_posts - previous_posts)::numeric / previous_posts * 100), 0)
+                WHEN recent_posts > 0 THEN 100
+                ELSE 0
+            END as growth,
+            CASE 
+                WHEN hashtag ~ '(thought|philosophy|wisdom|mind|contemplat)' THEN 'philosophy'
+                WHEN hashtag ~ '(music|song|sound|melody|beat)' THEN 'music'
+                WHEN hashtag ~ '(art|creat|design|draw|paint|write)' THEN 'creative'
+                WHEN hashtag ~ '(startup|business|founder|entrepreneur)' THEN 'business'
+                WHEN hashtag ~ '(journal|diary|personal|feeling|emotion)' THEN 'personal'
+                ELSE 'social'
+            END as category,
+            CASE 
+                WHEN hashtag ~ '(journal|diary)' THEN '/diaries'
+                WHEN hashtag ~ '(whisper|secret|confess)' THEN '/whispers'
+                WHEN hashtag ~ '(cafe|conversation|discuss)' THEN '/midnight-cafe'
+                WHEN hashtag ~ '(music|song)' THEN '/music-mood'
+                WHEN hashtag ~ '(founder|startup)' THEN '/3am-founder'
+                WHEN hashtag ~ '(puzzle|riddle|maze)' THEN '/mind-maze'
+                WHEN hashtag ~ '(circle|community|group)' THEN '/night-circles'
+                ELSE '/whispers'
+            END as destination
+        FROM aggregated
+        WHERE total_posts > 0
+        ORDER BY 
+            recent_posts DESC,
+            total_posts DESC
+        LIMIT 10
+    `);
+
+    const formattedTopics = (trendingTopics.rows || []).map((topic: any, index: number) => ({
+        id: index + 1,
+        tag: topic.tag,
+        posts: parseInt(topic.posts) || 0,
+        growth: parseInt(topic.growth) || 0,
+        category: topic.category,
+        destination: topic.destination
+    }));
+
+    if (formattedTopics.length === 0) {
+        return [
+            { id: 1, tag: "3amthoughts", posts: 0, growth: 0, category: "philosophy", destination: "/diaries" },
+            { id: 2, tag: "insomniacreations", posts: 0, growth: 0, category: "creative", destination: "/whispers" },
+            { id: 3, tag: "midnightmusic", posts: 0, growth: 0, category: "music", destination: "/music-mood" },
+            { id: 4, tag: "nightowlstartup", posts: 0, growth: 0, category: "business", destination: "/3am-founder" },
+            { id: 5, tag: "dreamjournal", posts: 0, growth: 0, category: "personal", destination: "/diaries" },
+            { id: 6, tag: "starlitconversations", posts: 0, growth: 0, category: "social", destination: "/midnight-cafe" }
+        ];
+    }
+
+    return formattedTopics;
+  }
+
+  async getRecentActivity(limit: number): Promise<any[]> {
+    const [recentDiaries, recentWhispers, recentCafe] = await Promise.all([
+        db
+            .select({ id: diaries.id, createdAt: diaries.createdAt })
+            .from(diaries)
+            .orderBy(desc(diaries.createdAt))
+            .limit(5),
+
+        db
+            .select({ id: whispers.id, createdAt: whispers.createdAt })
+            .from(whispers)
+            .orderBy(desc(whispers.createdAt))
+            .limit(5),
+
+        db
+            .select({ id: midnightCafe.id, createdAt: midnightCafe.createdAt, topic: midnightCafe.topic })
+            .from(midnightCafe)
+            .orderBy(desc(midnightCafe.createdAt))
+            .limit(5),
+    ]);
+
+    const combined = [
+        ...recentDiaries.map((d) => ({
+            id: `post-${d.id}`,
+            type: "post",
+            user: "A Night Owl",
+            content: "shared a diary entry",
+            timestamp: d.createdAt,
+            category: "diaries",
+            link: "/diaries",
+        })),
+        ...recentWhispers.map((w) => ({
+            id: `whisper-${w.id}`,
+            type: "whisper",
+            user: "Anonymous",
+            content: "whispered into the night",
+            timestamp: w.createdAt,
+            category: "whispers",
+            link: "/whispers",
+        })),
+        ...recentCafe.map((m) => ({
+            id: `comment-${m.id}`,
+            type: "comment",
+            user: "A Night Wanderer",
+            content: `started a conversation about ${m.topic?.slice(0, 30) ?? "..."}`,
+            timestamp: m.createdAt,
+            category: "cafe",
+            link: "/midnight-cafe",
+        })),
+    ]
+        .sort((a, b) => new Date(b.timestamp ?? 0).getTime() - new Date(a.timestamp ?? 0).getTime())
+        .slice(0, limit);
+
+    return combined;
+  }
+
+  async getActivityStats(): Promise<any> {
+    const [diaryCount, whisperCount, cafeCount] = await Promise.all([
+        db.select({ value: count() }).from(diaries),
+        db.select({ value: count() }).from(whispers),
+        db.select({ value: count() }).from(midnightCafe),
+    ]);
+
+    return {
+        diaries_today: Number(diaryCount[0]?.value || 0),
+        whispers_today: Number(whisperCount[0]?.value || 0),
+        cafe_today: Number(cafeCount[0]?.value || 0),
+        active_users_today: 0,
+    };
+  }
 }
 
 // Choose storage implementation based on environment

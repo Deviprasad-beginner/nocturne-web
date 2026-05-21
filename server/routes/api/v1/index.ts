@@ -20,8 +20,9 @@ import activityRoutes from "./activity.routes";
 import profileRoutes from "./profile.routes";
 import nightThoughtsRoutes from "./night-thoughts.routes";
 import readsRoutes from "./reads.routes";
-import reflectionRoutes from "../../reflections.routes"; // Import from parent routes dir
+import reflectionRoutes from "./reflections.routes"; // Import from local v1 routes dir
 import consciousnessRoutes from "./consciousness.routes";
+import playlistsRoutes from "./playlists.routes";
 
 const router = Router();
 
@@ -44,6 +45,7 @@ router.use("/profile", profileRoutes);
 router.use("/thoughts", nightThoughtsRoutes);
 router.use("/reads", readsRoutes);
 router.use("/reflections", reflectionRoutes); // Use the existing reflection routes file
+router.use("/playlists", playlistsRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

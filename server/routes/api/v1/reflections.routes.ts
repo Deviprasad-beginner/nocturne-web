@@ -1,6 +1,6 @@
 import express from "express";
-import { ReflectionsController } from "../controllers/reflections.controller";
-import { storage } from "../storage";
+import { ReflectionsController } from "../../../controllers/reflections.controller";
+import { storage } from "../../../storage";
 
 const router = express.Router();
 const reflectionsController = new ReflectionsController(storage);

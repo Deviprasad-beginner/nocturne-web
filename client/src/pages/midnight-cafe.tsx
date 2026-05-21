@@ -1,6 +1,7 @@
 import React, { useState, memo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { SEO } from "@/components/SEO";
 import { MidnightCafe, InsertMidnightCafe, CafeReply, InsertCafeReply } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -301,7 +302,11 @@ export default function MidnightCafePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white p-6">
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black text-white p-6 md:p-10 overflow-x-hidden relative">
+      <SEO 
+        title="Midnight Café — Contemplative Conversations" 
+        description="Join slow-paced late-night group discussions about philosophy, dreams, and life under the stars." 
+      />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

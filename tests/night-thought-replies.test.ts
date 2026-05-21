@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── Mock the DB module ───────────────────────────────────────────────────────
-const mockDb = {
+const mockDb = vi.hoisted(() => ({
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
@@ -17,7 +17,7 @@ const mockDb = {
     returning: vi.fn(),
     update: vi.fn().mockReturnThis(),
     set: vi.fn().mockReturnThis(),
-};
+}));
 
 vi.mock('../server/db', () => ({ db: mockDb }));
 vi.mock('@shared/schema', async () => {

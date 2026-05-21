@@ -1,21 +1,26 @@
 import { Track } from "@/lib/audioPlayer";
 import { useMusic } from "@/context/MusicContext";
-import { Play, Pause, Heart } from "lucide-react";
+import { Play, Pause, Heart, ListPlus, Plus, X, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface MusicCardProps {
     track: Track;
+    onRemoveFromPlaylist?: (trackId: string) => void;
 }
 
-export function MusicCard({ track }: MusicCardProps) {
+export function MusicCard({ track, onRemoveFromPlaylist }: MusicCardProps) {
     const { playTrack, currentTrack, isPlaying } = useMusic();
     const { user } = useAuth();
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
+    const [newPlaylistName, setNewPlaylistName] = useState("");
 
     const isCurrentTrack = currentTrack?.id === track.id;
     const isCurrentlyPlaying = isCurrentTrack && isPlaying;
@@ -58,6 +63,62 @@ export function MusicCard({ track }: MusicCardProps) {
         }
         toggleFavoriteMutation.mutate();
     };
+
+    const { data: playlistsResponse } = useQuery<{ success: boolean; data: any[] }>({
+        queryKey: ["/api/v1/playlists"],
+        enabled: !!user,
+    });
+    const playlists = playlistsResponse?.data ?? [];
+
+    const addTrackMutation = useMutation({
+        mutationFn: async (playlistId: number) => {
+            const res = await apiRequest("POST", `/api/v1/playlists/${playlistId}/tracks`, {
+                trackId: String(track.id),
+                trackTitle: track.title,
+                trackArtist: track.artist,
+                trackUrl: track.url,
+                trackCoverArt: track.coverArt || null
+            });
+            return res.json();
+        },
+        onSuccess: (_, playlistId) => {
+            const pl = playlists.find((p: any) => p.id === playlistId);
+            toast({
+                title: "Added to Playlist",
+                description: `Added "${track.title}" to ${pl?.name ?? "playlist"}.`,
+            });
+            setShowPlaylistMenu(false);
+        },
+        onError: (err: any) => {
+            toast({
+                title: "Failed to add track",
+                description: err.message || "An error occurred.",
+                variant: "destructive"
+            });
+        }
+    });
+
+    const createPlaylistMutation = useMutation({
+        mutationFn: async (name: string) => {
+            const res = await apiRequest("POST", `/api/v1/playlists`, { name });
+            return res.json();
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["/api/v1/playlists"] });
+            const newPlaylist = data.data;
+            if (newPlaylist?.id) {
+                addTrackMutation.mutate(newPlaylist.id);
+            }
+            setNewPlaylistName("");
+        },
+        onError: (err: any) => {
+            toast({
+                title: "Failed to create playlist",
+                description: err.message || "An error occurred.",
+                variant: "destructive"
+            });
+        }
+    });
 
     return (
         <div
@@ -129,7 +190,7 @@ export function MusicCard({ track }: MusicCardProps) {
                 <button
                     onClick={handleFavoriteClick}
                     className={cn(
-                        "absolute top-2.5 right-2.5 p-1.5 rounded-full transition-all duration-200",
+                        "absolute top-2.5 right-2.5 p-1.5 rounded-full transition-all duration-200 z-10",
                         isFavorited
                             ? "text-white/60 opacity-100"
                             : "text-white/20 opacity-0 group-hover:opacity-100 hover:text-white/50"
@@ -137,6 +198,104 @@ export function MusicCard({ track }: MusicCardProps) {
                 >
                     <Heart className={cn("h-3.5 w-3.5", isFavorited && "fill-current")} />
                 </button>
+
+                {/* Playlist Add */}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (!user) {
+                            toast({ title: "Sign in to use playlists", variant: "destructive" });
+                            return;
+                        }
+                        setShowPlaylistMenu(true);
+                    }}
+                    className={cn(
+                        "absolute top-2.5 right-10 p-1.5 rounded-full transition-all duration-200 z-10",
+                        showPlaylistMenu
+                            ? "text-white/80 opacity-100 bg-white/10"
+                            : "text-white/20 opacity-0 group-hover:opacity-100 hover:text-white/50"
+                    )}
+                >
+                    <ListPlus className="h-3.5 w-3.5" />
+                </button>
+
+                {/* Remove from Playlist (Trash button) */}
+                {onRemoveFromPlaylist && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveFromPlaylist(String(track.id));
+                        }}
+                        className="absolute top-2.5 left-2.5 p-1.5 rounded-full text-red-400 hover:text-red-300 transition-all duration-200 z-10 bg-black/40 hover:bg-black/60 backdrop-blur-sm"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                )}
+
+                {/* Playlist Selection Overlay */}
+                {showPlaylistMenu && (
+                    <div 
+                        onClick={(e) => e.stopPropagation()} 
+                        className="absolute inset-0 bg-[#0c0d14]/95 backdrop-blur-lg z-20 p-3 flex flex-col justify-between"
+                    >
+                        <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                            <span className="text-xs font-semibold text-white/80">Add to Playlist</span>
+                            <button 
+                                onClick={() => setShowPlaylistMenu(false)}
+                                className="text-white/40 hover:text-white/80 transition-colors"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+
+                        {/* Playlist List */}
+                        <div className="flex-1 overflow-y-auto py-1 my-1 space-y-1 scrollbar-thin">
+                            {playlists.length === 0 ? (
+                                <div className="text-[10px] text-white/40 text-center py-4">
+                                    No playlists yet. Create one below!
+                                </div>
+                            ) : (
+                                playlists.map((pl: any) => (
+                                    <button
+                                        key={pl.id}
+                                        onClick={() => addTrackMutation.mutate(pl.id)}
+                                        disabled={addTrackMutation.isPending}
+                                        className="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 text-[11px] text-white/70 hover:text-white truncate transition-colors flex items-center justify-between"
+                                    >
+                                        <span>{pl.name}</span>
+                                        <Plus className="h-3 w-3 text-white/40" />
+                                    </button>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Create Playlist Form */}
+                        <form 
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                if (newPlaylistName.trim()) {
+                                    createPlaylistMutation.mutate(newPlaylistName.trim());
+                                }
+                            }}
+                            className="flex items-center gap-1 border-t border-white/10 pt-1.5"
+                        >
+                            <input
+                                type="text"
+                                placeholder="New playlist..."
+                                value={newPlaylistName}
+                                onChange={(e) => setNewPlaylistName(e.target.value)}
+                                className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] text-white placeholder-white/20 focus:outline-none focus:border-white/20"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!newPlaylistName.trim() || createPlaylistMutation.isPending}
+                                className="p-1 rounded bg-white/15 hover:bg-white/25 text-white disabled:opacity-50 disabled:hover:bg-white/15 transition-colors"
+                            >
+                                <Plus className="h-3 w-3" />
+                            </button>
+                        </form>
+                    </div>
+                )}
             </div>
 
             {/* Track info */}
