@@ -40,6 +40,8 @@ export class NightThoughtsService {
             ? new Date(Date.now() + 24 * 60 * 60 * 1000)
             : null;
 
+
+
         const [newThought] = await db
             .insert(nightThoughts)
             .values({

@@ -23,8 +23,33 @@ import readsRoutes from "./reads.routes";
 import reflectionRoutes from "./reflections.routes"; // Import from local v1 routes dir
 import consciousnessRoutes from "./consciousness.routes";
 import playlistsRoutes from "./playlists.routes";
+import authMobileRoutes from "./auth.routes";
+import { requireAuth } from "../../../middleware/auth.middleware";
+import { storage } from "../../../storage";
 
 const router = Router();
+
+// Mobile JWT auth routes (login, register, refresh)
+router.use("/auth", authMobileRoutes);
+
+/**
+ * GET /api/v1/user
+ * Returns the currently authenticated user.
+ * Supports both Passport session (web) and JWT Bearer token (mobile).
+ * Mobile app calls this on startup to validate a stored JWT.
+ */
+router.get("/user", requireAuth, async (req, res) => {
+    const user = (req as any).user;
+    res.json({
+        success: true,
+        data: {
+            id: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            email: user.email ?? null,
+        },
+    });
+});
 
 // Mount feature routes
 router.use("/whispers", whispersRoutes);

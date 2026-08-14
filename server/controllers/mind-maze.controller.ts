@@ -42,6 +42,36 @@ export class MindMazeController {
         await mindMazeService.incrementResponses(id);
         res.json(successResponse({ message: "Response recorded" }));
     });
+
+    /**
+     * GET /api/v1/mind-maze/:id/sparks
+     */
+    getSparks = asyncHandler(async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const sparks = await mindMazeService.getSparks(id);
+        res.json(successResponse(sparks));
+    });
+
+    /**
+     * POST /api/v1/mind-maze/:id/sparks
+     */
+    createSpark = asyncHandler(async (req: Request, res: Response) => {
+        const mazeId = parseInt(req.params.id);
+        const { content, sparkType } = req.body;
+        const authorId = (req.user as any)?.id || 1; // Fallback to 1 if anonymous test
+        const spark = await mindMazeService.createSpark({ mazeId, content, sparkType, authorId });
+        res.status(201).json(successResponse(spark));
+    });
+
+    /**
+     * POST /api/v1/mind-maze/sparks/:sparkId/resonate
+     */
+    resonateSpark = asyncHandler(async (req: Request, res: Response) => {
+        const sparkId = parseInt(req.params.sparkId);
+        const raterId = (req.user as any)?.id || 1;
+        await mindMazeService.resonateSpark(sparkId, raterId);
+        res.json(successResponse({ message: "Spark resonated!" }));
+    });
 }
 
 export const mindMazeController = new MindMazeController();

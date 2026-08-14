@@ -1,8 +1,10 @@
 import { db } from "../db";
-import { mindMaze, starlitSpeaker, moonMessenger, savedStations } from "@shared/schema";
+import { mindMaze, mindMazeSparks, starlitSpeaker, moonMessenger, savedStations } from "@shared/schema";
 import {
   type MindMaze,
   type InsertMindMaze,
+  type MindMazeSpark,
+  type InsertMindMazeSpark,
   type StarlitSpeaker,
   type InsertStarlitSpeaker,
   type MoonMessenger,
@@ -42,6 +44,34 @@ export async function incrementMindMazeResponses(id: number): Promise<void> {
       .where(eq(mindMaze.id, id));
   } catch (error) {
     logger.error("Error incrementing mind maze responses:", error);
+  }
+}
+
+export async function createMindMazeSpark(spark: InsertMindMazeSpark): Promise<MindMazeSpark> {
+  const [newSpark] = await db.insert(mindMazeSparks).values(spark).returning();
+  return newSpark;
+}
+
+export async function getMindMazeSparks(mazeId: number): Promise<MindMazeSpark[]> {
+  try {
+    return await db
+      .select()
+      .from(mindMazeSparks)
+      .where(eq(mindMazeSparks.mazeId, mazeId))
+      .orderBy(desc(mindMazeSparks.createdAt));
+  } catch (error) {
+    logger.error("Error getting mind maze sparks:", error);
+    return [];
+  }
+}
+
+export async function incrementSparkResonance(id: number): Promise<void> {
+  try {
+    await db.update(mindMazeSparks)
+      .set({ resonance: sql`${mindMazeSparks.resonance} + 1` })
+      .where(eq(mindMazeSparks.id, id));
+  } catch (error) {
+    logger.error("Error incrementing spark resonance:", error);
   }
 }
 

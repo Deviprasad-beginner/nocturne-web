@@ -106,7 +106,7 @@ export class NightCirclesService {
         size: "group" | "duo" = "group"
     ): Promise<{ circle: NightCircle; member: CircleMember; isAiSeed: boolean }> {
         // Priority: emotional match → available capacity → activity level → lifecycle
-        
+
         let best: NightCircle | null = null;
         const targetMaxMembers = size === "duo" ? 2 : 8;
 
@@ -179,7 +179,7 @@ export class NightCirclesService {
     ): Promise<CircleMember> {
         return await db.transaction(async (tx) => {
             const [circle] = await tx.select().from(nightCircles).where(eq(nightCircles.id, circleId));
-            
+
             if (!circle) {
                 throw new Error("Circle not found");
             }
@@ -247,7 +247,7 @@ export class NightCirclesService {
                         isActive: newState !== "ended",
                     })
                     .where(eq(nightCircles.id, circleId));
-                
+
                 logger.info(`User left circle ${circleId} (alias: ${member.alias})`);
             }
         });
@@ -257,14 +257,16 @@ export class NightCirclesService {
     async sendMessage(
         circleId: number,
         senderAlias: string,
-        content: string
+        content: string,
+        imageUrl?: string
     ): Promise<CircleMessage> {
-        const emotion = analyzeEmotion(content);
+        const emotion = analyzeEmotion(content || "image");
 
         const [message] = await db.insert(circleMessages).values({
             circleId,
             senderAlias,
-            content,
+            content: content || "",
+            imageUrl,
             sentimentScore: emotion.sentimentScore,
         }).returning();
 

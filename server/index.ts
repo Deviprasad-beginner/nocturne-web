@@ -7,7 +7,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import cors from "cors";
 import helmet from "helmet";
-import morgan from "morgan";
+import pinoHttp from "pino-http";
+import { logger } from "./utils/logger";
 import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -17,7 +18,7 @@ import { apiLimiter } from "./middleware/rateLimiter";
 import { requestId } from "./middleware/requestId.middleware";
 import apiV1Routes from "./routes/api/v1/index";
 import { testDatabaseConnection } from "./config/database";
-import { logger } from "./utils/logger";
+
 import sitemapRouter from "./routes/sitemap.routes";
 
 
@@ -80,9 +81,29 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
 // CORS configuration — explicit origin required in production
 const allowedOrigin = process.env.FRONTEND_URL || (isProduction ? false : "http://localhost:5173");
 
+// CORS — web browser origin + Expo/RN mobile dev origins
+const mobileDevOrigins = [
+  "http://localhost:8081",   // Expo Metro bundler
+  "http://localhost:19000",  // Expo Go
+  "http://localhost:19006",  // Expo web
+  "http://10.0.2.2:5000",   // Android emulator → host
+];
+
+const allowedOrigins = [
+  ...(allowedOrigin ? [allowedOrigin] : []),
+  ...(!isProduction ? mobileDevOrigins : []),
+];
+
 app.use(cors({
-  origin: allowedOrigin,
-  credentials: true, // Allow cookies to be sent
+  origin: (origin, cb) => {
+    // Allow requests with no origin (native mobile, curl, Postman)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.some(o => origin.startsWith(o)) || (!isProduction)) {
+      return cb(null, true);
+    }
+    cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
 }));
@@ -96,8 +117,8 @@ app.use("/api", apiLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Use morgan for HTTP request logging
-app.use(morgan("dev"));
+// Structured HTTP request logging via pino-http
+app.use(pinoHttp({ logger: logger._pino }));
 
 // Health check endpoint (required for load balancers and deployment platforms)
 app.get("/health", (_req, res) => {
@@ -130,7 +151,7 @@ app.use("/", sitemapRouter);
     next();
   });
 
-  // Mount new v1 API routes
+  // Mount new v1 API routes (includes auth + feature routes)
   app.use("/api/v1", apiV1Routes);
 
   // Initialize WebSocket manager

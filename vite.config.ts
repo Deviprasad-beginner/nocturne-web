@@ -59,5 +59,14 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    // Proxy /api to the Express backend so Vite and the backend can run
+    // on different ports in development without CORS/ERR_CONNECTION_REFUSED.
+    proxy: {
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
-});
+}); 

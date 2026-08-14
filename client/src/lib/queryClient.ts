@@ -103,7 +103,11 @@ export const getQueryFn: <T>(options: {
         });
 
         if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-          return null;
+          // Return null — TanStack Query forbids returning undefined from query functions.
+          // Components that destructure with `= []` defaults handle null fine via the
+          // `select` option or explicit null checks.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return null as any;
         }
 
         await throwIfResNotOk(res);
@@ -121,7 +125,14 @@ export const getQueryFn: <T>(options: {
         return json;
       } catch (error) {
         // Don't log AbortErrors — QueryCache.onError handles real errors below
-        if (!isAbortError(error)) throw error;
+        if (isAbortError(error)) throw error;
+
+        // Network failure (ERR_CONNECTION_REFUSED, offline, etc.) — treat as
+        // unauthenticated rather than spinning through retry loops.
+        if (error instanceof TypeError && error.message.toLowerCase().includes('fetch')) {
+          return null as any;
+        }
+
         throw error;
       }
     };
@@ -157,6 +168,8 @@ export const queryClient = new QueryClient({
     onError: (error, query) => {
       // Silently ignore aborts — they're normal on page navigation
       if (isAbortError(error)) return;
+      // Silently ignore 401s — expected for unauthenticated users hitting protected endpoints
+      if (error instanceof APIError && error.status === 401) return;
       console.error(`[Query] ${String(query.queryKey[0])}:`, error);
     },
   }),

@@ -1,12 +1,24 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import SanctuaryScreen from '../screens/SanctuaryScreen';
-import ConnectScreen from '../screens/ConnectScreen';
-import DiscoverScreen from '../screens/DiscoverScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import { TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { haptics } from '../lib/haptics';
+
+import SanctuaryScreen from '../screens/SanctuaryScreen';
+import DiscoverScreen from '../screens/DiscoverScreen';   // Music
+import ConnectScreen from '../screens/ConnectScreen';     // Circles
+import ThoughtsScreen from '../screens/ThoughtsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
+
+const TABS = [
+  { name: 'Home', component: SanctuaryScreen, icon: 'moon' },
+  { name: 'Music', component: DiscoverScreen, icon: 'headphones' },
+  { name: 'Circles', component: ConnectScreen, icon: 'users' },
+  { name: 'Thoughts', component: ThoughtsScreen, icon: 'zap' },
+  { name: 'Profile', component: ProfileScreen, icon: 'user' },
+] as const;
 
 export default function BottomTabNavigator() {
   return (
@@ -15,27 +27,37 @@ export default function BottomTabNavigator() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#050508',
-          borderTopColor: '#1f2937',
-          height: 60,
+          borderTopColor: 'rgba(255,255,255,0.05)',
+          borderTopWidth: 1,
+          height: 64,
           paddingBottom: 10,
-          paddingTop: 10,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: '#818cf8',
-        tabBarInactiveTintColor: '#4b5563',
+        tabBarInactiveTintColor: '#374151',
         tabBarIcon: ({ color, size }) => {
-          let iconName: any = 'circle';
-          if (route.name === 'Sanctuary') iconName = 'moon';
-          else if (route.name === 'Connect') iconName = 'message-circle';
-          else if (route.name === 'Discover') iconName = 'compass';
-          else if (route.name === 'Profile') iconName = 'user';
-          return <Feather name={iconName} size={size} color={color} />;
+          const tab = TABS.find(t => t.name === route.name);
+          return <Feather name={(tab?.icon ?? 'circle') as any} size={size - 2} color={color} />;
         },
+        // Haptic feedback on every tab press
+        tabBarButton: ({ style, children, onPress, accessibilityState }) => (
+          <TouchableOpacity
+            style={style as any}
+            activeOpacity={0.8}
+            accessibilityState={accessibilityState}
+            onPress={(e) => {
+              haptics.select();
+              onPress?.(e);
+            }}
+          >
+            {children as any}
+          </TouchableOpacity>
+        ),
       })}
     >
-      <Tab.Screen name="Sanctuary" component={SanctuaryScreen} />
-      <Tab.Screen name="Connect" component={ConnectScreen} />
-      <Tab.Screen name="Discover" component={DiscoverScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      {TABS.map(({ name, component }) => (
+        <Tab.Screen key={name} name={name} component={component} />
+      ))}
     </Tab.Navigator>
   );
 }

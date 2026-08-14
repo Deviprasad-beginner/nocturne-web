@@ -34,4 +34,27 @@ router.post(
     mindMazeController.respond
 );
 
+// GET /api/v1/mind-maze/:id/sparks - Get all sparks for a maze
+router.get(
+    "/:id/sparks",
+    validate(z.object({ id: z.string().regex(/^\d+$/) }), "params"),
+    mindMazeController.getSparks
+);
+
+// POST /api/v1/mind-maze/:id/sparks - Submit a spark
+router.post(
+    "/:id/sparks",
+    validate(z.object({ id: z.string().regex(/^\d+$/) }), "params"),
+    // Also requires validation of body: content, sparkType. 
+    // Handled broadly in controller for now based on fast-iteration requirement.
+    mindMazeController.createSpark
+);
+
+// POST /api/v1/mind-maze/sparks/:sparkId/resonate - Resonate a spark
+router.post(
+    "/sparks/:sparkId/resonate",
+    validate(z.object({ sparkId: z.string().regex(/^\d+$/) }), "params"),
+    mindMazeController.resonateSpark
+);
+
 export default router;

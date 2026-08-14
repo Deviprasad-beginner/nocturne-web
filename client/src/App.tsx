@@ -1,5 +1,5 @@
 import { Switch, Route, Link } from "wouter";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { SEO } from "@/components/SEO";
 import { MusicProvider } from "@/context/MusicContext";
@@ -167,7 +167,7 @@ function LoadingScreen({ message = "Loading..." }: { message?: string }) {
         alignItems: "center",
         justifyContent: "center",
       }}>
-        
+
         {/* Outer diffused ring */}
         <div style={{
           position: "absolute",
@@ -196,7 +196,7 @@ function LoadingScreen({ message = "Loading..." }: { message?: string }) {
           animation: "spinSlowReverse 5.5s linear infinite",
           filter: "blur(2px)",
         }} />
-        
+
         {/* Core hollow masking - makes the center dark */}
         <div style={{
           position: "absolute",
@@ -227,7 +227,7 @@ function LoadingScreen({ message = "Loading..." }: { message?: string }) {
           }}>
             {message}
           </div>
-          
+
           {/* Tiny glowing dots below text */}
           <div style={{ display: "flex", gap: 6 }}>
             {[0, 1, 2].map((i) => (
@@ -254,10 +254,22 @@ function LoadingScreen({ message = "Loading..." }: { message?: string }) {
 
 
 function App() {
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
+  // Safety valve: if auth check hasn't resolved after 4s (backend down /
+  // cold start), stop showing the spinner and render in guest mode.
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
-  if (isLoading) {
-    return <LoadingScreen message="Entering the night" />
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const id = setTimeout(() => setLoadingTimedOut(true), 4000);
+    return () => clearTimeout(id);
+  }, [isLoading]);
+
+  if (isLoading && !loadingTimedOut) {
+    return <LoadingScreen message="Entering the night" />;
   }
 
   // Allow access without authentication (guest mode)

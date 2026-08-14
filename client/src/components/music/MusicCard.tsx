@@ -10,10 +10,11 @@ import { useState } from "react";
 
 interface MusicCardProps {
     track: Track;
+    queue?: Track[];
     onRemoveFromPlaylist?: (trackId: string) => void;
 }
 
-export function MusicCard({ track, onRemoveFromPlaylist }: MusicCardProps) {
+export function MusicCard({ track, queue, onRemoveFromPlaylist }: MusicCardProps) {
     const { playTrack, currentTrack, isPlaying } = useMusic();
     const { user } = useAuth();
     const { toast } = useToast();
@@ -122,7 +123,7 @@ export function MusicCard({ track, onRemoveFromPlaylist }: MusicCardProps) {
 
     return (
         <div
-            onClick={() => playTrack(track)}
+            onClick={() => playTrack(track, queue)}
             className={cn(
                 "group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-400",
                 "border bg-white/[0.02]",
@@ -234,13 +235,13 @@ export function MusicCard({ track, onRemoveFromPlaylist }: MusicCardProps) {
 
                 {/* Playlist Selection Overlay */}
                 {showPlaylistMenu && (
-                    <div 
-                        onClick={(e) => e.stopPropagation()} 
+                    <div
+                        onClick={(e) => e.stopPropagation()}
                         className="absolute inset-0 bg-[#0c0d14]/95 backdrop-blur-lg z-20 p-3 flex flex-col justify-between"
                     >
                         <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
                             <span className="text-xs font-semibold text-white/80">Add to Playlist</span>
-                            <button 
+                            <button
                                 onClick={() => setShowPlaylistMenu(false)}
                                 className="text-white/40 hover:text-white/80 transition-colors"
                             >
@@ -270,7 +271,7 @@ export function MusicCard({ track, onRemoveFromPlaylist }: MusicCardProps) {
                         </div>
 
                         {/* Create Playlist Form */}
-                        <form 
+                        <form
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 if (newPlaylistName.trim()) {

@@ -210,6 +210,7 @@
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
+
   /*
    * PERFORMANCE: Disable backdrop-filter globally on mobile.
    * backdrop-blur is the single biggest GPU bottleneck on mobile — it forces
@@ -262,6 +263,7 @@
 
 /* Respect user OS preference for reduced motion */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -274,9 +276,101 @@
 
 /* Ensure minimum touch target sizes on mobile */
 @media (max-width: 640px) {
+
   button,
   a {
     min-height: 44px;
     min-width: 44px;
   }
+}
+
+/* ─── Compact Mode ────────────────────────────────────────────────────────── */
+/* Applied by SettingsContext when user enables Compact Mode.                  */
+/* Tightens spacing across cards, lists, and page containers platform-wide.   */
+
+/* Cards — reduce internal padding */
+.compact-mode [class*="p-6"] {
+  padding: 0.875rem !important;
+}
+
+.compact-mode [class*="p-5"] {
+  padding: 0.75rem !important;
+}
+
+.compact-mode [class*="p-4"] {
+  padding: 0.625rem !important;
+}
+
+/* Inter-card and list spacing */
+.compact-mode .space-y-4>*+* {
+  margin-top: 0.5rem !important;
+}
+
+.compact-mode .space-y-3>*+* {
+  margin-top: 0.375rem !important;
+}
+
+.compact-mode .space-y-2\.5>*+*,
+.compact-mode .space-y-2>*+* {
+  margin-top: 0.25rem !important;
+}
+
+/* Grid/flex gaps */
+.compact-mode .gap-6 {
+  gap: 0.75rem !important;
+}
+
+.compact-mode .gap-4 {
+  gap: 0.5rem !important;
+}
+
+.compact-mode .gap-3 {
+  gap: 0.375rem !important;
+}
+
+.compact-mode .gap-2 {
+  gap: 0.25rem !important;
+}
+
+/* Header & section margins */
+.compact-mode [class*="mb-8"] {
+  margin-bottom: 0.875rem !important;
+}
+
+.compact-mode [class*="mb-6"] {
+  margin-bottom: 0.625rem !important;
+}
+
+.compact-mode [class*="mb-4"] {
+  margin-bottom: 0.375rem !important;
+}
+
+/* Bottom padding for fixed bottom nav */
+.compact-mode [class*="pb-24"] {
+  padding-bottom: 3.5rem !important;
+}
+
+.compact-mode [class*="pb-20"] {
+  padding-bottom: 3rem !important;
+}
+
+/* Slightly tighter body text */
+.compact-mode p,
+.compact-mode .text-sm {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+/* Smooth transition when toggling on/off */
+html {
+  transition: font-size 0.2s ease;
+}
+
+/* hide-scrollbar utility */
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }

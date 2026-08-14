@@ -216,6 +216,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/user"] });
     },
   });
 
@@ -224,7 +225,7 @@ export default function Settings() {
 
   const set = (key: string, value: any, instant: boolean = true) => {
     setSettings(prev => ({ ...prev, [key]: value }));
-    
+
     if (instant) {
       updateSettingsMutation.mutate({ [key]: value });
       toast({ title: "Saved", description: "Preference updated.", duration: 1500 });
@@ -381,7 +382,6 @@ export default function Settings() {
                     </div>
                   ))}
                   {[
-                    { key: "accentColor", label: "Accent Color", options: ["purple", "blue", "green", "orange"] },
                     { key: "fontSize", label: "Font Size", options: ["small", "medium", "large"] },
                   ].map(({ key, label, options }) => (
                     <div key={key} className={row}>

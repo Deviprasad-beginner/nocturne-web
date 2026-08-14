@@ -1,9 +1,18 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { SEO } from "@/components/SEO";
 import { Whisper, InsertWhisper, GlobalConsciousness } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+
+// ── Like dedup helpers (shared key with home feed) ──────────────────────────
+const LIKED_KEY = "nc_liked_whispers";
+function getLikedIds(): Set<number> {
+  try { const r = localStorage.getItem(LIKED_KEY); return r ? new Set(JSON.parse(r) as number[]) : new Set(); } catch { return new Set(); }
+}
+function saveLikedIds(ids: Set<number>) {
+  try { localStorage.setItem(LIKED_KEY, JSON.stringify(Array.from(ids))); } catch { }
+}
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +31,7 @@ import { EmotionVisualizer } from "@/components/whisper/EmotionVisualizer";
 
 export default function Whispers() {
   const [isCreating, setIsCreating] = useState(false);
+  const [likedIds, setLikedIds] = useState<Set<number>>(() => getLikedIds());
   const { toast } = useToast();
   const confirmDialog = useConfirmDialog();
   const { handleError } = useErrorHandler();
@@ -84,6 +94,25 @@ export default function Whispers() {
     }
   });
 
+  const likeMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest('POST', `/api/v1/whispers/${id}/like`);
+      return res.json();
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/whispers'] });
+      const next = new Set(likedIds);
+      next.add(id);
+      setLikedIds(next);
+      saveLikedIds(next);
+    },
+  });
+
+  const handleLike = useCallback((id: number) => {
+    if (likedIds.has(id)) return;
+    likeMutation.mutate(id);
+  }, [likedIds, likeMutation]);
+
   /**
    * Handles form submission with validation
    */
@@ -117,11 +146,12 @@ export default function Whispers() {
     interactMutation.mutate({ id, type });
   };
 
+
   return (
     <div className="min-h-screen text-white p-3 sm:p-6 relative overflow-hidden">
-      <SEO 
-        title="Anonymous Late-Night Whispers" 
-        description="Share anonymous confessions, raw emotions, and secrets into the quiet dark with other night owls around the world." 
+      <SEO
+        title="Anonymous Late-Night Whispers"
+        description="Share anonymous confessions, raw emotions, and secrets into the quiet dark with other night owls around the world."
       />
 
       <EmotionVisualizer dominantEmotion={consciousness?.currentDominantEmotion || 'neutral'} />
@@ -238,10 +268,12 @@ export default function Whispers() {
                 <p className="text-sm opacity-50">Be the first to whisper into the darkness.</p>
               </motion.div>
             ) : (
-              whispers.map((whisper, index) => (
+              whispers.map((whisper) => (
                 <WhisperCard
                   key={whisper.id}
                   whisper={whisper}
+                  isLiked={likedIds.has(whisper.id)}
+                  onLike={handleLike}
                   onInteract={handleInteraction}
                 />
               ))

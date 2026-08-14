@@ -23,7 +23,7 @@ export const users = pgTable("users", {
   email: text("email").unique(),
   profileImageUrl: text("profile_image_url"),
   hasSeenOnboarding: boolean("has_seen_onboarding").default(false),
-  
+
   // Profile Information
   nightPersona: varchar("night_persona", { length: 50 }),
   bio: text("bio"),
@@ -73,6 +73,7 @@ export const diaryComments = pgTable("diary_comments", {
 export const whispers = pgTable("whispers", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
+  type: varchar("type", { length: 20 }).default("text"),
   hearts: integer("hearts").default(0),
   authorId: integer("author_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
@@ -123,13 +124,32 @@ export const mindMaze = pgTable("mind_maze", {
   content: text("content").notNull(),
   options: text("options").array(),
   responses: integer("responses").default(0),
+  authorId: integer("author_id").references(() => users.id),
+  isSystem: boolean("is_system").default(false),
+  domain: varchar("domain", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const mindMazeSparks = pgTable("mind_maze_sparks", {
+  id: serial("id").primaryKey(),
+  mazeId: integer("maze_id").references(() => mindMaze.id, { onDelete: "cascade" }).notNull(),
+  authorId: integer("author_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  sparkType: varchar("spark_type", { length: 20 }).notNull(), // 'analytical' | 'abstract'
+  resonance: integer("resonance").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_mind_maze_sparks_maze").on(table.mazeId),
+  index("idx_mind_maze_sparks_author").on(table.authorId),
+]);
 
 export const nightCircles = pgTable("night_circles", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  topic: text("topic"),
+  category: varchar("category", { length: 50 }),
+  roomType: varchar("room_type", { length: 20 }).default("random"),
   maxMembers: integer("max_members").default(8),
   currentMembers: integer("current_members").default(0),
   isActive: boolean("is_active").default(true),
@@ -168,6 +188,7 @@ export const circleMessages = pgTable("circle_messages", {
   circleId: integer("circle_id").references(() => nightCircles.id, { onDelete: "cascade" }).notNull(),
   senderAlias: varchar("sender_alias", { length: 50 }).notNull(),
   content: text("content").notNull(),
+  imageUrl: text("image_url"),
   sentimentScore: integer("sentiment_score"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
@@ -270,6 +291,12 @@ export const insertWhisperInteractionSchema = createInsertSchema(whisperInteract
 export const insertMindMazeSchema = createInsertSchema(mindMaze).omit({
   id: true,
   responses: true,
+  createdAt: true,
+});
+
+export const insertMindMazeSparkSchema = createInsertSchema(mindMazeSparks).omit({
+  id: true,
+  resonance: true,
   createdAt: true,
 });
 
@@ -383,6 +410,9 @@ export type InsertWhisper = z.infer<typeof insertWhisperSchema>;
 
 export type MindMaze = typeof mindMaze.$inferSelect;
 export type InsertMindMaze = z.infer<typeof insertMindMazeSchema>;
+
+export type MindMazeSpark = typeof mindMazeSparks.$inferSelect;
+export type InsertMindMazeSpark = z.infer<typeof insertMindMazeSparkSchema>;
 
 export type NightCircle = typeof nightCircles.$inferSelect;
 export type InsertNightCircle = z.infer<typeof insertNightCircleSchema>;

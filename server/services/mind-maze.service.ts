@@ -3,7 +3,7 @@
  */
 
 import { storage } from "../storage";
-import type { MindMaze, InsertMindMaze } from "@shared/schema";
+import type { MindMaze, InsertMindMaze, MindMazeSpark, InsertMindMazeSpark } from "@shared/schema";
 import { NotFoundError } from "../utils/errors";
 import { logger } from "../utils/logger";
 
@@ -44,11 +44,34 @@ export class MindMazeService {
      */
     async incrementResponses(id: number): Promise<void> {
         logger.info(`Incrementing responses for question: ${id}`);
-
-        // Verify question exists
         await this.getQuestionById(id);
-
         await storage.incrementMindMazeResponses(id);
+    }
+
+    /**
+     * Submit a Spark (response) to a Maze
+     */
+    async createSpark(data: InsertMindMazeSpark): Promise<MindMazeSpark> {
+        logger.info(`Creating spark for maze ${data.mazeId}`);
+        // ensure maze exists
+        await this.getQuestionById(data.mazeId);
+        return await storage.createMindMazeSpark(data);
+    }
+
+    /**
+     * Get sparks for a maze
+     */
+    async getSparks(mazeId: number): Promise<MindMazeSpark[]> {
+        logger.debug(`Fetching sparks for maze ${mazeId}`);
+        return await storage.getMindMazeSparks(mazeId);
+    }
+
+    /**
+     * Resonate with a spark
+     */
+    async resonateSpark(sparkId: number, raterId: number): Promise<void> {
+        logger.info(`User ${raterId} resonating with spark ${sparkId}`);
+        await storage.incrementSparkResonance(sparkId);
     }
 }
 

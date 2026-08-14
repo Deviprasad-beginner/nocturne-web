@@ -11,14 +11,14 @@ import { logger } from "./utils/logger";
 import { z } from "zod";
 
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters").max(30, "Username too long").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  email: z.string().email("Invalid email").optional(),
+    username: z.string().min(3, "Username must be at least 3 characters").max(30, "Username too long").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    email: z.string().email("Invalid email").optional(),
 });
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+    username: z.string().min(1, "Username is required"),
+    password: z.string().min(1, "Password is required"),
 });
 
 declare global {
@@ -36,7 +36,12 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
+    if (!stored || typeof stored !== "string" || !stored.includes(".")) {
+        return false;
+    }
     const [hashed, salt] = stored.split(".");
+    if (!hashed || !salt) return false;
+
     const hashedBuf = Buffer.from(hashed, "hex");
     const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
     return timingSafeEqual(hashedBuf, suppliedBuf);
@@ -92,15 +97,15 @@ export function setupAuth(app: Express) {
     app.use(passport.session());
 
     app.post("/api/auth/firebase", async (req, res, next) => {
-      try {
-        const { idToken, uid, email, displayName, photoURL } = req.body;
-        if (!uid) return res.status(400).send("UID required");
+        try {
+            const { idToken, uid, email, displayName, photoURL } = req.body;
+            if (!uid) return res.status(400).send("UID required");
 
-        // In production, always require idToken so we verify token server-side
-        // Trusting client-sent UIDs without verification is a security risk
-        if (isProduction && !idToken) {
-          return res.status(401).json({ error: "idToken is required in production" });
-        }
+            // In production, always require idToken so we verify token server-side
+            // Trusting client-sent UIDs without verification is a security risk
+            if (isProduction && !idToken) {
+                return res.status(401).json({ error: "idToken is required in production" });
+            }
 
             // Verify Firebase ID token server-side if possible
             let verifiedUid = uid;
@@ -265,56 +270,56 @@ export function setupAuth(app: Express) {
         }
     });
 
-  app.post("/api/register", async (req, res, next) => {
-    try {
-      // Validate request body with Zod
-      const parseResult = registerSchema.safeParse(req.body);
-      if (!parseResult.success) {
-        return res.status(400).json({
-          success: false,
-          error: { message: "Validation failed", code: "VALIDATION_ERROR", details: parseResult.error.errors },
-        });
-      }
+    app.post("/api/register", async (req, res, next) => {
+        try {
+            // Validate request body with Zod
+            const parseResult = registerSchema.safeParse(req.body);
+            if (!parseResult.success) {
+                return res.status(400).json({
+                    success: false,
+                    error: { message: "Validation failed", code: "VALIDATION_ERROR", details: parseResult.error.errors },
+                });
+            }
 
-      const existingUser = await storage.getUserByUsername(parseResult.data.username);
-      if (existingUser) {
-        return res.status(400).json({ success: false, error: { message: "Username already exists", code: "CONFLICT" } });
-      }
+            const existingUser = await storage.getUserByUsername(parseResult.data.username);
+            if (existingUser) {
+                return res.status(400).json({ success: false, error: { message: "Username already exists", code: "CONFLICT" } });
+            }
 
-      const hashedPassword = await hashPassword(parseResult.data.password);
-      const user = await storage.createUser({
-        ...req.body,
-        username: parseResult.data.username,
-        password: hashedPassword,
-      });
+            const hashedPassword = await hashPassword(parseResult.data.password);
+            const user = await storage.createUser({
+                ...req.body,
+                username: parseResult.data.username,
+                password: hashedPassword,
+            });
 
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json(user);
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
+            req.login(user, (err) => {
+                if (err) return next(err);
+                res.status(201).json(user);
+            });
+        } catch (error) {
+            next(error);
+        }
+    });
 
-  app.post("/api/login", (req, res, next) => {
-    // Validate before attempting passport auth
-    const parseResult = loginSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: { message: "Validation failed", code: "VALIDATION_ERROR", details: parseResult.error.errors },
-      });
-    }
-    passport.authenticate("local", (err: any, user: any, _info: any) => {
-      if (err) return next(err);
-      if (!user) return res.status(401).json({ success: false, error: { message: "Invalid credentials", code: "UNAUTHORIZED" } });
-      req.login(user, (loginErr) => {
-        if (loginErr) return next(loginErr);
-        return res.status(200).json(user);
-      });
-    })(req, res, next);
-  });
+    app.post("/api/login", (req, res, next) => {
+        // Validate before attempting passport auth
+        const parseResult = loginSchema.safeParse(req.body);
+        if (!parseResult.success) {
+            return res.status(400).json({
+                success: false,
+                error: { message: "Validation failed", code: "VALIDATION_ERROR", details: parseResult.error.errors },
+            });
+        }
+        passport.authenticate("local", (err: any, user: any, _info: any) => {
+            if (err) return next(err);
+            if (!user) return res.status(401).json({ success: false, error: { message: "Invalid credentials", code: "UNAUTHORIZED" } });
+            req.login(user, (loginErr) => {
+                if (loginErr) return next(loginErr);
+                return res.status(200).json(user);
+            });
+        })(req, res, next);
+    });
 
     app.post("/api/logout", (req, res, next) => {
         req.logout((err) => {

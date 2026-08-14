@@ -22,6 +22,8 @@ import {
   type InsertWhisper,
   type MindMaze,
   type InsertMindMaze,
+  type MindMazeSpark,
+  type InsertMindMazeSpark,
   type NightCircle,
   type InsertNightCircle,
   type MidnightCafe,
@@ -88,6 +90,9 @@ export interface IStorage {
   createMindMaze(mindMaze: InsertMindMaze): Promise<MindMaze>;
   getMindMaze(limit?: number): Promise<MindMaze[]>;
   incrementMindMazeResponses(id: number): Promise<void>;
+  createMindMazeSpark(spark: InsertMindMazeSpark): Promise<MindMazeSpark>;
+  getMindMazeSparks(mazeId: number): Promise<MindMazeSpark[]>;
+  incrementSparkResonance(id: number): Promise<void>;
 
   // Night Circle operations
   createNightCircle(nightCircle: InsertNightCircle): Promise<NightCircle>;
@@ -166,6 +171,7 @@ export class MemoryStorage implements IStorage {
   diaries: Diary[];
   whispers: Whisper[];
   mindMazes: MindMaze[];
+  mindMazeSparks: MindMazeSpark[];
   nightCircles: NightCircle[];
   midnightCafes: MidnightCafe[];
   amFounders: AmFounder[];
@@ -183,6 +189,7 @@ export class MemoryStorage implements IStorage {
     this.diaries = [];
     this.whispers = [];
     this.mindMazes = [];
+    this.mindMazeSparks = [];
     this.nightCircles = [];
     this.midnightCafes = [];
     this.amFounders = [];
@@ -362,6 +369,8 @@ export class MemoryStorage implements IStorage {
       content: mindMaze.content,
       options: mindMaze.options || null,
       responses: 0,
+      authorId: mindMaze.authorId || null,
+      isSystem: mindMaze.isSystem || false,
       createdAt: new Date()
     };
     this.mindMazes.push(newMindMaze);
@@ -377,6 +386,33 @@ export class MemoryStorage implements IStorage {
     const mindMaze = this.mindMazes.find(m => m.id === id);
     if (mindMaze && mindMaze.responses !== null) {
       mindMaze.responses++;
+    }
+  }
+
+  async createMindMazeSpark(spark: InsertMindMazeSpark): Promise<MindMazeSpark> {
+    const newSpark: MindMazeSpark = {
+      id: this.nextId++,
+      mazeId: spark.mazeId,
+      authorId: spark.authorId,
+      content: spark.content,
+      sparkType: spark.sparkType,
+      resonance: 0,
+      createdAt: new Date()
+    };
+    this.mindMazeSparks.push(newSpark);
+    return newSpark;
+  }
+
+  async getMindMazeSparks(mazeId: number): Promise<MindMazeSpark[]> {
+    return this.mindMazeSparks
+      .filter(s => s.mazeId === mazeId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async incrementSparkResonance(id: number): Promise<void> {
+    const spark = this.mindMazeSparks.find(s => s.id === id);
+    if (spark && spark.resonance !== null) {
+      spark.resonance++;
     }
   }
 
@@ -1091,6 +1127,9 @@ export class DatabaseStorage implements IStorage {
   createMindMaze = MiscRepo.createMindMaze;
   getMindMaze = MiscRepo.getMindMaze;
   incrementMindMazeResponses = MiscRepo.incrementMindMazeResponses;
+  createMindMazeSpark = MiscRepo.createMindMazeSpark;
+  getMindMazeSparks = MiscRepo.getMindMazeSparks;
+  incrementSparkResonance = MiscRepo.incrementSparkResonance;
 
   // ── Starlit Speaker ───────────────────────────────────────────────────────
   createStarlitSpeaker = MiscRepo.createStarlitSpeaker;
@@ -1138,8 +1177,8 @@ export class DatabaseStorage implements IStorage {
     const rawStats = stats.rows[0] as any;
 
     const totalPosts = Number(rawStats.diary_posts || 0) +
-        Number(rawStats.whisper_posts || 0) +
-        Number(rawStats.cafe_posts || 0);
+      Number(rawStats.whisper_posts || 0) +
+      Number(rawStats.cafe_posts || 0);
 
     const totalHearts = Number(rawStats.total_hearts || 0);
     const activeDaysLastWeek = Number(rawStats.active_days_last_week || 0);
@@ -1150,18 +1189,18 @@ export class DatabaseStorage implements IStorage {
     const streakDays = activeDaysLastWeek;
 
     return {
-        nightOwlLevel,
-        totalHearts,
-        postsShared: totalPosts,
-        conversationsJoined: Number(rawStats.cafe_posts || 0),
-        streakDays,
-        experiencePoints,
-        breakdown: {
-            diaryPosts: Number(rawStats.diary_posts || 0),
-            whisperPosts: Number(rawStats.whisper_posts || 0),
-            cafePosts: Number(rawStats.cafe_posts || 0)
-        },
-        accountAgeDays
+      nightOwlLevel,
+      totalHearts,
+      postsShared: totalPosts,
+      conversationsJoined: Number(rawStats.cafe_posts || 0),
+      streakDays,
+      experiencePoints,
+      breakdown: {
+        diaryPosts: Number(rawStats.diary_posts || 0),
+        whisperPosts: Number(rawStats.whisper_posts || 0),
+        cafePosts: Number(rawStats.cafe_posts || 0)
+      },
+      accountAgeDays
     };
   }
 
@@ -1181,73 +1220,73 @@ export class DatabaseStorage implements IStorage {
     const achievements = [];
 
     if (checks.has_first_diary) {
-        achievements.push({
-            id: 'first_diary',
-            icon: 'moon',
-            title: 'Night Owl Initiate',
-            description: 'Wrote your first diary entry',
-            color: 'purple'
-        });
+      achievements.push({
+        id: 'first_diary',
+        icon: 'moon',
+        title: 'Night Owl Initiate',
+        description: 'Wrote your first diary entry',
+        color: 'purple'
+      });
     }
 
     if (checks.has_first_whisper) {
-        achievements.push({
-            id: 'first_whisper',
-            icon: 'star',
-            title: 'Whisper in the Dark',
-            description: 'Shared your first whisper',
-            color: 'pink'
-        });
+      achievements.push({
+        id: 'first_whisper',
+        icon: 'star',
+        title: 'Whisper in the Dark',
+        description: 'Shared your first whisper',
+        color: 'pink'
+      });
     }
 
     if (checks.has_first_heart) {
-        achievements.push({
-            id: 'first_heart',
-            icon: 'heart',
-            title: 'First Heart Received',
-            description: 'Someone loved your whisper',
-            color: 'red'
-        });
+      achievements.push({
+        id: 'first_heart',
+        icon: 'heart',
+        title: 'First Heart Received',
+        description: 'Someone loved your whisper',
+        color: 'red'
+      });
     }
 
     if (checks.has_first_cafe) {
-        achievements.push({
-            id: 'first_cafe',
-            icon: 'message',
-            title: 'Conversation Starter',
-            description: 'Started a cafe conversation',
-            color: 'blue'
-        });
+      achievements.push({
+        id: 'first_cafe',
+        icon: 'message',
+        title: 'Conversation Starter',
+        description: 'Started a cafe conversation',
+        color: 'blue'
+      });
     }
 
     if (checks.has_ten_diaries) {
-        achievements.push({
-            id: 'ten_diaries',
-            icon: 'trophy',
-            title: 'Dedicated Diarist',
-            description: 'Wrote 10 diary entries',
-            color: 'yellow'
-        });
+      achievements.push({
+        id: 'ten_diaries',
+        icon: 'trophy',
+        title: 'Dedicated Diarist',
+        description: 'Wrote 10 diary entries',
+        color: 'yellow'
+      });
     }
 
     if (checks.has_ten_whispers) {
-        achievements.push({
-            id: 'ten_whispers',
-            icon: 'trophy',
-            title: 'Voice of the Night',
-            description: 'Shared 10 whispers',
-            color: 'purple'
-        });
+      achievements.push({
+        id: 'ten_whispers',
+        icon: 'trophy',
+        title: 'Voice of the Night',
+        description: 'Shared 10 whispers',
+        color: 'purple'
+      });
     }
 
     if (checks.has_fifty_hearts) {
-        achievements.push({
-            id: 'fifty_hearts',
-            icon: 'trophy',
-            title: 'Beloved Night Soul',
-            description: 'Received 50 hearts total',
-            color: 'gold'
-        });
+      achievements.push({
+        id: 'fifty_hearts',
+        icon: 'trophy',
+        title: 'Beloved Night Soul',
+        description: 'Received 50 hearts total',
+        color: 'gold'
+      });
     }
 
     return achievements;
@@ -1332,23 +1371,23 @@ export class DatabaseStorage implements IStorage {
     `);
 
     const formattedTopics = (trendingTopics.rows || []).map((topic: any, index: number) => ({
-        id: index + 1,
-        tag: topic.tag,
-        posts: parseInt(topic.posts) || 0,
-        growth: parseInt(topic.growth) || 0,
-        category: topic.category,
-        destination: topic.destination
+      id: index + 1,
+      tag: topic.tag,
+      posts: parseInt(topic.posts) || 0,
+      growth: parseInt(topic.growth) || 0,
+      category: topic.category,
+      destination: topic.destination
     }));
 
     if (formattedTopics.length === 0) {
-        return [
-            { id: 1, tag: "3amthoughts", posts: 0, growth: 0, category: "philosophy", destination: "/diaries" },
-            { id: 2, tag: "insomniacreations", posts: 0, growth: 0, category: "creative", destination: "/whispers" },
-            { id: 3, tag: "midnightmusic", posts: 0, growth: 0, category: "music", destination: "/music-mood" },
-            { id: 4, tag: "nightowlstartup", posts: 0, growth: 0, category: "business", destination: "/3am-founder" },
-            { id: 5, tag: "dreamjournal", posts: 0, growth: 0, category: "personal", destination: "/diaries" },
-            { id: 6, tag: "starlitconversations", posts: 0, growth: 0, category: "social", destination: "/midnight-cafe" }
-        ];
+      return [
+        { id: 1, tag: "3amthoughts", posts: 0, growth: 0, category: "philosophy", destination: "/diaries" },
+        { id: 2, tag: "insomniacreations", posts: 0, growth: 0, category: "creative", destination: "/whispers" },
+        { id: 3, tag: "midnightmusic", posts: 0, growth: 0, category: "music", destination: "/music-mood" },
+        { id: 4, tag: "nightowlstartup", posts: 0, growth: 0, category: "business", destination: "/3am-founder" },
+        { id: 5, tag: "dreamjournal", posts: 0, growth: 0, category: "personal", destination: "/diaries" },
+        { id: 6, tag: "starlitconversations", posts: 0, growth: 0, category: "social", destination: "/midnight-cafe" }
+      ];
     }
 
     return formattedTopics;
@@ -1356,72 +1395,72 @@ export class DatabaseStorage implements IStorage {
 
   async getRecentActivity(limit: number): Promise<any[]> {
     const [recentDiaries, recentWhispers, recentCafe] = await Promise.all([
-        db
-            .select({ id: diaries.id, createdAt: diaries.createdAt })
-            .from(diaries)
-            .orderBy(desc(diaries.createdAt))
-            .limit(5),
+      db
+        .select({ id: diaries.id, createdAt: diaries.createdAt })
+        .from(diaries)
+        .orderBy(desc(diaries.createdAt))
+        .limit(5),
 
-        db
-            .select({ id: whispers.id, createdAt: whispers.createdAt })
-            .from(whispers)
-            .orderBy(desc(whispers.createdAt))
-            .limit(5),
+      db
+        .select({ id: whispers.id, createdAt: whispers.createdAt })
+        .from(whispers)
+        .orderBy(desc(whispers.createdAt))
+        .limit(5),
 
-        db
-            .select({ id: midnightCafe.id, createdAt: midnightCafe.createdAt, topic: midnightCafe.topic })
-            .from(midnightCafe)
-            .orderBy(desc(midnightCafe.createdAt))
-            .limit(5),
+      db
+        .select({ id: midnightCafe.id, createdAt: midnightCafe.createdAt, topic: midnightCafe.topic })
+        .from(midnightCafe)
+        .orderBy(desc(midnightCafe.createdAt))
+        .limit(5),
     ]);
 
     const combined = [
-        ...recentDiaries.map((d) => ({
-            id: `post-${d.id}`,
-            type: "post",
-            user: "A Night Owl",
-            content: "shared a diary entry",
-            timestamp: d.createdAt,
-            category: "diaries",
-            link: "/diaries",
-        })),
-        ...recentWhispers.map((w) => ({
-            id: `whisper-${w.id}`,
-            type: "whisper",
-            user: "Anonymous",
-            content: "whispered into the night",
-            timestamp: w.createdAt,
-            category: "whispers",
-            link: "/whispers",
-        })),
-        ...recentCafe.map((m) => ({
-            id: `comment-${m.id}`,
-            type: "comment",
-            user: "A Night Wanderer",
-            content: `started a conversation about ${m.topic?.slice(0, 30) ?? "..."}`,
-            timestamp: m.createdAt,
-            category: "cafe",
-            link: "/midnight-cafe",
-        })),
+      ...recentDiaries.map((d) => ({
+        id: `post-${d.id}`,
+        type: "post",
+        user: "A Night Owl",
+        content: "shared a diary entry",
+        timestamp: d.createdAt,
+        category: "diaries",
+        link: "/diaries",
+      })),
+      ...recentWhispers.map((w) => ({
+        id: `whisper-${w.id}`,
+        type: "whisper",
+        user: "Anonymous",
+        content: "whispered into the night",
+        timestamp: w.createdAt,
+        category: "whispers",
+        link: "/whispers",
+      })),
+      ...recentCafe.map((m) => ({
+        id: `comment-${m.id}`,
+        type: "comment",
+        user: "A Night Wanderer",
+        content: `started a conversation about ${m.topic?.slice(0, 30) ?? "..."}`,
+        timestamp: m.createdAt,
+        category: "cafe",
+        link: "/midnight-cafe",
+      })),
     ]
-        .sort((a, b) => new Date(b.timestamp ?? 0).getTime() - new Date(a.timestamp ?? 0).getTime())
-        .slice(0, limit);
+      .sort((a, b) => new Date(b.timestamp ?? 0).getTime() - new Date(a.timestamp ?? 0).getTime())
+      .slice(0, limit);
 
     return combined;
   }
 
   async getActivityStats(): Promise<any> {
     const [diaryCount, whisperCount, cafeCount] = await Promise.all([
-        db.select({ value: count() }).from(diaries),
-        db.select({ value: count() }).from(whispers),
-        db.select({ value: count() }).from(midnightCafe),
+      db.select({ value: count() }).from(diaries),
+      db.select({ value: count() }).from(whispers),
+      db.select({ value: count() }).from(midnightCafe),
     ]);
 
     return {
-        diaries_today: Number(diaryCount[0]?.value || 0),
-        whispers_today: Number(whisperCount[0]?.value || 0),
-        cafe_today: Number(cafeCount[0]?.value || 0),
-        active_users_today: 0,
+      diaries_today: Number(diaryCount[0]?.value || 0),
+      whispers_today: Number(whisperCount[0]?.value || 0),
+      cafe_today: Number(cafeCount[0]?.value || 0),
+      active_users_today: 0,
     };
   }
 }

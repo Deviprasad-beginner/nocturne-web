@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import { audioPlayer, Track } from "@/lib/audioPlayer";
 
 interface MusicContextType {
@@ -8,16 +8,25 @@ interface MusicContextType {
     isBuffering: boolean;
     volume: number; // 0-1
 
+    // Autoplay queue
+    queue: Track[];
+
+    // Sleep Timer
+    sleepTimerRemaining: number | null; // seconds
+
     // UI state
     mood: string | null;
     listeners: number; // Mock listener count
 
     // Methods
-    playTrack: (track: Track) => void;
+    playTrack: (track: Track, newQueue?: Track[]) => void;
+    playNext: () => void;
     togglePlay: () => void;
     setVolume: (volume: number) => void;
     seek: (percentage: number) => void;
     setMood: (mood: string | null) => void;
+    startSleepTimer: (minutes: number) => void;
+    cancelSleepTimer: () => void;
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -27,12 +36,37 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isBuffering, setIsBuffering] = useState(false);
+
+    // UI state versions for React renders
     const [volume, setVolumeState] = useState(0.5);
     const [mood, setMoodState] = useState<string | null>(null);
     const [listeners, setListeners] = useState(0);
+    const [queue, setQueueState] = useState<Track[]>([]);
+    const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number | null>(null);
 
     // Separate state for frequent updates to avoid re-rendering main context consumers
     const [progressState, setProgressState] = useState({ progress: 0, duration: 0 });
+
+    // Mutable refs for callbacks that shouldn't recreate listeners
+    const queueRef = useRef<Track[]>([]);
+    const currentTrackRef = useRef<Track | null>(null);
+    const sleepEndTimeRef = useRef<number | null>(null);
+    const userVolumeRef = useRef<number>(0.5);
+    const timerIntervalRef = useRef<any>(null);
+
+    // Sync state to refs
+    useEffect(() => { queueRef.current = queue; }, [queue]);
+    useEffect(() => { currentTrackRef.current = currentTrack; }, [currentTrack]);
+
+    const playNext = useCallback(() => {
+        if (queueRef.current.length > 0) {
+            const nextTrack = queueRef.current[0];
+            const newQueue = queueRef.current.slice(1);
+            setQueueState(newQueue);
+            setIsBuffering(true);
+            audioPlayer.play(nextTrack);
+        }
+    }, []);
 
     // Initialize audioEngine listeners
     useEffect(() => {
@@ -58,7 +92,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
         const handleTimeUpdate = (data: { currentTime: number; duration: number }) => {
             if (data.duration > 0) {
-                // Update specific progress state
                 setProgressState({
                     progress: (data.currentTime / data.duration) * 100,
                     duration: data.duration
@@ -74,6 +107,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             setIsPlaying(false);
             setIsBuffering(false);
             setProgressState(prev => ({ ...prev, progress: 0 }));
+            // AUTOPLAY: Trigger next track in queue!
+            playNext();
         };
 
         const handleVolumeChange = (data: { volume: number }) => {
@@ -83,7 +118,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         const handleError = () => {
             setIsPlaying(false);
             setIsBuffering(false);
-            // We could set a global error state here if needed
+            playNext(); // Try advancing if track fails
         };
 
         // Subscribe to events
@@ -103,6 +138,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             setCurrentTrack(state.track);
             setIsPlaying(state.isPlaying);
             setVolumeState(state.volume);
+            userVolumeRef.current = state.volume;
         }
 
         return () => {
@@ -117,9 +153,52 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             audioPlayer.off('buffering', handleBuffering);
             audioPlayer.off('error', handleError);
         };
+    }, [playNext]);
+
+    // Timer Interval logic for Sleep Fade
+    useEffect(() => {
+        timerIntervalRef.current = setInterval(() => {
+            if (sleepEndTimeRef.current !== null) {
+                const now = Date.now();
+                const remainingMs = sleepEndTimeRef.current - now;
+
+                if (remainingMs <= 0) {
+                    audioPlayer.pause();
+                    sleepEndTimeRef.current = null;
+                    setSleepTimerRemaining(null);
+                    // restore user volume after stopping
+                    audioPlayer.setVolume(userVolumeRef.current * 100);
+                } else {
+                    setSleepTimerRemaining(Math.ceil(remainingMs / 1000));
+                    // Fade out logic: if < 60s remaining, fade linear to 0
+                    if (remainingMs <= 60000) {
+                        const volumeMultiplier = remainingMs / 60000;
+                        const newVol = userVolumeRef.current * volumeMultiplier;
+                        audioPlayer.setVolume(newVol * 100);
+                    }
+                }
+            } else {
+                setSleepTimerRemaining(null);
+            }
+        }, 1000);
+        return () => clearInterval(timerIntervalRef.current!);
     }, []);
 
-    const playTrack = useCallback((track: Track) => {
+    const startSleepTimer = useCallback((minutes: number) => {
+        sleepEndTimeRef.current = Date.now() + minutes * 60000;
+        setSleepTimerRemaining(minutes * 60);
+    }, []);
+
+    const cancelSleepTimer = useCallback(() => {
+        sleepEndTimeRef.current = null;
+        setSleepTimerRemaining(null);
+        audioPlayer.setVolume(userVolumeRef.current * 100); // restore
+    }, []);
+
+    const playTrack = useCallback((track: Track, newQueue?: Track[]) => {
+        if (newQueue) {
+            setQueueState(newQueue);
+        }
         setIsBuffering(true);
         audioPlayer.play(track);
     }, []);
@@ -129,20 +208,23 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         else audioPlayer.resume();
     }, [isPlaying]);
 
-    const setVolume = useCallback((vol: number) => audioPlayer.setVolume(vol * 100), []);
+    const setVolume = useCallback((vol: number) => {
+        userVolumeRef.current = vol;
+        if (!sleepEndTimeRef.current || (sleepEndTimeRef.current - Date.now() > 60000)) {
+            // only apply direct volume if we aren't currently fading
+            audioPlayer.setVolume(vol * 100);
+        }
+    }, []);
 
-    // Note: seek needs duration but we get it from player or keep it in ref if needed
-    // For now we'll just pass percentage to player which handles time calc internally if needed
-    // actually our seek takes percentage, so straightforward
     const seek = useCallback((percentage: number) => {
-        const duration = audioPlayer.getState().duration; // Get directly from player to avoid dependency
+        const duration = audioPlayer.getState().duration; // Get directly from player
         const time = (percentage / 100) * duration;
         audioPlayer.seek(time);
     }, []);
 
     const setMood = useCallback((newMood: string | null) => setMoodState(newMood), []);
 
-    // Stable context value (doesn't change on timeupdate)
+    // Stable context value
     const contextValue = React.useMemo(() => ({
         currentTrack,
         isPlaying,
@@ -150,12 +232,17 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         volume,
         mood,
         listeners,
+        queue,
+        sleepTimerRemaining,
         playTrack,
+        playNext,
         togglePlay,
         setVolume,
         seek,
         setMood,
-    }), [currentTrack, isPlaying, isBuffering, volume, mood, listeners, playTrack, togglePlay, setVolume, seek, setMood]);
+        startSleepTimer,
+        cancelSleepTimer
+    }), [currentTrack, isPlaying, isBuffering, volume, mood, listeners, queue, sleepTimerRemaining, playTrack, playNext, togglePlay, setVolume, seek, setMood, startSleepTimer, cancelSleepTimer]);
 
     return (
         <MusicContext.Provider value={contextValue}>

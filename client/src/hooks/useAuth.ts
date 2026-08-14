@@ -18,9 +18,11 @@ export function useAuth() {
   // We fetch this whenever the Firebase User changes.
   const { data: user, isLoading: isUserLoading, refetch } = useQuery<User | null>({
     queryKey: ["/api/user"],
-    retry: false,
-    staleTime: 0, // Allow refetching when invalidated
+    retry: false,          // Never retry — if backend is down user is treated as guest
+    staleTime: 0,
     refetchOnWindowFocus: false,
+    // On network failure, return null (guest) immediately rather than throwing
+    gcTime: 0,
   });
 
   // Sync Firebase State with Backend Session
@@ -270,8 +272,10 @@ export function useAuth() {
     },
   });
 
-  // Combine loading states
-  const isLoading = isUserLoading || isSyncing || loginMutation.isPending || loginLocalMutation.isPending || registerMutation.isPending;
+  // Combine loading states — intentionally EXCLUDE isSyncing:
+  // Firebase sync runs silently in the background after the initial
+  // auth check resolves. Including it would freeze the UI for 7+ seconds.
+  const isLoading = isUserLoading || loginMutation.isPending || loginLocalMutation.isPending || registerMutation.isPending;
 
   return {
     user: user || null,

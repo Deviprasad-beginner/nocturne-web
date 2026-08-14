@@ -1,4 +1,5 @@
 import { getAIService, type ShiftMode } from "./ai.service";
+import { analyzeEmotion } from "./emotion-analyzer";
 import { IStorage } from "../storage";
 import type {
     NightlyPrompt,
@@ -13,26 +14,14 @@ export class ReflectionsService {
     constructor(private storage: IStorage) { }
 
     /**
-     * Analyze sentiment of reflection text
+     * Analyze sentiment of reflection text.
+     * Uses the local emotion-analyzer for a fast, synchronous result.
+     * The AI service is not called here — it remains reserved for
+     * deeper prompt generation and response evaluation.
      */
     async analyzeSentiment(text: string): Promise<{ sentiment: string }> {
-        const aiService = getAIService();
-        // Check if analyzeSentiment exists on the service (it might be MockAIService or older interface)
-        // We need to cast or ensure interface is updated. 
-        // For now, let's assume getAIService returns the updated interface.
-        // We'll update the interface in ai.service.ts in previous step, but let's double check.
-        // The previous step updated `ai.service.ts` to include `analyzeSentiment`.
-
-        // However, we need to handle potential errors or missing implementations
-        try {
-            // @ts-ignore - interface might not be fully picked up by TS server yet
-            const sentiment = await (aiService as any).analyzeSentiment(text);
-            return { sentiment };
-        } catch (error) {
-            console.error("Error analyzing sentiment:", error);
-            // Fallback
-            return { sentiment: "Reflective" };
-        }
+        const { detectedEmotion } = analyzeEmotion(text);
+        return { sentiment: detectedEmotion };
     }
 
     /**

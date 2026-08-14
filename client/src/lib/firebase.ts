@@ -15,13 +15,8 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Helper function to get API base URL based on environment
-export const getApiBaseUrl = () => {
-  // In production (Render or other hosting), API is served from same origin
-  if (import.meta.env.PROD) {
-    return '/api';
-  }
+// Helper function to get API base URL based on environment.
+// In development, Vite proxies /api → http://localhost:5000 so we always
+// use a same-origin path. In production the API is served from the same origin.
+export const getApiBaseUrl = () => '/api';
 
-  // In development, API runs on different port
-  return 'http://localhost:5000/api';
-};

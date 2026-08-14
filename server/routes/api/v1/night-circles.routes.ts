@@ -22,10 +22,17 @@ router.get("/", async (req, res) => {
 // POST /api/v1/circles - Create a new circle manually
 router.post("/", requireAuth, async (req, res) => {
     try {
-        const { name, description, maxMembers } = req.body;
+        const { name, description, maxMembers, topic, category } = req.body;
         if (!name?.trim()) return res.status(400).json({ success: false, error: "Name is required" });
 
-        const circle = await nightCirclesService.createCircle({ name, description, maxMembers });
+        const circle = await nightCirclesService.createCircle({
+            name,
+            description,
+            maxMembers,
+            topic,
+            category,
+            roomType: "custom"
+        });
         res.status(201).json({ success: true, data: circle });
     } catch (err) {
         res.status(500).json({ success: false, error: "Failed to create circle" });
@@ -113,13 +120,13 @@ router.get("/:id/messages", async (req, res) => {
 router.post("/:id/messages", async (req, res) => {
     try {
         const circleId = parseInt(req.params.id);
-        const { senderAlias, content } = req.body;
+        const { senderAlias, content, imageUrl } = req.body;
 
-        if (!senderAlias?.trim() || !content?.trim()) {
-            return res.status(400).json({ success: false, error: "Alias and content are required" });
+        if (!senderAlias?.trim() || (!content?.trim() && !imageUrl)) {
+            return res.status(400).json({ success: false, error: "Alias and content (or image) are required" });
         }
 
-        const message = await nightCirclesService.sendMessage(circleId, senderAlias, content);
+        const message = await nightCirclesService.sendMessage(circleId, senderAlias, content || "", imageUrl);
         res.status(201).json({ success: true, data: message });
     } catch (err) {
         res.status(500).json({ success: false, error: "Failed to send message" });

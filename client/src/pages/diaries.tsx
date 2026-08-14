@@ -7,12 +7,13 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CharacterCounter } from "@/components/common/CharacterCounter";
-import { ArrowLeft, Notebook, Lock, Globe, Trash2, Calendar, Edit3, Flame, Sparkles, Moon, Clock } from "lucide-react";
+import { ArrowLeft, Notebook, Lock, Globe, Trash2, Calendar, Image, X, Flame, Sparkles, Moon, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useCharacterLimit } from "@/hooks/useCharacterLimit";
@@ -20,6 +21,25 @@ import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import type { User } from "@shared/schema";
+
+// Helpers for encoding/decoding a media URL in diary content
+const MEDIA_PREFIX = "[media:";
+const MEDIA_SUFFIX = "]";
+function encodeMediaContent(text: string, mediaUrl: string): string {
+  if (!mediaUrl.trim()) return text;
+  return `${MEDIA_PREFIX}${mediaUrl.trim()}${MEDIA_SUFFIX}\n${text}`;
+}
+function decodeMediaContent(content: string): { text: string; mediaUrl: string | null } {
+  if (content.startsWith(MEDIA_PREFIX)) {
+    const end = content.indexOf(MEDIA_SUFFIX);
+    if (end !== -1) {
+      const mediaUrl = content.slice(MEDIA_PREFIX.length, end);
+      const text = content.slice(end + MEDIA_SUFFIX.length + 1);
+      return { text, mediaUrl };
+    }
+  }
+  return { text: content, mediaUrl: null };
+}
 import { DiaryEchoes } from "@/components/diary-echoes";
 
 // Live Clock Component
@@ -33,7 +53,7 @@ const LiveClock = () => {
 
   return (
     <div className="flex flex-col items-center justify-center space-y-1 text-yellow-100/80 font-mono">
-      <div className="text-4xl md:text-5xl font-light tracking-widest">
+      <div className="text-3xl sm:text-4xl md:text-5xl font-light tracking-widest">
         {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </div>
       <div className="text-sm uppercase tracking-[0.2em] opacity-60">
@@ -47,6 +67,8 @@ export default function Diaries() {
   const [isCreating, setIsCreating] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'mine' | 'private'>('all');
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [showMediaInput, setShowMediaInput] = useState(false);
   const { toast } = useToast();
   const confirmDialog = useConfirmDialog();
   const { handleError } = useErrorHandler();
@@ -83,6 +105,8 @@ export default function Diaries() {
       charLimit.reset();
       setIsPrivate(false);
       setIsCreating(false);
+      setMediaUrl("");
+      setShowMediaInput(false);
       toast({
         title: "Entry Saved",
         description: "Your midnight musing has been archived.",
@@ -142,7 +166,7 @@ export default function Diaries() {
     }
 
     createDiaryMutation.mutate({
-      content: charLimit.value.trim(),
+      content: encodeMediaContent(charLimit.value.trim(), mediaUrl),
       mood: "contemplative",
       isPublic: !isPrivate,
       authorId: user.id
@@ -163,7 +187,7 @@ export default function Diaries() {
   };
 
   const hasEntries = diaries.length > 0;
-  
+
   // Filter diaries based on active tab
   const filteredDiaries = diaries.filter(diary => {
     if (activeTab === 'all') return true; // Assuming the backend already filters based on permissions
@@ -176,38 +200,45 @@ export default function Diaries() {
   // If we have entries, we show the standard list but with the new header style.
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black text-white p-6 md:p-10 overflow-x-hidden relative">
-      <SEO 
-        title="Digital Night Journals & Reflection" 
-        description="Chronicle your quiet late-night thoughts. Reflect, write, and safely express your inner world in a private nocturnal journal." 
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black text-white p-4 sm:p-6 md:p-10 overflow-x-hidden relative pb-24">
+      <SEO
+        title="Digital Night Journals & Reflection"
+        description="Chronicle your quiet late-night thoughts. Reflect, write, and safely express your inner world in a private nocturnal journal."
       />
       {/* Background Atmosphere - Radial Moon Glow */}
       <div className="fixed top-[-20%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none z-0 mix-blend-screen animate-pulse-slow" />
 
       <div className="max-w-4xl mx-auto relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Link href="/">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-3">
+          <div className="flex items-center justify-between sm:justify-start sm:space-x-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center border border-white/10">
+                <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200" />
+              </div>
+              <h1 className="text-xl sm:text-2xl font-light tracking-wide text-indigo-100">Night Diaries</h1>
+            </div>
+            <Link href="/" className="sm:hidden">
+              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-white/5 px-2">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link href="/" className="hidden sm:block">
               <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-white/5">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home
               </Button>
             </Link>
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center border border-white/10 backdrop-blur-sm">
-                <Moon className="w-5 h-5 text-indigo-200" />
-              </div>
-              <h1 className="text-2xl font-light tracking-wide text-indigo-100">Night Diaries</h1>
-            </div>
+            <Button
+              onClick={() => setIsCreating(!isCreating)}
+              className={`flex-1 sm:flex-none transition-all duration-500 ${!hasEntries && !isCreating ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/50 hover:bg-indigo-500/30' : 'bg-gradient-to-r from-yellow-600/80 to-orange-700/80 hover:from-yellow-600 hover:to-orange-700 text-white'}`}
+            >
+              {isCreating ? "Cancel" : hasEntries ? "Write Entry" : "Begin Tonight"}
+            </Button>
           </div>
-
-          <Button
-            onClick={() => setIsCreating(!isCreating)}
-            className={`transition-all duration-500 ${!hasEntries && !isCreating ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/50 hover:bg-indigo-500/30' : 'bg-gradient-to-r from-yellow-600/80 to-orange-700/80 hover:from-yellow-600 hover:to-orange-700 text-white'}`}
-          >
-            {isCreating ? "Cancel" : hasEntries ? "Write Entry" : "Begin Tonight"}
-          </Button>
         </div>
 
         {/* Neural Archive Banner - Updated Copy */}
@@ -225,7 +256,7 @@ export default function Diaries() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="flex flex-col items-center justify-center py-20 md:py-32 cursor-pointer group"
+              className="flex flex-col items-center justify-center py-10 sm:py-20 md:py-32 cursor-pointer group"
               onClick={() => setIsCreating(true)}
             >
               {/* Live Clock */}
@@ -274,7 +305,7 @@ export default function Diaries() {
             >
               {/* Dashboard Header if entries exist */}
               {hasEntries && !isCreating && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                   {/* Active Prompt Card */}
                   <Card className="bg-gray-900/40 border-gray-800/60 backdrop-blur-md">
                     <CardContent className="p-6">
@@ -325,11 +356,10 @@ export default function Diaries() {
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`px-4 py-1.5 rounded-full text-xs tracking-wider uppercase transition-all duration-300 ${
-                        activeTab === tab
-                          ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
-                          : 'text-gray-500 hover:text-gray-300 border border-transparent'
-                      }`}
+                      className={`px-4 py-1.5 rounded-full text-xs tracking-wider uppercase transition-all duration-300 ${activeTab === tab
+                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
+                        : 'text-gray-500 hover:text-gray-300 border border-transparent'
+                        }`}
                     >
                       {tab === 'all' ? 'All Echoes' : tab === 'mine' ? 'My Pages' : 'Private Vault'}
                     </button>
@@ -367,6 +397,42 @@ export default function Diaries() {
                             showError={true}
                           />
                         </div>
+                      </div>
+
+                      {/* Optional Media URL attachment */}
+                      <div className="space-y-2">
+                        {!showMediaInput ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowMediaInput(true)}
+                            className="flex items-center gap-2 text-xs text-gray-500 hover:text-indigo-400 transition-colors"
+                          >
+                            <Image className="w-3.5 h-3.5" />
+                            Attach an image (optional)
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="url"
+                              value={mediaUrl}
+                              onChange={(e) => setMediaUrl(e.target.value)}
+                              placeholder="Paste image URL (e.g. https://images.unsplash.com/...)"
+                              className="bg-gray-950/50 border-gray-800 text-gray-200 text-xs focus:border-indigo-500/50 focus:ring-0 h-8"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => { setShowMediaInput(false); setMediaUrl(""); }}
+                              className="text-gray-600 hover:text-red-400 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                        {mediaUrl && (
+                          <div className="rounded-lg overflow-hidden border border-gray-800 max-h-48">
+                            <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex justify-between items-center pt-2">
@@ -410,6 +476,7 @@ export default function Diaries() {
                   ) : (
                     filteredDiaries.map((diary, index) => {
                       const isOwner = user && diary.authorId === user.id;
+                      const { text: diaryText, mediaUrl: diaryMedia } = decodeMediaContent(diary.content);
 
                       return (
                         <motion.div
@@ -451,10 +518,22 @@ export default function Diaries() {
                                 </div>
                               </div>
 
+                              {/* Attached media image */}
+                              {diaryMedia && (
+                                <div className="mb-4 rounded-xl overflow-hidden border border-gray-800/60 max-h-64">
+                                  <img
+                                    src={diaryMedia}
+                                    alt="Diary attachment"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                                  />
+                                </div>
+                              )}
+
                               <p className="text-gray-300 leading-relaxed font-serif text-lg pl-4 border-l-2 border-indigo-900/50">
-                                {diary.content}
+                                {diaryText}
                               </p>
-                              
+
                               {/* Echoes / Comments Section */}
                               <DiaryEchoes diaryId={diary.id} />
                             </CardContent>
@@ -465,25 +544,7 @@ export default function Diaries() {
                   )}
                 </AnimatePresence>
 
-                {/* Future Proofing: Ghost Sections */}
-                {hasEntries && (
-                  <div className="pt-12 border-t border-gray-900">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-40 grayscale pointer-events-none select-none">
-                      <Card className="bg-gray-950 border-gray-900">
-                        <CardHeader><CardTitle className="text-sm text-gray-500">Mood Insights</CardTitle></CardHeader>
-                        <CardContent className="h-32 flex items-center justify-center text-xs text-gray-700">
-                          Analysis requires 5+ entries
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-gray-950 border-gray-900">
-                        <CardHeader><CardTitle className="text-sm text-gray-500">Emotion Graph</CardTitle></CardHeader>
-                        <CardContent className="h-32 flex items-center justify-center text-xs text-gray-700">
-                          Data insufficient
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                )}
+
               </div>
             </motion.div>
           )}
