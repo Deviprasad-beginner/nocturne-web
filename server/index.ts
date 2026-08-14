@@ -94,19 +94,30 @@ const allowedOrigins = [
   ...(!isProduction ? mobileDevOrigins : []),
 ];
 
-app.use(cors({
-  origin: (origin, cb) => {
-    // Allow requests with no origin (native mobile, curl, Postman)
-    if (!origin) return cb(null, true);
-    if (allowedOrigins.some(o => origin.startsWith(o)) || (!isProduction)) {
-      return cb(null, true);
-    }
-    cb(new Error(`CORS: origin ${origin} not allowed`));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-}));
+app.use((req, res, next) => {
+  cors({
+    origin: (origin, cb) => {
+      // Allow requests with no origin (native mobile, curl, Postman)
+      if (!origin) return cb(null, true);
+
+      // Dynamically allow same-domain requests
+      const host = req.get('host');
+      if (host && origin.includes(host)) {
+        return cb(null, true);
+      }
+
+      if (allowedOrigins.some(o => origin.startsWith(o)) || (!isProduction)) {
+        return cb(null, true);
+      }
+
+      logger.warn(`CORS: origin ${origin} not allowed`);
+      cb(null, false);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  })(req, res, next);
+});
 
 // Enable Gzip compression for all responses
 app.use(compression());
