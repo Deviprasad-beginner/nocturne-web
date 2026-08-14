@@ -55,6 +55,36 @@ export class MusicService {
                 tracks = data.results || [];
             }
 
+            if (tracks.length === 0 && isTherapyQuery) {
+                logger.debug(`[MusicService] 0 results for therapy query "${query}". Retrying without instrumental filter...`);
+                const searchUrl = new URL('https://api.jamendo.com/v3.0/tracks/');
+                searchUrl.searchParams.set('client_id', clientId);
+                searchUrl.searchParams.set('format', 'json');
+                searchUrl.searchParams.set('limit', '50');
+                searchUrl.searchParams.set('search', query);
+                searchUrl.searchParams.set('boost', 'popularity_week');
+                searchUrl.searchParams.set('audioformat', 'mp32');
+
+                response = await fetch(searchUrl.toString());
+                data = await response.json();
+                tracks = data.results || [];
+            }
+
+            if (tracks.length === 0) {
+                logger.debug(`[MusicService] STILL 0 results for "${query}". Falling back to generic relaxing...`);
+                const fallbackUrl = new URL('https://api.jamendo.com/v3.0/tracks/');
+                fallbackUrl.searchParams.set('client_id', clientId);
+                fallbackUrl.searchParams.set('format', 'json');
+                fallbackUrl.searchParams.set('limit', '50');
+                fallbackUrl.searchParams.set('search', 'relaxing');
+                fallbackUrl.searchParams.set('boost', 'popularity_week');
+                fallbackUrl.searchParams.set('audioformat', 'mp32');
+
+                response = await fetch(fallbackUrl.toString());
+                data = await response.json();
+                tracks = data.results || [];
+            }
+
             if (tracks.length === 0) {
                 throw new Error("No tracks found on Jamendo for these tags");
             }

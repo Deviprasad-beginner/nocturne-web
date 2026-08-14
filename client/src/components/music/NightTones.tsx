@@ -46,9 +46,9 @@ const NOISE_OPTIONS: { id: NoiseType; label: string; sub: string }[] = [
 ];
 
 const AMBIENT_OPTIONS: { id: NonNullable<AmbientType>; label: string; sub: string; url: string }[] = [
-    { id: "rain", label: "Light Rain", sub: "Steady, calming drops", url: "https://cdn.freesound.org/previews/531/531947_10915902-lq.mp3" },
-    { id: "campfire", label: "Campfire", sub: "Cozy crackling wood", url: "https://cdn.freesound.org/previews/339/339324_5121236-lq.mp3" },
-    { id: "ocean", label: "Ocean Waves", sub: "Gentle rhythmic surf", url: "https://cdn.freesound.org/previews/400/400632_7923483-lq.mp3" },
+    { id: "rain", label: "Light Rain", sub: "Steady, calming drops", url: "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg" },
+    { id: "campfire", label: "Campfire", sub: "Cozy crackling wood", url: "https://actions.google.com/sounds/v1/foley/fire_crackling.ogg" },
+    { id: "ocean", label: "Ocean Waves", sub: "Gentle rhythmic surf", url: "https://actions.google.com/sounds/v1/water/ocean_waves_rhythmic.ogg" },
 ];
 
 // ─── Web Audio helpers ────────────────────────────────────────────────────────
