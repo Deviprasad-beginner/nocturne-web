@@ -41,20 +41,24 @@ export const readsController = {
                     content = file.buffer.toString("utf-8");
                     contentType = "text";
                 }
+            } else if (req.body.contentType && req.body.contentUrl) {
+                // Handle curated external links (e.g. Open Library, Gutenberg)
+                content = req.body.content || "";
+                contentType = req.body.contentType;
             } else if (req.body.content) {
                 // Handle pasted text
                 content = req.body.content;
                 contentType = "text";
             }
 
-            if (!content || content.trim().length === 0) {
-                return res.status(400).json({ error: "No content provided" });
+            if (!content && !req.body.contentUrl) {
+                return res.status(400).json({ error: "No content or URL provided" });
             }
 
-            const { title, author, intention, estimatedReadTimeMinutes, isEphemeral } = req.body;
+            const { title, author, intention, estimatedReadTimeMinutes, isEphemeral, contentUrl } = req.body;
 
             // Calculate estimated read time if not provided (avg 200 words per min)
-            const wordCount = content.split(/\s+/).length;
+            const wordCount = content.split(/\s+/).length || 10000; // default large if it's a book
             const calculatedReadTime = estimatedReadTimeMinutes || Math.ceil(wordCount / 200);
 
             // Calculate expiration for ephemeral reads (24 hours)
@@ -66,6 +70,7 @@ export const readsController = {
                     title: title || "Untitled",
                     author: author || null,
                     content,
+                    contentUrl: contentUrl || null,
                     contentType,
                     estimatedReadTimeMinutes: calculatedReadTime,
                     intention: intention || "think",

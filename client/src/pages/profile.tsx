@@ -7,7 +7,7 @@ import {
   ChevronLeft, Flame, Shield, Music, Moon,
   MessageSquare, Heart, Coffee, Star, Zap, Clock, Hash
 } from "lucide-react";
-import type { Whisper, MidnightCafe } from "@shared/schema";
+import type { NightThought } from "@shared/schema";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const initial = (u: { displayName?: string | null; username: string }) =>
@@ -38,13 +38,13 @@ export default function Profile() {
   const { user, isLoading } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
 
-  const { data: _whispers } = useQuery<Whisper[] | null>({
-    queryKey: ["/api/v1/users/me/whispers"],
+  const { data: _whispers } = useQuery<NightThought[] | null>({
+    queryKey: [`/api/v1/thoughts?authorId=${user?.id}&thoughtType=whisper`],
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
-  const { data: _cafePosts } = useQuery<MidnightCafe[] | null>({
-    queryKey: ["/api/v1/users/me/cafe"],
+  const { data: _cafePosts } = useQuery<NightThought[] | null>({
+    queryKey: [`/api/v1/thoughts?authorId=${user?.id}&thoughtType=discussion`],
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
@@ -67,7 +67,7 @@ export default function Profile() {
   const moodData = useMemo(() => {
     const counts: Record<string, number> = {};
     whispers.forEach(w => {
-      if (w.detectedEmotion) counts[w.detectedEmotion] = (counts[w.detectedEmotion] || 0) + 1;
+      if (w.mood) counts[w.mood] = (counts[w.mood] || 0) + 1;
     });
     return Object.entries(counts)
       .map(([emotion, count]) => ({ emotion, count }))
@@ -104,13 +104,13 @@ export default function Profile() {
         type: "whisper" as const,
         date: w.createdAt ? new Date(w.createdAt) : null,
         label: w.content.length > 80 ? w.content.slice(0, 80) + "…" : w.content,
-        sub: w.detectedEmotion ? `Emotion: ${w.detectedEmotion}` : `${w.hearts ?? 0} hearts`,
+        sub: w.mood ? `Emotion: ${w.mood}` : `${w.hearts ?? 0} hearts`,
       })),
       ...cafePosts.slice(0, 5).map(p => ({
         type: "cafe" as const,
         date: p.createdAt ? new Date(p.createdAt) : null,
-        label: p.topic,
-        sub: p.category ?? "Discussion",
+        label: p.topic || "Discussion",
+        sub: p.mood ?? "Discussion",
       })),
     ]
       .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
@@ -136,7 +136,7 @@ export default function Profile() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#05050a", color: "#e2e8f0", fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "transparent", color: "#e2e8f0", fontFamily: "Inter, system-ui, sans-serif" }}>
       <style>{CSS}</style>
 
       {/* Back */}
@@ -315,13 +315,13 @@ export default function Profile() {
                   <p className="pf-whisper-text">"{w.content}"</p>
                   <div className="pf-whisper-meta">
                     <div className="pf-whisper-meta-left">
-                      {w.detectedEmotion && (
+                      {w.mood && (
                         <span className="pf-emotion-tag" style={{
-                          background: `${emotionColor(w.detectedEmotion)}18`,
-                          color: emotionColor(w.detectedEmotion),
-                          borderColor: `${emotionColor(w.detectedEmotion)}35`,
+                          background: `${emotionColor(w.mood)}18`,
+                          color: emotionColor(w.mood),
+                          borderColor: `${emotionColor(w.mood)}35`,
                         }}>
-                          {w.detectedEmotion}
+                          {w.mood}
                         </span>
                       )}
                     </div>
@@ -353,8 +353,8 @@ export default function Profile() {
                 <div key={p.id} className="pf-card">
                   <div className="pf-cafe-header">
                     <span className="pf-cafe-topic">{p.topic}</span>
-                    {p.category && (
-                      <span className="pf-cafe-cat">{p.category}</span>
+                    {p.mood && (
+                      <span className="pf-cafe-cat">{p.mood}</span>
                     )}
                   </div>
                   <p className="pf-cafe-content">{p.content}</p>

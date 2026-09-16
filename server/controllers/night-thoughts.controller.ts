@@ -62,13 +62,10 @@ export class NightThoughtsController {
      */
     create = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            if (!req.user) {
-                return res.status(401).json({ error: 'Authentication required' });
-            }
-
+            // Note: If thoughtType is whisper, we allow anonymous. Otherwise we could restrict, but for now we allow null author.
             const validatedData = insertNightThoughtSchema.parse({
                 ...req.body,
-                authorId: req.user.id
+                authorId: req.user?.id || null
             });
 
             const thought = await nightThoughtsService.create(validatedData);
@@ -214,6 +211,24 @@ export class NightThoughtsController {
                 return res.status(400).json({ error: 'Validation error', details: error.errors });
             }
             logger.error('Error posting reply:', error);
+            next(error);
+        }
+    };
+
+    /**
+     * POST /api/v1/thoughts/resonate
+     * Get semantic recommendations based on a whisper's text and mood
+     */
+    getRecommendations = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { text, mood } = req.body;
+            if (!text) {
+                return res.status(400).json({ error: 'Text is required for recommendations' });
+            }
+            const recommendations = await nightThoughtsService.getRecommendations(text, mood);
+            res.json(recommendations);
+        } catch (error) {
+            logger.error('Error getting recommendations:', error);
             next(error);
         }
     };

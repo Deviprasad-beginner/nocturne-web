@@ -180,7 +180,7 @@ export default function MusicScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#050508' },
+  safe: { flex: 1, backgroundColor: '#000000' },
   scroll: { flex: 1 },
   header: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
   title: { fontSize: 24, fontWeight: '700', color: '#e2e8f0' },

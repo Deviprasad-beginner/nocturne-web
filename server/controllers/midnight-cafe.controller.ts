@@ -1,143 +1,121 @@
-
-import { Request, Response } from "express";
-import { midnightCafeService } from "../services/midnight-cafe.service";
-import { insertMidnightCafeSchema, insertCafeReplySchema } from "@shared/schema";
-import { logger } from "../utils/logger";
+import { Request, Response, NextFunction } from 'express';
+import { midnightCafeService } from '../services/midnight-cafe.service';
+import { z } from 'zod';
+import { logger } from '../utils/logger';
+import { insertMidnightCafeSchema, insertCafeReplySchema } from '@shared/schema';
 
 export class MidnightCafeController {
     /**
-     * Get all posts
+     * GET /api/v1/midnight-cafe
      */
-    static async getAll(req: Request, res: Response) {
+    getAll = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-            const posts = await midnightCafeService.getAllPosts(limit);
-            res.json(posts);
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+            const cafes = await midnightCafeService.getMidnightCafe(limit);
+            res.json(cafes);
         } catch (error) {
-            logger.error("Error fetching all cafe posts", error);
-            res.status(500).json({ error: "Failed to fetch posts" });
+            logger.error('Error fetching midnight cafes:', error);
+            next(error);
         }
-    }
+    };
 
     /**
-     * Get post by ID
+     * GET /api/v1/midnight-cafe/:id
      */
-    static async getById(req: Request, res: Response) {
+    getById = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = parseInt(req.params.id);
-            if (isNaN(id)) {
-                return res.status(400).json({ error: "Invalid ID" });
+            const cafe = await midnightCafeService.getMidnightCafeById(id);
+            if (!cafe) {
+                return res.status(404).json({ error: 'Cafe post not found' });
             }
-            const post = await midnightCafeService.getPostById(id);
-            res.json(post);
-        } catch (error: any) {
-            if (error.name === "NotFoundError") {
-                return res.status(404).json({ error: error.message });
-            }
-            logger.error(`Error fetching post ${req.params.id}`, error);
-            res.status(500).json({ error: "Failed to fetch post" });
+            res.json(cafe);
+        } catch (error) {
+            logger.error('Error fetching midnight cafe by id:', error);
+            next(error);
         }
-    }
+    };
 
     /**
-     * Create a post
+     * POST /api/v1/midnight-cafe
      */
-    static async create(req: Request, res: Response) {
+    create = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            // Optional auth check, depending on requirements. Service handles null userId.
-            const data = insertMidnightCafeSchema.parse(req.body);
-            const post = await midnightCafeService.createPost(data, req.user?.id);
-            res.status(201).json(post);
-        } catch (error: any) {
-            logger.error("Error creating post", error);
-            if (error.name === "ZodError") {
-                return res.status(400).json({ error: error.errors });
+            const validatedData = insertMidnightCafeSchema.parse({
+                ...req.body,
+                authorId: req.user?.id || null,
+            });
+            const cafe = await midnightCafeService.createMidnightCafe(validatedData);
+            res.status(201).json(cafe);
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                return res.status(400).json({ error: 'Validation error', details: error.errors });
             }
-            res.status(500).json({ error: "Failed to create post" });
+            logger.error('Error creating cafe post:', error);
+            next(error);
         }
-    }
+    };
 
     /**
-     * Old reply endpoint (increment counter)
-     * Kept for backward compatibility if needed, though we prefer real replies now.
+     * DELETE /api/v1/midnight-cafe/:id
      */
-    static async reply(req: Request, res: Response) {
+    delete = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ error: 'Authentication required' });
+            }
+            const id = parseInt(req.params.id);
+            const existing = await midnightCafeService.getMidnightCafeById(id);
+            
+            if (!existing) {
+                return res.status(404).json({ error: 'Cafe post not found' });
+            }
+            if (existing.authorId !== req.user.id) {
+                return res.status(403).json({ error: 'You can only delete your own posts' });
+            }
+            await midnightCafeService.deleteCafePost(id);
+            res.json({ message: 'Post deleted' });
+        } catch (error) {
+            logger.error('Error deleting cafe post:', error);
+            next(error);
+        }
+    };
+
+    /**
+     * GET /api/v1/midnight-cafe/:id/replies
+     */
+    getReplies = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = parseInt(req.params.id);
-            if (isNaN(id)) {
-                return res.status(400).json({ error: "Invalid ID" });
-            }
-            await midnightCafeService.incrementReplies(id);
-            res.json({ success: true });
-        } catch (error: any) {
-            if (error.name === "NotFoundError") {
-                return res.status(404).json({ error: error.message });
-            }
-            logger.error(`Error incrementing replies for ${req.params.id}`, error);
-            res.status(500).json({ error: "Failed to increment replies" });
-        }
-    }
-
-    /**
-     * Get replies for a post
-     */
-    static async getReplies(req: Request, res: Response) {
-        try {
-            const id = parseInt(req.params.id);
-            if (isNaN(id)) {
-                return res.status(400).json({ error: "Invalid post ID" });
-            }
-
-            const replies = await midnightCafeService.getReplies(id);
+            const replies = await midnightCafeService.getCafeReplies(id);
             res.json(replies);
-        } catch (error: any) {
-            logger.error("Error fetching replies", error);
-            res.status(500).json({ error: "Failed to fetch replies" });
+        } catch (error) {
+            logger.error('Error fetching replies:', error);
+            next(error);
         }
-    }
+    };
 
     /**
-     * Create a reply
+     * POST /api/v1/midnight-cafe/:id/replies
      */
-    static async createReply(req: Request, res: Response) {
+    addReply = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const data = insertCafeReplySchema.parse(req.body);
-            const reply = await midnightCafeService.createReply(data, req.user?.id);
-            res.status(201).json(reply);
-        } catch (error: any) {
-            logger.error("Error creating reply", error);
-            if (error.name === "ZodError") {
-                return res.status(400).json({ error: error.errors });
-            }
-            res.status(500).json({ error: "Failed to create reply" });
-        }
-    }
-
-    /**
-     * Delete a post
-     */
-    static async deletePost(req: Request, res: Response) {
-        try {
-            if (!req.isAuthenticated()) {
-                return res.status(401).json({ error: "Unauthorized" });
-            }
-
             const id = parseInt(req.params.id);
-            if (isNaN(id)) {
-                return res.status(400).json({ error: "Invalid post ID" });
+            const validated = insertCafeReplySchema.parse({
+                cafeId: id,
+                content: req.body.content,
+                authorId: req.user?.id ?? null,
+            });
+            const reply = await midnightCafeService.createCafeReply(validated);
+            res.status(201).json(reply);
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                return res.status(400).json({ error: 'Validation error', details: error.errors });
             }
-
-            await midnightCafeService.deletePost(id, req.user!.id);
-            res.sendStatus(200);
-        } catch (error: any) {
-            logger.error("Error deleting post", error);
-            if (error.message === "You can only delete your own posts") {
-                return res.status(403).json({ error: error.message });
-            }
-            if (error.name === "NotFoundError") {
-                return res.status(404).json({ error: error.message });
-            }
-            res.status(500).json({ error: "Failed to delete post" });
+            logger.error('Error creating reply:', error);
+            next(error);
         }
-    }
+    };
 }
+
+export const midnightCafeController = new MidnightCafeController();

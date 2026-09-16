@@ -1,13 +1,11 @@
 import * as functions from 'firebase-functions';
 import express from 'express';
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
 import cors from 'cors';
 
-// Import your existing server logic
-import { registerRoutes } from '../server/routes';
+// Import server logic and middleware
 import { setupAuth } from '../server/auth';
 import apiV1Routes from '../server/routes/api/v1/index';
+import { errorHandler } from '../server/middleware/error.middleware';
 
 const app = express();
 
@@ -20,29 +18,19 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+// Health check endpoints (accessible via direct function URL or Firebase rewrite)
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Setup authentication
+// Setup authentication (session, passport, /api/login, /api/register, /api/auth/firebase, /api/user)
 setupAuth(app);
 
 // Mount new v1 API routes
 app.use("/api/v1", apiV1Routes);
 
-// Create HTTP server
-const server = createServer(app);
-
-// Register all your existing routes
-registerRoutes(app, server).then(() => {
-  console.log('Routes registered successfully');
-}).catch((error) => {
-  console.error('Error registering routes:', error);
-});
+// Global error handler
+app.use(errorHandler);
 
 // Export the Firebase function
 export const api = functions.https.onRequest(app);
-
-// For WebSocket support in Firebase, you might need to use a different approach
-// or consider using Firebase Realtime Database or Firestore for real-time features

@@ -368,7 +368,7 @@ export default function MindMazePage() {
       </AnimatePresence>
 
       <div
-        className="min-h-screen text-white"
+        className="min-h-screen text-white bg-transparent"
         style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99,60,180,0.08) 0%, transparent 65%), #080810" }}
       >
         <div className="max-w-2xl mx-auto px-4 pb-24 pt-6">

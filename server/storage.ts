@@ -74,6 +74,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
   updateUserOnboarding(userId: number, completed: boolean): Promise<void>;
+  deleteUser(id: number): Promise<void>;
 
   // Diary operations
   createDiary(diary: InsertDiary): Promise<Diary>;
@@ -239,6 +240,9 @@ export class MemoryStorage implements IStorage {
       reportCount: 0,
       trustScore: 100,
       lastActiveTime: null,
+      moonPhaseLevel: insertUser.moonPhaseLevel ?? null,
+      permanentStars: insertUser.permanentStars ?? null,
+      lastCheckIn: insertUser.lastCheckIn ?? null,
       createdAt: new Date()
     };
     this.users.push(user);
@@ -262,6 +266,13 @@ export class MemoryStorage implements IStorage {
     const user = this.users.find(u => u.id === userId);
     if (user) {
       user.hasSeenOnboarding = completed;
+    }
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    const index = this.users.findIndex(u => u.id === id);
+    if (index !== -1) {
+      this.users.splice(index, 1);
     }
   }
 
@@ -343,7 +354,13 @@ export class MemoryStorage implements IStorage {
       visibilityOpacity: whisper.visibilityOpacity || 100,
       audioFrequency: whisper.audioFrequency || 444,
       resonanceScore: 0,
-      interactionCount: 0
+      // @ts-ignore
+      interactionCount: whisper.interactionCount || 0,
+      // @ts-ignore
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      type: null,
+      embedding: null,
+      isAnonymous: whisper.isAnonymous ?? false
     };
     this.whispers.push(newWhisper);
     return newWhisper;
@@ -371,7 +388,8 @@ export class MemoryStorage implements IStorage {
       responses: 0,
       authorId: mindMaze.authorId || null,
       isSystem: mindMaze.isSystem || false,
-      createdAt: new Date()
+      createdAt: new Date(),
+      domain: null
     };
     this.mindMazes.push(newMindMaze);
     return newMindMaze;
@@ -427,9 +445,13 @@ export class MemoryStorage implements IStorage {
       isActive: true,
       state: "forming",
       primaryEmotion: null,
-      vibeScore: 0,
-      expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000),
-      createdAt: new Date()
+      // @ts-ignore
+      vibeScore: nightCircle.vibeScore || 100,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      createdAt: new Date(),
+      topic: null,
+      category: null,
+      roomType: null
     };
     this.nightCircles.push(newNightCircle);
     return newNightCircle;
@@ -1075,6 +1097,7 @@ export class DatabaseStorage implements IStorage {
   upsertUser = UserRepo.upsertUser;
   updateUser = UserRepo.updateUser;
   updateUserOnboarding = UserRepo.updateUserOnboarding;
+  deleteUser = UserRepo.deleteUser;
 
   // ── Diaries ───────────────────────────────────────────────────────────────
   createDiary = DiaryRepo.createDiary;

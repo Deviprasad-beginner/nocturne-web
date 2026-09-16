@@ -7,19 +7,16 @@ import { MusicPlayer } from "@/components/music/MusicPlayer";
 import { Background } from "@/components/layout/Background";
 import { SectionLoader } from "@/components/ui/loaders";
 import { SettingsProvider } from "@/context/SettingsContext";
+import { Header } from "@/components/layout/Header";
 
 // Lazy Load Pages
 const Home = lazy(() => import("@/pages/home"));
-const Diaries = lazy(() => import("@/pages/diaries"));
-const Whispers = lazy(() => import("@/pages/whispers"));
 const MindMaze = lazy(() => import("@/pages/mind-maze"));
 const NightCircles = lazy(() => import("@/pages/night-circles"));
-const MidnightCafe = lazy(() => import("@/pages/midnight-cafe"));
 const MusicMood = lazy(() => import("@/pages/music-mood"));
 const NightConversations = lazy(() => import("@/pages/night-conversations"));
 const DigitalJournals = lazy(() => import("@/pages/digital-journals"));
 const MindfulSpaces = lazy(() => import("@/pages/mindful-spaces"));
-const AmFounder = lazy(() => import("@/pages/3am-founder"));
 const StarlitSpeaker = lazy(() => import("@/pages/starlit-speaker"));
 const MoonMessenger = lazy(() => import("@/pages/moon-messenger"));
 const NightlyReflection = lazy(() => import("@/pages/nightly-reflection"));
@@ -36,6 +33,16 @@ const ReadCard = lazy(() => import("@/pages/read-card"));
 const ReadAlone = lazy(() => import("@/pages/read-alone"));
 const Reader = lazy(() => import("@/pages/reader"));
 const ReadTonight = lazy(() => import("@/pages/read-tonight"));
+const Library = lazy(() => import("@/pages/library"));
+const BookHub = lazy(() => import("@/pages/book-hub"));
+const EbookReader = lazy(() => import("@/pages/ebook-reader"));
+
+// Static Pages
+const AboutPage = lazy(() => import("@/pages/static-pages").then(m => ({ default: m.AboutPage })));
+const PrivacyPolicyPage = lazy(() => import("@/pages/static-pages").then(m => ({ default: m.PrivacyPolicyPage })));
+const TermsPage = lazy(() => import("@/pages/static-pages").then(m => ({ default: m.TermsPage })));
+const GuidelinesPage = lazy(() => import("@/pages/static-pages").then(m => ({ default: m.GuidelinesPage })));
+const ContactPage = lazy(() => import("@/pages/static-pages").then(m => ({ default: m.ContactPage })));
 
 function Landing() {
   return (
@@ -48,15 +55,13 @@ function Landing() {
         <h1 className="text-4xl font-bold text-white mb-4">Welcome to Nocturne</h1>
         <p className="text-gray-300 text-lg">A social platform for night owls to connect and share thoughts during late hours.</p>
         <div className="space-y-4">
-          <Link href="/auth">
-            <a className="block bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+          <Link href="/auth" className="block bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
               Sign In / Register
-            </a>
           </Link>
           <p className="text-gray-400 text-sm">Join the community</p>
           <div className="text-center mt-6">
-            <Link href="/">
-              <a className="text-gray-500 text-xs hover:text-gray-400">Continue as Guest</a>
+            <Link href="/" className="text-gray-500 text-xs hover:text-gray-400">
+              Continue as Guest
             </Link>
           </div>
         </div>
@@ -84,25 +89,33 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/login" component={AuthPage} />
 
+        {/* Static Legal / Footer Routes */}
+        <Route path="/about" component={AboutPage} />
+        <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+        <Route path="/terms" component={TermsPage} />
+        <Route path="/guidelines" component={GuidelinesPage} />
+        <Route path="/contact" component={ContactPage} />
+
         {/* Feature Routes - Support Guest Access */}
-        <Route path="/diaries" component={Diaries} />
-        <Route path="/whispers" component={Whispers} />
         <Route path="/mind-maze" component={MindMaze} />
         <Route path="/night-circles" component={NightCircles} />
-        <Route path="/midnight-cafe" component={MidnightCafe} />
         <Route path="/music-mood" component={MusicMood} />
         <Route path="/nightly-reflection" component={NightlyReflection} />
         <Route path="/night-conversations" component={NightConversations} />
         <Route path="/digital-journals" component={DigitalJournals} />
         <Route path="/mindful-spaces" component={MindfulSpaces} />
-        <Route path="/3am-founder" component={AmFounder} />
         <Route path="/starlit-speaker" component={StarlitSpeaker} />
         <Route path="/moon-messenger" component={MoonMessenger} />
         <Route path="/night-thoughts" component={NightThoughts} />
+        <Route path="/whispers" component={NightThoughts} />
+        <Route path="/diaries" component={NightThoughts} />
         <Route path="/read-card" component={ReadCard} />
         <Route path="/read-alone" component={ReadAlone} />
         <Route path="/reader/:id" component={Reader} />
         <Route path="/read-tonight" component={ReadTonight} />
+        <Route path="/library" component={Library} />
+        <Route path="/book/:id" component={BookHub} />
+        <Route path="/ebook-reader/:id" component={EbookReader} />
 
         {/* Protected / User Specific */}
         <Route path="/settings" component={Settings} />
@@ -112,9 +125,7 @@ function Router() {
         <Route path="/help" component={Help} />
 
         {/* Root Route - Landing for Guest, Home for User */}
-        <Route path="/">
-          <Home />
-        </Route>
+        <Route path="/" component={Home} />
 
         {/* 404 Fallback */}
         <Route component={NotFound} />
@@ -277,8 +288,12 @@ function App() {
   return (
     <SettingsProvider>
       <MusicProvider>
-        <div className="min-h-screen bg-gray-950">
-          <Router />
+        <div className="min-h-screen bg-transparent flex flex-col">
+          <Background />
+          <Header />
+          <div className="flex-1">
+            <Router />
+          </div>
         </div>
         <MusicPlayer />
       </MusicProvider>

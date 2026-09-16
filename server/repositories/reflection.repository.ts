@@ -10,6 +10,7 @@ import {
 } from "@shared/schema";
 import { eq, desc, and, ne, sql } from "drizzle-orm";
 import { logger } from "../utils/logger";
+import { encryptText, decryptText } from "../utils/encryption";
 
 export async function createNightlyPrompt(prompt: InsertNightlyPrompt): Promise<NightlyPrompt> {
   try {
@@ -122,9 +123,19 @@ export async function createPersonalReflection(
   try {
     const [newReflection] = await db
       .insert(personalReflections)
-      .values({ ...reflection, aiReflection })
+      .values({ 
+          ...reflection, 
+          userQuery: encryptText(reflection.userQuery),
+          aiReflection: aiReflection ? encryptText(aiReflection) : aiReflection 
+      })
       .returning();
-    return newReflection;
+      
+    // Decrypt it for the response so the frontend gets plain text
+    return {
+        ...newReflection,
+        userQuery: decryptText(newReflection.userQuery),
+        aiReflection: newReflection.aiReflection ? decryptText(newReflection.aiReflection) : newReflection.aiReflection
+    };
   } catch (error) {
     logger.error("Error creating personal reflection:", error);
     throw error;
@@ -133,12 +144,18 @@ export async function createPersonalReflection(
 
 export async function getPersonalReflections(userId: number, limit = 20): Promise<PersonalReflection[]> {
   try {
-    return await db
+    const reflections = await db
       .select()
       .from(personalReflections)
       .where(eq(personalReflections.userId, userId))
       .orderBy(desc(personalReflections.createdAt))
       .limit(Math.min(limit, 100));
+      
+    return reflections.map(ref => ({
+        ...ref,
+        userQuery: decryptText(ref.userQuery),
+        aiReflection: ref.aiReflection ? decryptText(ref.aiReflection) : ref.aiReflection
+    }));
   } catch (error) {
     logger.error("Error getting personal reflections:", error);
     return [];

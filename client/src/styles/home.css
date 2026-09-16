@@ -7,7 +7,7 @@
 .nc-shell {
     min-height: 100vh;
     min-height: 100dvh;
-    background: #08090c;
+    background: transparent;
     color: #e2e8f0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;

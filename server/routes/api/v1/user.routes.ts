@@ -11,6 +11,9 @@ const router = Router();
 // All user routes require authentication
 router.use(requireAuth);
 
+// POST /api/v1/users/check-in - Check in for Moon Phase streak
+router.post("/check-in", userController.checkIn);
+
 // GET /api/v1/users/me/whispers - Get current user's whispers
 router.get("/me/whispers", userController.getMyWhispers);
 
@@ -22,5 +25,8 @@ router.get("/me/favorites", userController.getMyFavorites);
 
 // PATCH /api/v1/users/me/settings - Update user settings
 router.patch("/me/settings", userController.updateMySettings);
+
+// DELETE /api/v1/users/me - Delete account
+router.delete('/me', userController.deleteAccount);
 
 export default router;

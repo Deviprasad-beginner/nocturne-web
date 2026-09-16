@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import "@/styles/home.css";
 import { ScannerLens } from "@/components/read-card/ScannerLens";
+import { MoonPhaseHeader } from "@/components/home/MoonPhaseHeader";
 
 // ── Like deduplication helpers ──────────────────────────────────────────────
 const LIKED_KEY = "nc_liked_whispers";
@@ -128,6 +129,15 @@ const SERVICES = [
     accent: "#fbbf24",
     accentRgb: "251,191,36",
     emoji: "🧩",
+  },
+  {
+    title: "Library",
+    icon: BookOpen,
+    route: "/library",
+    description: "70,000+ free books",
+    accent: "#6ee7b7",
+    accentRgb: "110,231,183",
+    emoji: "📚",
   },
 ];
 
@@ -337,82 +347,7 @@ export default function Home() {
     <div className="nc-shell">
       <SEO title="Nocturne – Immersive Midnight Feed" />
 
-      {/* ── Top Bar ───────────────────────────────── */}
-      <header className="nc-topbar">
-        <div className="nc-topbar-inner">
-          <button className="nc-brand" onClick={() => setLocation("/")}>
-            <div className="nc-moon">
-              <Moon style={{ width: 16, height: 16, color: "white" }} />
-            </div>
-            <span className="nc-brand-name">Nocturne</span>
-          </button>
 
-          <div className="nc-topbar-right">
-            {/* NOCTURNAL LENS - Always available top action, like UPI scanner */}
-            <button
-              className="mr-2 p-2 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-colors"
-              onClick={() => setIsScannerOpen(true)}
-              title="Scanner Lens"
-            >
-              <ScanLine className="w-5 h-5" />
-            </button>
-
-            {user ? (
-              <div style={{ position: "relative" }}>
-                <button
-                  className="nc-avatar-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu((s) => !s);
-                  }}
-                >
-                  <div className="nc-avatar">
-                    <User style={{ width: 14, height: 14, color: "white" }} />
-                  </div>
-                  <span className="nc-user-greeting">
-                    {greeting}, {user.displayName || user.username}
-                  </span>
-                </button>
-
-                {showMenu && (
-                  <div className="nc-dropdown" onClick={(e) => e.stopPropagation()}>
-                    {[
-                      { icon: User, label: "Profile", route: "/profile" },
-                      { icon: Settings, label: "Settings", route: "/settings" },
-                      { icon: Bell, label: "Notifications", route: "/notifications" },
-                    ].map(({ icon: Icon, label, route }) => (
-                      <button
-                        key={route}
-                        className="nc-dd-item"
-                        onClick={() => {
-                          setLocation(route);
-                          setShowMenu(false);
-                        }}
-                      >
-                        <Icon style={{ width: 14, height: 14 }} /> {label}
-                      </button>
-                    ))}
-                    <div className="nc-dd-sep" />
-                    <button
-                      className="nc-dd-item nc-dd-logout"
-                      onClick={() => {
-                        logoutMutation.mutate();
-                        setShowMenu(false);
-                      }}
-                    >
-                      <LogOut style={{ width: 14, height: 14 }} /> Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button className="nc-signin" onClick={() => setLocation("/auth")}>
-                Sign in
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
 
       {/* ── Scanner Modal ───────────────────────── */}
       <ScannerLens isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} />
@@ -433,6 +368,7 @@ export default function Home() {
         <div className="nc-feed-layout">
           {/* Main Feed stream */}
           <div className="nc-feed-stream">
+            <MoonPhaseHeader />
 
             {/* ── Services Discover Row ─────────────── */}
             <section className="nc-services-section">
@@ -476,7 +412,7 @@ export default function Home() {
                   <span className="nc-section-title">Tonight's Reflection</span>
                 </div>
                 <button className="nc-section-action" onClick={() => setLocation("/nightly-reflection")}>
-                  Tonight's Inspection <ArrowRight style={{ width: 14, height: 14 }} />
+                  Tonight's Reflection <ArrowRight style={{ width: 14, height: 14 }} />
                 </button>
               </div>
 
@@ -704,82 +640,7 @@ export default function Home() {
               )}
             </section>
 
-            {/* Late-Night Whispers */}
-            <section className="nc-section" style={{ "--accent": "#fb7185", "--accent-rgb": "251,113,133" } as React.CSSProperties}>
-              <div className="nc-section-header">
-                <div className="nc-section-title-wrap">
-                  <div className="nc-section-icon" style={{ background: "rgba(251, 113, 133, 0.15)" }}>
-                    <Heart style={{ width: 16, height: 16, color: "#fb7185" }} />
-                  </div>
-                  <span className="nc-section-title">Late-Night Whispers</span>
-                </div>
-                <button className="nc-section-action" onClick={() => setLocation("/whispers")}>
-                  Full Void <ArrowRight style={{ width: 14, height: 14 }} />
-                </button>
-              </div>
 
-              {/* Quick whisper text entry */}
-              <form onSubmit={handlePostWhisper} className="nc-quick-whisper">
-                <input
-                  type="text"
-                  placeholder="Whisper anonymously into the void..."
-                  className="nc-whisper-input"
-                  value={anonymousWhisperText}
-                  onChange={(e) => setAnonymousWhisperText(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  disabled={createWhisperMutation.isPending || !anonymousWhisperText.trim()}
-                  className="nc-whisper-submit"
-                >
-                  <Send style={{ width: 14, height: 14 }} />
-                </button>
-              </form>
-
-              {/* Feed items */}
-              {isLoadingWhispers ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
-                </div>
-              ) : whispers.length === 0 ? (
-                <p className="text-center text-xs text-gray-600 py-4">The void is silent.</p>
-              ) : (
-                <div className="nc-whispers-list">
-                  {whispers.slice(0, 3).map((w) => {
-                    const isLiked = likedIds.has(w.id);
-                    return (
-                      <div key={w.id} className="nc-whisper-post">
-                        <p className="nc-whisper-text">{w.content}</p>
-                        <div className="nc-whisper-actions">
-                          <button
-                            className={`nc-whisper-btn${isLiked ? " is-active" : ""}`}
-                            onClick={() => handleLikeWhisper(w.id)}
-                            disabled={isLiked || likeWhisperMutation.isPending}
-                            title={isLiked ? "Already liked" : "Like"}
-                          >
-                            <Heart
-                              style={{
-                                width: 13,
-                                height: 13,
-                                fill: isLiked ? "currentColor" : "none",
-                              }}
-                            />
-                            <span>{w.hearts || 0}</span>
-                          </button>
-                          <button
-                            className="nc-whisper-btn"
-                            onClick={() => resonateWhisperMutation.mutate(w.id)}
-                          >
-                            <Compass style={{ width: 13, height: 13 }} />
-                            <span>Resonate</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
 
             {/* Philosophical Labyrinth */}
             <section className="nc-section" style={{ "--accent": "#fbbf24", "--accent-rgb": "251,191,36" } as React.CSSProperties}>
@@ -910,24 +771,6 @@ export default function Home() {
                 </button>
               </div>
             </div>
-
-            {/* Streak card (if logged in) */}
-            {user && (
-              <div className="nc-widget flex items-center justify-between" style={{ background: "rgba(234, 179, 8, 0.03)", borderColor: "rgba(234, 179, 8, 0.1)" }}>
-                <div>
-                  <h4 className="text-[11px] font-semibold text-yellow-500 uppercase tracking-widest">
-                    Your Night Streak
-                  </h4>
-                  <p className="text-2xl font-light text-white mt-1">
-                    {user.currentStreak || 0} <span className="text-xs text-gray-500">nights</span>
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                  <Flame className="w-5 h-5 text-yellow-500 animate-pulse" />
-                </div>
-              </div>
-            )}
-
           </aside>
         </div>
         <div className="nc-grid-footer" />

@@ -1,22 +1,39 @@
 /**
- * Profile Screen — user stats, diary count, logout
+ * Profile Screen — user identity, stats, diary entries, sign out.
+ * Uses AnimatedCard for staggered stat cards and FadeInView for avatar.
  */
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert,
+  Animated,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { haptics } from '../lib/haptics';
-import { NightCard } from '../components/NightCard';
+import { Colors, Spacing, Radius, Typography, Springs, STAGGER_MS } from '../lib/tokens';
+import { FadeInView } from '../components/FadeInView';
+import { AnimatedCard } from '../components/AnimatedCard';
 import { GlowButton } from '../components/GlowButton';
 import api from '../lib/api';
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
+
+  /* Avatar scale-in animation */
+  const avatarScale = useRef(new Animated.Value(0.6)).current;
+  const avatarOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(avatarScale, { toValue: 1, ...Springs.gentle }),
+      Animated.spring(avatarOpacity, { toValue: 1, ...Springs.gentle }),
+    ]).start();
+  }, [avatarScale, avatarOpacity]);
 
   const { data: diaries = [] } = useQuery<any[]>({
     queryKey: ['diaries'],
@@ -46,16 +63,21 @@ export default function ProfileScreen() {
   }
 
   const STATS = [
-    { label: 'Diary Entries', value: diaries.length, icon: 'book', color: '#818cf8' },
-    { label: 'Nights Active', value: '∞', icon: 'moon', color: '#a78bfa' },
-    { label: 'Whispers', value: '—', icon: 'wind', color: '#fb7185' },
+    { label: 'Diary Entries', value: diaries.length, icon: 'book' as const, color: Colors.indigo },
+    { label: 'Nights Active', value: '∞', icon: 'moon' as const, color: Colors.purple },
+    { label: 'Whispers', value: '—', icon: 'wind' as const, color: Colors.pink },
   ];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Avatar + name */}
-        <View style={styles.hero}>
+        <Animated.View
+          style={[
+            styles.hero,
+            { opacity: avatarOpacity, transform: [{ scale: avatarScale }] },
+          ]}
+        >
           <View style={styles.avatar}>
             <Text style={styles.avatarLetter}>
               {(user.displayName || user.username)[0].toUpperCase()}
@@ -63,44 +85,71 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.name}>{user.displayName || user.username}</Text>
           <Text style={styles.username}>@{user.username}</Text>
-        </View>
+        </Animated.View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          {STATS.map((s) => (
-            <NightCard key={s.label} accent={s.color + '40'} style={styles.statCard}>
-              <Feather name={s.icon as any} size={18} color={s.color} />
+          {STATS.map((s, i) => (
+            <AnimatedCard
+              key={s.label}
+              accent={s.color + '40'}
+              index={i}
+              style={styles.statCard}
+            >
+              <Feather name={s.icon} size={18} color={s.color} />
               <Text style={styles.statValue}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>
-            </NightCard>
+            </AnimatedCard>
           ))}
         </View>
 
         {/* Recent diary entries */}
         <Text style={styles.sectionLabel}>Recent Diary Entries</Text>
-        {diaries.slice(0, 5).map((d: any) => (
-          <NightCard key={d.id} style={{ marginHorizontal: 16 }}>
+        {diaries.slice(0, 5).map((d: any, i: number) => (
+          <AnimatedCard key={d.id} index={i + 3} style={{ marginHorizontal: Spacing.lg }}>
             <Text style={styles.diaryText} numberOfLines={3}>{d.content}</Text>
             <Text style={styles.diaryDate}>
               {d.createdAt ? new Date(d.createdAt).toLocaleDateString() : ''}
             </Text>
-          </NightCard>
+          </AnimatedCard>
         ))}
         {diaries.length === 0 && (
           <Text style={styles.empty}>No diary entries yet. Start reflecting tonight.</Text>
         )}
 
+        {/* Quick Links */}
+        <Text style={styles.sectionLabel}>Quick Links</Text>
+        <FadeInView delay={300}>
+          <View style={styles.quickLinks}>
+            {[
+              { icon: 'settings', label: 'Settings', screen: 'Settings', color: Colors.textSecondary },
+              { icon: 'bell', label: 'Notifications', screen: 'Notifications', color: Colors.indigo },
+              { icon: 'help-circle', label: 'Help & Support', screen: 'Help', color: Colors.green },
+            ].map((link, i) => (
+              <TouchableOpacity
+                key={link.screen}
+                style={styles.quickLinkRow}
+                onPress={() => { haptics.light(); navigation.navigate(link.screen); }}
+              >
+                <Feather name={link.icon as any} size={18} color={link.color} />
+                <Text style={styles.quickLinkLabel}>{link.label}</Text>
+                <Feather name="chevron-right" size={16} color={Colors.textTertiary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </FadeInView>
+
         {/* Logout */}
-        <View style={styles.logoutWrap}>
+        <FadeInView delay={400} style={styles.logoutWrap}>
           <GlowButton
             label="Sign Out"
             onPress={handleLogout}
-            color="#1f2937"
-            textColor="#fb7185"
+            color={Colors.surface}
+            textColor={Colors.pink}
             size="md"
-            style={{ borderWidth: 1, borderColor: '#374151' }}
+            style={{ borderWidth: 1, borderColor: Colors.border }}
           />
-        </View>
+        </FadeInView>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -109,31 +158,48 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#050508' },
+  safe: { flex: 1, backgroundColor: Colors.bg },
   scroll: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  guestMsg: { color: '#4b5563', fontSize: 14 },
-  hero: { alignItems: 'center', paddingVertical: 32 },
+  guestMsg: { color: Colors.textTertiary, fontSize: 14 },
+
+  hero: { alignItems: 'center', paddingVertical: Spacing.xxxl },
   avatar: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: 'rgba(129,140,248,0.15)',
-    borderWidth: 1, borderColor: '#818cf8',
+    backgroundColor: Colors.indigo + '20',
+    borderWidth: 1, borderColor: Colors.indigo,
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
-  avatarLetter: { color: '#818cf8', fontSize: 28, fontWeight: '700' },
-  name: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
-  username: { color: '#4b5563', fontSize: 13, marginTop: 4 },
-  statsRow: { flexDirection: 'row', paddingHorizontal: 12, gap: 8, marginBottom: 16 },
+  avatarLetter: { color: Colors.indigo, fontSize: 28, fontWeight: '700' },
+  name: { ...Typography.headline, color: Colors.text },
+  username: { ...Typography.caption, color: Colors.textTertiary, marginTop: Spacing.xs },
+
+  statsRow: { flexDirection: 'row', paddingHorizontal: Spacing.md, gap: Spacing.sm, marginBottom: Spacing.lg },
   statCard: { flex: 1, alignItems: 'center', gap: 6 },
-  statValue: { color: '#e2e8f0', fontSize: 18, fontWeight: '700' },
-  statLabel: { color: '#4b5563', fontSize: 10, textAlign: 'center' },
+  statValue: { color: Colors.text, fontSize: 18, fontWeight: '700' },
+  statLabel: { ...Typography.footnote, color: Colors.textTertiary, textAlign: 'center' },
+
   sectionLabel: {
-    fontSize: 10, color: '#4b5563', letterSpacing: 2,
-    textTransform: 'uppercase', marginHorizontal: 20, marginBottom: 10,
+    ...Typography.footnote, color: Colors.textTertiary,
+    letterSpacing: 2, textTransform: 'uppercase',
+    marginHorizontal: Spacing.xl, marginBottom: Spacing.md,
   },
-  diaryText: { color: '#9ca3af', fontSize: 13, lineHeight: 20 },
-  diaryDate: { color: '#374151', fontSize: 10, marginTop: 6 },
-  empty: { color: '#374151', textAlign: 'center', marginVertical: 20, fontSize: 13, fontStyle: 'italic' },
-  logoutWrap: { paddingHorizontal: 16, marginTop: 24 },
+  diaryText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  diaryDate: { color: Colors.textTertiary, fontSize: 10, marginTop: 6 },
+  empty: { color: Colors.textTertiary, textAlign: 'center', marginVertical: 20, fontSize: 13, fontStyle: 'italic' },
+
+  quickLinks: {
+    marginHorizontal: Spacing.lg, backgroundColor: Colors.surface,
+    borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border,
+    overflow: 'hidden', marginBottom: Spacing.lg,
+  },
+  quickLinkRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  quickLinkLabel: { ...Typography.body, color: Colors.text, flex: 1 },
+
+  logoutWrap: { paddingHorizontal: Spacing.lg, marginTop: Spacing.xxl },
 });

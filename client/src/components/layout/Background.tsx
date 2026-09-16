@@ -1,9 +1,13 @@
 import { useEffect, useRef } from "react";
+import { useSettings } from "@/context/SettingsContext";
 
 export function Background() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const { backgroundTheme, customBackgroundUrl } = useSettings();
 
     useEffect(() => {
+        if (backgroundTheme !== 'classic-stars') return;
+        
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -116,12 +120,52 @@ export function Background() {
             window.removeEventListener("resize", handleResize);
             cancelAnimationFrame(animationFrameId);
         };
-    }, []);
+    }, [backgroundTheme]);
 
+    if (backgroundTheme === 'aurora') {
+        return <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 bg-aurora opacity-70" />;
+    }
+    
+    if (backgroundTheme === 'midnight-forest') {
+        return (
+            <div 
+                className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 bg-cover bg-center opacity-40" 
+                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=2000&auto=format&fit=crop")' }} 
+            />
+        );
+    }
+    
+    if (backgroundTheme === 'rainy-jungle') {
+        return (
+            <div 
+                className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 bg-cover bg-center opacity-70" 
+                style={{ 
+                    backgroundImage: 'url("https://images.unsplash.com/photo-1534067783941-51c9c23ecefd?q=80&w=2000&auto=format&fit=crop")',
+                    backgroundColor: '#0a1510' 
+                }} 
+            />
+        );
+    }
+    
+    if (backgroundTheme === 'solid-black') {
+        return <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 bg-black" />;
+    }
+    
+    if (backgroundTheme === 'custom' && customBackgroundUrl) {
+        return (
+            <div 
+                className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 bg-cover bg-center opacity-50" 
+                style={{ backgroundImage: `url("${customBackgroundUrl}")` }} 
+            />
+        );
+    }
+
+    // Default fallback to classic-stars
     return (
         <canvas
             ref={canvasRef}
-            className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10"
+            className={`fixed top-0 left-0 w-full h-full pointer-events-none -z-10 ${backgroundTheme !== 'classic-stars' ? 'hidden' : ''}`}
         />
     );
 }
+

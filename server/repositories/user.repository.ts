@@ -77,3 +77,12 @@ export async function updateUser(userId: number, data: Partial<User>): Promise<U
     return undefined;
   }
 }
+
+export async function deleteUser(userId: number): Promise<void> {
+  try {
+    await db.delete(users).where(eq(users.id, userId));
+  } catch (error) {
+    logger.error('Error deleting user:', error);
+    throw error;
+  }
+}

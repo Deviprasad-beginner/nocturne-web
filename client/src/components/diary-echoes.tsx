@@ -15,17 +15,17 @@ export function DiaryEchoes({ diaryId }: { diaryId: number }) {
   const { user } = useAuth();
 
   const { data: comments = [], isLoading } = useQuery<DiaryComment[]>({
-    queryKey: [`/api/v1/diaries/${diaryId}/comments`],
+    queryKey: [`/api/v1/diaries/${diaryId}/replies`],
     enabled: isOpen,
   });
 
   const addCommentMutation = useMutation({
     mutationFn: async (content: string) => {
-      const res = await apiRequest("POST", `/api/v1/diaries/${diaryId}/comments`, { content });
+      const res = await apiRequest("POST", `/api/v1/diaries/${diaryId}/replies`, { content });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/v1/diaries/${diaryId}/comments`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/v1/diaries/${diaryId}/replies`] });
       setContent("");
       toast({
         title: "Echo sent",

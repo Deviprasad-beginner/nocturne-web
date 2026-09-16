@@ -21,12 +21,14 @@ export function ScannerLens({ isOpen, onClose }: ScannerLensProps) {
     const [lensState, setLensState] = useState<LensState>("idle");
     const [extractedText, setExtractedText] = useState<string>("");
     const [selectedText, setSelectedText] = useState<string>("");
+    const [cameraError, setCameraError] = useState<string | null>(null);
 
     // Start camera
     const handleOpenScanner = () => {
         setLensState("capturing");
         setExtractedText("");
         setSelectedText("");
+        setCameraError(null);
     };
 
     // Close modal
@@ -34,6 +36,7 @@ export function ScannerLens({ isOpen, onClose }: ScannerLensProps) {
         setLensState("idle");
         setExtractedText("");
         setSelectedText("");
+        setCameraError(null);
         onClose();
     };
 
@@ -42,6 +45,17 @@ export function ScannerLens({ isOpen, onClose }: ScannerLensProps) {
         setLensState("capturing");
         setExtractedText("");
         setSelectedText("");
+        setCameraError(null);
+    };
+
+    const handleCameraError = (error: string | DOMException) => {
+        console.error("Camera access error:", error);
+        setCameraError("Camera access failed. Check permissions or ensure a camera is connected.");
+        toast({
+            title: "Camera Error",
+            description: "Could not access a working camera.",
+            variant: "destructive"
+        });
     };
 
     const capture = useCallback(async () => {
@@ -221,9 +235,26 @@ export function ScannerLens({ isOpen, onClose }: ScannerLensProps) {
                             audio={false}
                             ref={webcamRef}
                             screenshotFormat="image/jpeg"
-                            videoConstraints={{ facingMode: "environment" }}
+                            videoConstraints={{ facingMode: ["environment", "user"] }}
+                            onUserMediaError={handleCameraError}
                             className={`w-full h-full object-cover ${lensState === "processing" ? "opacity-30 grayscale" : "opacity-100"}`}
                         />
+
+                        {cameraError && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/95 z-20 p-6 text-center backdrop-blur-sm">
+                                <X className="w-12 h-12 text-red-400 mb-4" />
+                                <p className="text-red-300 font-medium mb-2">{cameraError}</p>
+                                <p className="text-gray-400 text-sm mb-6 max-w-[250px]">
+                                    Make sure your browser has permission to access the camera and no other app is using it.
+                                </p>
+                                <button
+                                    onClick={handleClose}
+                                    className="px-6 py-2.5 bg-white/10 border border-white/20 rounded-full hover:bg-white/20 text-white font-medium transition-colors"
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        )}
 
                         {/* Viewfinder overlay */}
                         <div className="absolute inset-0 pointer-events-none">

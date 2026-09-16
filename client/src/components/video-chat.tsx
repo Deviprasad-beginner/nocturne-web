@@ -149,6 +149,11 @@ export function VideoChat({ roomId, username, onLeave }: VideoChatProps) {
   const startVideo = async () => {
     try {
       setIsConnecting(true);
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Media devices not supported in this environment (HTTPS required)');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true
@@ -230,6 +235,9 @@ export function VideoChat({ roomId, username, onLeave }: VideoChatProps) {
     // Get user media if not already available
     if (!localStreamRef.current) {
       try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+           throw new Error('Media devices not supported');
+        }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true

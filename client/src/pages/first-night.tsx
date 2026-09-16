@@ -46,7 +46,7 @@ export default function FirstNight() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black flex items-center justify-center p-4">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-transparent">
             <div className="max-w-2xl w-full space-y-12 text-center">
 
                 {/* Stars decoration */}

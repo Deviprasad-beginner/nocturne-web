@@ -6,6 +6,7 @@ interface ReaderEnvironmentProps {
     mode: ReadingModeConfig;
     onProgress?: (position: number) => void;
     initialPosition?: number;
+    onQuoteSelected?: (text: string, rect: DOMRect | null) => void;
 }
 
 // ── Per-mode atmospheric background config ────────────────────────────────────
@@ -127,6 +128,7 @@ export default function ReaderEnvironment({
     mode,
     onProgress,
     initialPosition = 0,
+    onQuoteSelected,
 }: ReaderEnvironmentProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [scrollPct, setScrollPct] = useState(0);
@@ -282,9 +284,23 @@ export default function ReaderEnvironment({
 
     const adaptiveOpacity = readingDuration > 600 ? 0.92 : 1;
 
+    const handleMouseUp = () => {
+        if (!onQuoteSelected) return;
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0 && selection.toString().trim().length > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            onQuoteSelected(selection.toString().trim(), rect);
+        } else {
+            onQuoteSelected("", null);
+        }
+    };
+
     return (
         <div
             className="reader-env-root"
+            onMouseUp={handleMouseUp}
+            onTouchEnd={handleMouseUp}
             style={{
                 position: "relative",
                 width: "100%",
@@ -428,7 +444,7 @@ export default function ReaderEnvironment({
                     const dimmed = mode.features.focusMode && activeParagraph >= 0 && !isFocused;
                     const paraSpacing =
                         mode.id === "sleep" ? "3.2em" :
-                        mode.id === "think" ? "2.4em" : "1.8em";
+                            mode.id === "think" ? "2.4em" : "1.8em";
                     const dimStyle = {
                         color: dimmed ? textColors.dimText : textColors.text,
                         transition: "color 0.5s ease, transform 0.5s ease",

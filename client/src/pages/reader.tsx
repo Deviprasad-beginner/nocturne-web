@@ -12,9 +12,15 @@ import {
     Eye,
     EyeOff,
     ChevronDown,
+    Library,
+    ArrowRight,
+    Share2,
+    MessageSquare,
+    Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import ReaderEnvironment from "@/components/reader/ReaderEnvironment";
 import {
     READING_MODES,
@@ -32,6 +38,12 @@ export default function Reader() {
     const [showSettings, setShowSettings] = useState(false);
     const [readingTime, setReadingTime] = useState(0);
 
+    // Quote sharing state
+    const [quoteData, setQuoteData] = useState<{ text: string, rect: DOMRect } | null>(null);
+    const [isSharingTarget, setIsSharingTarget] = useState(false);
+    const [quotePov, setQuotePov] = useState("");
+    const [isSharingQuote, setIsSharingQuote] = useState(false);
+
     // Typography overrides
     const [fontSizeOverride, setFontSizeOverride] = useState<number | null>(null);
 
@@ -43,7 +55,7 @@ export default function Reader() {
 
     // Fetch read + session
     const { data, isLoading, error } = useQuery<{ read: Read; session: ReadSession }>({
-    queryKey: [`/api/v1/reads/${id}`],
+        queryKey: [`/api/v1/reads/${id}`],
         enabled: !!user && !!id,
         queryFn: getQueryFn({ on401: "throw" }),
     });
@@ -111,7 +123,7 @@ export default function Reader() {
     // ─── Guards ───
     if (!user) {
         return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+            <div className="min-h-screen text-white flex items-center justify-center bg-transparent">
                 <p className="text-gray-400">Please sign in to read</p>
             </div>
         );
@@ -119,7 +131,7 @@ export default function Reader() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+            <div className="min-h-screen text-white flex items-center justify-center bg-transparent">
                 <p className="text-gray-400 animate-pulse">Opening reading room…</p>
             </div>
         );
@@ -127,7 +139,7 @@ export default function Reader() {
 
     if (!read) {
         return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+            <div className="min-h-screen text-white flex items-center justify-center bg-transparent">
                 <div className="text-center space-y-4">
                     {(error as any)?.status === 401 ? (
                         <>
@@ -157,12 +169,130 @@ export default function Reader() {
     return (
         <div className="relative" onClick={() => setShowControls((s) => !s)}>
             {/* Main reading environment */}
-            <ReaderEnvironment
-                content={read.content || ""}
-                mode={activeMode}
-                onProgress={handleProgress}
-                initialPosition={session?.lastPosition ?? 0}
-            />
+            {read.contentType === "curated" ? (
+                <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center animate-fadeIn relative overflow-hidden bg-transparent">
+                    {/* Immersive ambient glows */}
+                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-purple-900/10 rounded-full blur-[120px] pointer-events-none" />
+
+                    <div className="relative z-10 w-full max-w-lg">
+                        <div className="bg-indigo-950/20 border border-indigo-500/10 p-8 rounded-3xl shadow-[0_0_40px_rgba(79,70,229,0.05)] backdrop-blur-md mb-8 flex flex-col items-center">
+                            <div className="w-24 h-32 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 rounded-xl mb-6 flex items-center justify-center shadow-2xl">
+                                <Library className="w-10 h-10 text-indigo-300/80" />
+                            </div>
+                            <h2 className="text-3xl font-semibold text-white/95 mb-2 font-serif tracking-wide">{read.title}</h2>
+                            {read.author && <p className="text-indigo-300/80 font-medium mb-8 uppercase tracking-widest text-sm">{read.author}</p>}
+
+                            <div className="bg-black/40 border border-white/[0.03] p-5 rounded-2xl w-full">
+                                <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                                    You have stepped into the curated external collection. This masterwork is preserved by the Open Library.
+                                </p>
+                                <Button
+                                    className="bg-indigo-600/90 hover:bg-indigo-500 text-white w-full rounded-xl h-12 shadow-[0_0_20px_rgba(79,70,229,0.2)] transition-all font-medium tracking-wide"
+                                    onClick={() => window.open(read.contentUrl || "", "_blank")}
+                                >
+                                    Enter the Grand Library <ArrowRight className="w-4 h-4 ml-2 opacity-80" />
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <ReaderEnvironment
+                    content={read.content || ""}
+                    mode={activeMode}
+                    onProgress={handleProgress}
+                    initialPosition={session?.lastPosition ?? 0}
+                    onQuoteSelected={(text, rect) => setQuoteData(text && rect ? { text, rect } : null)}
+                />
+            )}
+
+            {/* ─── Quote Sharing Popup ─── */}
+            {quoteData && !isSharingTarget && (
+                <div
+                    className="fixed z-[100] animate-in fade-in zoom-in-95 duration-200"
+                    style={{
+                        top: Math.max(20, quoteData.rect.top - 60) + 'px',
+                        left: Math.max(20, quoteData.rect.left + (quoteData.rect.width / 2) - 100) + 'px'
+                    }}
+                >
+                    <div className="bg-black/90 backdrop-blur-xl border border-indigo-500/30 p-2 rounded-xl shadow-[0_0_30px_rgba(79,70,229,0.2)] flex gap-2">
+                        <Button
+                            className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white h-8 text-xs font-medium px-4 rounded-lg"
+                            onClick={(e) => { e.stopPropagation(); setIsSharingTarget(true); }}
+                        >
+                            <Share2 className="w-3.5 h-3.5 mr-2" /> Share Quote
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── Quote Sharing Composer ─── */}
+            {isSharingTarget && quoteData && (
+                <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsSharingTarget(false)}>
+                    <Card
+                        className="w-full max-w-lg bg-[#0a0a0f] border-indigo-500/20 shadow-2xl p-6 rounded-2xl animate-in fade-in zoom-in-95 duration-200"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <h3 className="text-lg font-serif text-white/90 mb-4 flex items-center">
+                            <Share2 className="w-5 h-5 text-indigo-400 mr-2" /> Share to Night Feed
+                        </h3>
+
+                        <div className="bg-indigo-950/20 border border-indigo-500/10 p-4 rounded-xl mb-4 relative overflow-hidden">
+                            <div className="absolute left-0 top-0 w-1 h-full bg-indigo-500/50" />
+                            <p className="text-indigo-100/90 text-sm leading-relaxed italic font-serif">
+                                "{quoteData.text}"
+                            </p>
+                        </div>
+
+                        <Textarea
+                            className="bg-black/50 border-white/10 focus-visible:ring-indigo-500/50 text-white/90 placeholder:text-gray-600 resize-none h-24 mb-6"
+                            placeholder="Add your thoughts or point of view... (optional)"
+                            value={quotePov}
+                            onChange={(e) => setQuotePov(e.target.value)}
+                        />
+
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                variant="ghost"
+                                className="text-gray-400 hover:text-white"
+                                onClick={() => setIsSharingTarget(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                disabled={isSharingQuote}
+                                onClick={async () => {
+                                    setIsSharingQuote(true);
+                                    try {
+                                        await fetch(`/api/v1/books-social/gutenberg_${id}/quotes`, {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({
+                                                bookTitle: read.title || "Unknown Book",
+                                                authorName: read.author || "Unknown Author",
+                                                quoteText: quoteData.text,
+                                                notes: quotePov.trim() || undefined
+                                            })
+                                        });
+                                        setIsSharingTarget(false);
+                                        setQuoteData(null);
+                                        setQuotePov("");
+                                        // Could show a toast here
+                                    } catch (e) {
+                                        console.error("Failed to share quote", e);
+                                    } finally {
+                                        setIsSharingQuote(false);
+                                    }
+                                }}
+                            >
+                                {isSharingQuote ? <Loader2 className="w-4 h-4 animate-spin" /> : "Share Quote"}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
 
             {/* ─── Floating Controls ─── */}
             {showControls && (

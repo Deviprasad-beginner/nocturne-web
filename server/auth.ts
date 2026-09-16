@@ -287,11 +287,20 @@ export function setupAuth(app: Express) {
             }
 
             const hashedPassword = await hashPassword(parseResult.data.password);
-            const user = await storage.createUser({
-                ...req.body,
-                username: parseResult.data.username,
-                password: hashedPassword,
-            });
+            let user;
+            try {
+                user = await storage.createUser({
+                    ...req.body,
+                    username: parseResult.data.username,
+                    password: hashedPassword,
+                });
+            } catch (err: any) {
+                // If it's a unique constraint violation (e.g. from postgres)
+                if (err.code === '23505' || err.message.includes('unique')) {
+                    return res.status(400).json({ success: false, error: { message: "Username or email already exists", code: "CONFLICT" } });
+                }
+                throw err;
+            }
 
             req.login(user, (err) => {
                 if (err) return next(err);

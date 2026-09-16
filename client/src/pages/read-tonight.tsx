@@ -24,7 +24,7 @@ export default function ReadTonight() {
 
     if (!user) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white flex items-center justify-center">
+            <div className="min-h-screen text-white flex items-center justify-center bg-transparent">
                 <div className="text-center">
                     <p className="text-xl text-gray-400">Please sign in to see tonight's reads</p>
                     <Button onClick={() => setLocation("/auth")} className="mt-4">
@@ -43,7 +43,7 @@ export default function ReadTonight() {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white p-6">
+        <div className="min-h-screen text-white p-6 bg-transparent">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-12">

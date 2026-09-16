@@ -27,6 +27,21 @@ export class UserController {
         const updatedUser = await userService.updateUserSettings(req.user!.id, req.body);
         res.json(successResponse(updatedUser));
     });
+
+    checkIn = asyncHandler(async (req: Request, res: Response) => {
+        const updatedUser = await userService.checkInUser(req.user!.id);
+        res.json(successResponse(updatedUser));
+    });
+
+    deleteAccount = asyncHandler(async (req: Request, res: Response) => {
+        await userService.deleteAccount(req.user!.id);
+        req.logout((err) => {
+            if (err) throw err;
+            req.session.destroy(() => {
+                res.json(successResponse({ message: "Account deleted successfully" }));
+            });
+        });
+    });
 }
 
 export const userController = new UserController();

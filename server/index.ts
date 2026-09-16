@@ -115,12 +115,22 @@ app.use((req, res, next) => {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "Bypass-Tunnel-Reminder"],
   })(req, res, next);
 });
 
-// Enable Gzip compression for all responses
-app.use(compression());
+// Enable Gzip compression for all responses EXCEPT the EPUB proxy
+// (EPUBs are already zip-compressed; re-gzipping corrupts them)
+app.use(compression({
+  filter: (req, res) => {
+    // Skip compression if explicitly disabled on this response
+    if ((res as any).noCompression) return false;
+    // Skip for EPUB proxy route
+    if (req.path.includes("/user-books/proxy")) return false;
+    return compression.filter(req, res);
+  },
+}));
+
 
 // Apply rate limiting to all API routes
 app.use("/api", apiLimiter);
@@ -154,13 +164,16 @@ app.use("/", sitemapRouter);
   // Mount legacy routes (will be gradually migrated)
   const server = await registerRoutes(app, httpServer);
 
-  // Prevent Edge caching (Vercel/Cloudflare) on API routes to avoid serving cached 401s
+  // Prevent Edge caching on API routes to avoid serving cached 401s
+  // EXCEPTION: the EPUB proxy route sets its own long-lived cache headers
   app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+    if (req.path.includes("/user-books/proxy")) return next();
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     next();
   });
+
 
   // Mount new v1 API routes (includes auth + feature routes)
   app.use("/api/v1", apiV1Routes);
@@ -190,4 +203,20 @@ app.use("/", sitemapRouter);
     logger.info(`📍 Environment: ${app.get("env")}`);
     logger.info(`🔗 API v1: http://localhost:${port}/api/v1`);
   });
+
+  // Start Ephemerality Job (Runs every hour to scrub expired content)
+  setInterval(async () => {
+    try {
+      logger.info("Running Ephemerality Job: Scrubbing expired content...");
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      
+      // Delete any Night Thoughts that have expired
+      await db.execute(sql`DELETE FROM night_thoughts WHERE expires_at < NOW()`);
+      logger.info("Ephemerality Job completed successfully.");
+    } catch (err) {
+      logger.error("Ephemerality Job failed:", err);
+    }
+  }, 60 * 60 * 1000);
+
 })();

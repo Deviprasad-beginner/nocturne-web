@@ -5,53 +5,52 @@
 <h1 align="center">Nocturne</h1>
 
 <p align="center">
-  # 🌙 Nocturne
+  <a href="https://nocturnesocial.in/">🌐 Live Demo</a> •
+  <a href="#features">✨ Features</a> •
+  <a href="#installation">⚙️ Setup</a>
+</p>
+
+---
 
 **Nocturne** is an anonymous, night-focused social platform designed for deep thoughts, emotional expression, and real-time interaction after dark. It creates a safe digital space where users can connect without identity pressure.
 
 ---
 
-## 🚀 Features
+## 🚀 Features (v1 Updates)
 
 * 🌌 **Anonymous Social Experience**
   Interact freely without revealing identity.
 
-* 💭 **Whisper Wall**
-  Share thoughts, confessions, and emotions anonymously.
+* 💭 **Night Thoughts Stream**
+  A high-performance unified feed replacing the legacy Whisper Wall and Diaries, heavily indexed for instant loading.
 
-* 📓 **Dream Diary**
-  Record and revisit your dreams in a private space.
+* 🔐 **Encrypted Vault**
+  Server-side AES-256-GCM encryption for private diaries. Even in a database breach, your thoughts remain unreadable.
 
-* 🎧 **Audio Lounge** *(if implemented)*
-  Join voice-based rooms for late-night conversations.
+* 🎨 **Deep Customization Ecosystem**
+  Transform your UI. Choose from Dyslexic-friendly fonts, custom UI corner radii, dynamic glassmorphism (frosted, solid, crystal), and direct Pinterest integration for aesthetic dark wallpapers.
 
-* 💬 **Real-time Chat**
-  Connect instantly with other users.
+* 🎧 **Audio Lounge & Midnight Café**
+  Join voice-based rooms and visual hangouts for late-night ambient conversations.
 
-* 🌙 **Dark-first UI**
-  Designed specifically for night usage and comfort.
+* 🌙 **Dark-First Design**
+  Designed exclusively for night usage, featuring smooth micro-animations and aesthetic controls.
 
 ---
 
 ## 🧱 Tech Stack
 
 ### Frontend
-
-* React / Next.js
-* Tailwind CSS
+* React / Vite
+* Wouter (Routing)
+* Tailwind CSS & Shadcn UI
+* TanStack Query
 
 ### Backend
-
-* Node.js / Express *(or Firebase functions if used)*
-
-### Database
-
-* Firebase / MongoDB *(based on your setup)*
-
-### Other
-
-* REST APIs
-* Real-time communication (if enabled)
+* Node.js / Express
+* Drizzle ORM
+* PostgreSQL (Neon Serverless)
+* AES-256-GCM Cryptography (Native Node `crypto`)
 
 ---
 
@@ -60,13 +59,10 @@
 ```
 nocturne-web/
 │
-├── client/        # Frontend code
-├── server/        # Backend (API + logic)
-├── api/           # API routes (if separated)
-├── functions/     # Serverless functions (if used)
-├── shared/        # Shared utilities/constants
+├── client/        # Frontend code (React, UI Components)
+├── server/        # Backend API, Routes, Controllers, Drizzle ORM
+├── shared/        # Shared Drizzle schema and Zod types
 ├── public/        # Static assets
-├── scripts/       # Helper scripts
 │
 ├── .env.example   # Environment variables template
 ├── README.md      # Project documentation
@@ -78,35 +74,40 @@ nocturne-web/
 
 ### 1. Clone the repository
 
-```
+```bash
 git clone https://github.com/Deviprasad-beginner/nocturne-web
 cd nocturne-web
 ```
 
 ### 2. Install dependencies
 
-```
+```bash
 npm install
 ```
 
 ### 3. Setup environment variables
 
-Create a `.env` file using `.env.example`
+Create a `.env` file based on `.env.example`. You will need a Neon Postgres Database URL.
 
-### 4. Run the app
+### 4. Database Setup
 
+```bash
+npx drizzle-kit push
 ```
+
+### 5. Run the app
+
+```bash
 npm run dev
 ```
 
 ---
 
-## 🔐 Security Notes
+## 🔐 Security & Privacy Architecture
 
-* Do not commit `.env` files
-* Use proper authentication for production
-* Add rate limiting for anonymous features
-* Validate all user inputs
+* **Zero-Knowledge Architecture:** Private entries are encrypted via AES-256-GCM on the backend before touching the database.
+* **Ephemeral Data:** A dedicated Cron job automatically scrubs expired 24-hour whispers to enforce the anti-social philosophy.
+* **Complete Erasure:** `DELETE /api/v1/users/me` permanently destroys all associated footprints and records.
 
 ---
 
@@ -114,9 +115,8 @@ npm run dev
 
 * 🛡️ Abuse detection & moderation system
 * 📊 Analytics dashboard
-* 📱 Native mobile app (Android)
-* ⚡ Performance optimization
-* 🔔 Smart notifications
+* 📱 Native mobile app (Android/iOS)
+* 🔔 Smart push notifications
 
 ---
 
@@ -132,8 +132,8 @@ Pull requests are welcome. For major changes:
 
 ## 📌 Status
 
-> 🚧 Currently in **MVP / Early-stage**
-> Working towards production readiness.
+> 🚀 **Production-Ready v1**
+> The backend infrastructure is fully indexed, typed, and encrypted. Ready for launch.
 
 ---
 
@@ -147,16 +147,3 @@ Builder of Nocturne
 ## 🌌 Vision
 
 > A place where people are most real — at night, in silence, without identity.
-
----
-
-
-</p>
-
-<p align="center">
-  <a href="https://nocturnesocial.in/">🌐 Live Demo</a> •
-  <a href="#features">✨ Features</a> •
-  <a href="#installation">⚙️ Setup</a>
-</p>
-
----

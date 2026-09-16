@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './global.css';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,10 +8,20 @@ import { queryClient } from './src/lib/queryClient';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import AuthScreen from './src/screens/AuthScreen';
+import { registerForPushNotifications, setupNotificationListeners } from './src/lib/notifications';
 
 /** Auth gate — shows AuthScreen until user is logged in */
 function AppNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
+
+  // Register for push notifications once authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    registerForPushNotifications();
+    const cleanup = setupNotificationListeners();
+    return cleanup;
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -38,3 +48,4 @@ export default function App() {
     </QueryClientProvider>
   );
 }
+

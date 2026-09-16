@@ -45,11 +45,9 @@ export function AppMenu({ className }: AppMenuProps) {
 
   const mainNavItems = [
     { href: "/", label: "Home", icon: Home, badge: null },
-    { href: "/diaries", label: "Personal Diaries", icon: BookOpen, badge: null },
-    { href: "/whispers", label: "Anonymous Whispers", icon: MessageSquare, badge: "3" },
+    { href: "/night-thoughts", label: "Night Thoughts", icon: Moon, badge: null },
     { href: "/mind-maze", label: "Mind Maze", icon: Brain, badge: null },
     { href: "/night-circles", label: "Night Circles", icon: Users, badge: "2" },
-    { href: "/midnight-cafe", label: "Midnight Café", icon: Coffee, badge: null },
   ];
 
   const secondaryNavItems = [
@@ -57,7 +55,6 @@ export function AppMenu({ className }: AppMenuProps) {
     { href: "/night-conversations", label: "Night Conversations", icon: MessageCircle, badge: null },
     { href: "/digital-journals", label: "Digital Journals", icon: NotebookPen, badge: null },
     { href: "/mindful-spaces", label: "Mindful Spaces", icon: Heart, badge: null },
-    { href: "/3am-founder", label: "3AM Founder", icon: Lightbulb, badge: null },
     { href: "/starlit-speaker", label: "Starlit Speaker", icon: Mic, badge: "Live" },
     { href: "/moon-messenger", label: "Moon Messenger", icon: Moon, badge: "5" },
   ];

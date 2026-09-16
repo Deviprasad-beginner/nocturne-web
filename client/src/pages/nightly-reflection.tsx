@@ -119,7 +119,7 @@ export default function InspectionCard() {
     // Auth Guard
     if (!user) {
         return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center p-6 font-light">
+            <div className="min-h-screen text-white flex items-center justify-center p-6 font-light bg-transparent">
                 <div className="text-center space-y-6">
                     <Moon className="w-12 h-12 mx-auto text-indigo-400 opacity-50" />
                     <p className="text-gray-400 tracking-wide">Enter the night to inspect your thoughts.</p>
@@ -134,7 +134,7 @@ export default function InspectionCard() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-950 via-[#05050A] to-black text-white p-4 sm:p-8 flex justify-center">
+        <div className="min-h-screen text-white p-4 sm:p-8 flex justify-center bg-transparent">
             <div className="w-full max-w-[720px] space-y-8">
 
                 {/* Header */}
@@ -147,7 +147,7 @@ export default function InspectionCard() {
 
                     <div className="flex items-center gap-2">
                         <Moon className="w-5 h-5 text-indigo-400" />
-                        <h1 className="text-xl font-light tracking-wide text-white/90">Inspection</h1>
+                        <h1 className="text-xl font-light tracking-wide text-white/90">Reflection</h1>
                     </div>
 
                     <Button
@@ -196,7 +196,7 @@ export default function InspectionCard() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <p className="text-center text-gray-500">No inspection topics for tonight.</p>
+                                    <p className="text-center text-gray-500">No reflection topics for tonight.</p>
                                 )}
                             </div>
 
@@ -278,7 +278,7 @@ export default function InspectionCard() {
                             className="space-y-6"
                         >
                             <h2 className="text-lg font-light text-white/50 mb-6 border-b border-white/5 pb-2">
-                                Past Inspections
+                                Past Reflections
                             </h2>
 
                             {historyLoading ? (

@@ -7,6 +7,11 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Platform, NativeModules } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
+// ── Dev bypass toggle ────────────────────────────────────────────────────────
+// When true, the app skips real authentication and silently handles
+// 401/403 errors so you can preview all screens without a running backend.
+export const DEV_BYPASS_AUTH = __DEV__;
+
 // Determine the correct host IP (works for emulators and physical devices on WiFi)
 let hostIp = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 if (__DEV__) {
@@ -20,7 +25,7 @@ if (__DEV__) {
 }
 
 export const API_BASE_URL = __DEV__
-    ? `https://spicy-moments-hope.loca.lt/api/v1`
+    ? `http://${hostIp}:5000/api/v1`
     : 'https://nocturne.placeholder.com/api/v1'; // Replace with prod URL later
 
 export const TOKEN_KEY = 'nocturne_jwt';
@@ -64,7 +69,6 @@ export const api = axios.create({
     timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
-        'Bypass-Tunnel-Reminder': 'true' // Bypass Localtunnel reminder screen
     },
 });
 
@@ -92,6 +96,14 @@ api.interceptors.response.use(
         return response;
     },
     (error: AxiosError) => {
+        // In dev bypass mode, swallow auth errors gracefully
+        if (DEV_BYPASS_AUTH && error.response) {
+            const status = error.response.status;
+            if (status === 401 || status === 403) {
+                // Return empty data instead of crashing
+                return Promise.resolve({ data: null, status, headers: {} });
+            }
+        }
         return Promise.reject(error);
     }
 );

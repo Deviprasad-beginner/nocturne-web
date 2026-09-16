@@ -1,65 +1,67 @@
-import { Moon, Heart, Github, Twitter } from "lucide-react";
+import { Link } from "wouter";
+import { Moon, Github, Twitter, MessageCircle } from "lucide-react";
 
 export function Footer() {
-  return (
-    <footer className="bg-gray-900/50 border-t border-gray-800 backdrop-blur-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-          {/* Brand */}
-          <div className="space-y-3 md:space-y-4">
-            <div className="flex items-center space-x-2">
-              <Moon className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
-              <span className="text-lg md:text-xl font-bold text-white">Nocturne</span>
-            </div>
-            <p className="text-gray-400 text-xs md:text-sm">
-              A digital sanctuary for night owls, deep thinkers, and authentic connections.
-            </p>
-          </div>
+    return (
+        <footer className="w-full bg-[#0a0f1d]/80 backdrop-blur-xl border-t border-white/10 text-gray-400 py-12 relative z-10 mt-auto">
+            <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
+                
+                {/* Branding Column */}
+                <div className="md:col-span-1 space-y-4">
+                    <div className="flex items-center gap-2 text-white">
+                        <Moon className="w-5 h-5 text-indigo-400" />
+                        <span className="font-bold text-lg tracking-wide">Nocturne</span>
+                    </div>
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                        The night is unwritten. A safe, anonymous ecosystem for deep thoughts and authentic connections.
+                    </p>
+                    <div className="flex items-center gap-4 pt-2">
+                        <a href="https://github.com" target="_blank" rel="noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">
+                            <Github className="w-5 h-5" />
+                        </a>
+                        <a href="https://twitter.com" target="_blank" rel="noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">
+                            <Twitter className="w-5 h-5" />
+                        </a>
+                        <a href="https://discord.com" target="_blank" rel="noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">
+                            <MessageCircle className="w-5 h-5" />
+                        </a>
+                    </div>
+                </div>
 
-          {/* Quick Links */}
-          <div className="space-y-3 md:space-y-4">
-            <h3 className="font-semibold text-white text-sm md:text-base">Quick Links</h3>
-            <div className="space-y-2 text-xs md:text-sm">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors block min-h-[32px] flex items-center">About</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors block min-h-[32px] flex items-center">Community</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors block min-h-[32px] flex items-center">Guidelines</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors block min-h-[32px] flex items-center">Support</a>
-            </div>
-          </div>
+                {/* Platform Column */}
+                <div>
+                    <h3 className="text-white font-semibold mb-4 text-sm tracking-wider uppercase">Platform</h3>
+                    <ul className="space-y-2 text-sm">
+                        <li><Link href="/about"><a className="hover:text-indigo-300 transition-colors">About Us</a></Link></li>
+                        <li><Link href="/about"><a className="hover:text-indigo-300 transition-colors">Our Vision</a></Link></li>
+                        <li><Link href="/contact"><a className="hover:text-indigo-300 transition-colors">Contact</a></Link></li>
+                    </ul>
+                </div>
 
-          {/* Categories */}
-          <div className="space-y-3 md:space-y-4">
-            <h3 className="font-semibold text-white text-sm md:text-base">Explore</h3>
-            <div className="space-y-2 text-xs md:text-sm">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors block min-h-[32px] flex items-center">3AM Founder</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors block min-h-[32px] flex items-center">Starlit Speaker</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors block min-h-[32px] flex items-center">Moon Messenger</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors block min-h-[32px] flex items-center">All Categories</a>
-            </div>
-          </div>
+                {/* Legal Column */}
+                <div>
+                    <h3 className="text-white font-semibold mb-4 text-sm tracking-wider uppercase">Legal</h3>
+                    <ul className="space-y-2 text-sm">
+                        <li><Link href="/privacy-policy"><a className="hover:text-indigo-300 transition-colors">Privacy Policy</a></Link></li>
+                        <li><Link href="/terms"><a className="hover:text-indigo-300 transition-colors">Terms of Service</a></Link></li>
+                        <li><Link href="/privacy-policy"><a className="hover:text-indigo-300 transition-colors">Cookie Policy</a></Link></li>
+                    </ul>
+                </div>
 
-          {/* Social */}
-          <div className="space-y-3 md:space-y-4">
-            <h3 className="font-semibold text-white text-sm md:text-base">Connect</h3>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
-                <Github className="w-5 h-5" />
-              </a>
+                {/* Community Column */}
+                <div>
+                    <h3 className="text-white font-semibold mb-4 text-sm tracking-wider uppercase">Community</h3>
+                    <ul className="space-y-2 text-sm">
+                        <li><Link href="/guidelines"><a className="hover:text-indigo-300 transition-colors">Guidelines</a></Link></li>
+                        <li><Link href="/help"><a className="hover:text-indigo-300 transition-colors">Help Center</a></Link></li>
+                    </ul>
+                </div>
             </div>
-          </div>
-        </div>
 
-        <div className="border-t border-gray-800 mt-6 md:mt-8 pt-6 md:pt-8 text-center">
-          <p className="text-gray-400 text-xs md:text-sm flex items-center justify-center space-x-1">
-            <span>Made with</span>
-            <Heart className="w-3 h-3 md:w-4 md:h-4 text-red-400" />
-            <span>for the night community</span>
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
+            <div className="max-w-6xl mx-auto px-6 mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between text-xs text-gray-600">
+                <p>© {new Date().getFullYear()} Nocturne. All rights reserved.</p>
+                <p className="mt-2 md:mt-0">Designed in the dark.</p>
+            </div>
+        </footer>
+    );
 }

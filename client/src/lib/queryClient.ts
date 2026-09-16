@@ -22,7 +22,24 @@ class APIError extends Error {
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new APIError(res.status, text, res.statusText);
+    let errorMessage = text;
+
+    try {
+      const json = JSON.parse(text);
+      if (json.error) {
+        if (json.error.details && Array.isArray(json.error.details) && json.error.details.length > 0 && json.error.details[0].message) {
+          errorMessage = json.error.details[0].message;
+        } else if (json.error.message) {
+          errorMessage = json.error.message;
+        }
+      } else if (json.message) {
+        errorMessage = json.message;
+      }
+    } catch (e) {
+      // Ignore parse error, fallback to text
+    }
+
+    throw new APIError(res.status, errorMessage, res.statusText);
   }
 }
 

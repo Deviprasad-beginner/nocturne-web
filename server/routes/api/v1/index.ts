@@ -4,13 +4,9 @@
  */
 
 import { Router } from "express";
-import whispersRoutes from "./whispers.routes";
-import diariesRoutes from "./diaries.routes";
-import midnightCafeRoutes from "./midnight-cafe.routes";
 import nightCirclesRoutes from "./night-circles.routes";
 import mindMazeRoutes from "./mind-maze.routes";
 import musicRoutes from "./music.routes";
-import amFounderRoutes from "./3am-founder.routes";
 import starlitSpeakerRoutes from "./starlit-speaker.routes";
 import moonMessengerRoutes from "./moon-messenger.routes";
 import userRoutes from "./user.routes";
@@ -23,9 +19,14 @@ import readsRoutes from "./reads.routes";
 import reflectionRoutes from "./reflections.routes"; // Import from local v1 routes dir
 import consciousnessRoutes from "./consciousness.routes";
 import playlistsRoutes from "./playlists.routes";
+import booksRoutes from "./books.routes";
+import booksSocialRoutes from "./books-social.routes";
 import authMobileRoutes from "./auth.routes";
+import userBooksRoutes from "./user-books.routes";
+import midnightCafeRoutes from "./midnight-cafe.routes";
 import { requireAuth } from "../../../middleware/auth.middleware";
 import { storage } from "../../../storage";
+
 
 const router = Router();
 
@@ -52,14 +53,10 @@ router.get("/user", requireAuth, async (req, res) => {
 });
 
 // Mount feature routes
-router.use("/whispers", whispersRoutes);
 router.use("/consciousness", consciousnessRoutes);
-router.use("/diaries", diariesRoutes);
-router.use("/cafe", midnightCafeRoutes);
 router.use("/circles", nightCirclesRoutes);
 router.use("/mind-maze", mindMazeRoutes);
 router.use("/music", musicRoutes);
-router.use("/founder", amFounderRoutes);
 router.use("/speaker", starlitSpeakerRoutes);
 router.use("/messenger", moonMessengerRoutes);
 router.use("/users", userRoutes);
@@ -71,6 +68,30 @@ router.use("/thoughts", nightThoughtsRoutes);
 router.use("/reads", readsRoutes);
 router.use("/reflections", reflectionRoutes); // Use the existing reflection routes file
 router.use("/playlists", playlistsRoutes);
+router.use("/books", booksRoutes);
+router.use("/books-social", booksSocialRoutes);
+router.use("/user-books", userBooksRoutes);
+router.use("/midnight-cafe", midnightCafeRoutes);
+
+
+// --- LEGACY COMPATIBILITY ROUTES ---
+// The frontend still calls /whispers and /diaries which have been unified into /thoughts
+router.use("/whispers", (req, res, next) => {
+    req.query.thoughtType = 'whisper';
+    // Rewrite specific endpoints
+    if (req.method === 'POST' && req.url.match(/\/\d+\/like/)) {
+        req.url = req.url.replace('/like', '/heart');
+    }
+    if (req.method === 'POST' && req.url.match(/\/\d+\/interaction/)) {
+        req.url = req.url.replace('/interaction', '/heart');
+    }
+    nightThoughtsRoutes(req, res, next);
+});
+router.use("/diaries", (req, res, next) => {
+    req.query.thoughtType = 'diary';
+    nightThoughtsRoutes(req, res, next);
+});
+// -----------------------------------
 
 // Health check endpoint
 router.get("/health", (req, res) => {

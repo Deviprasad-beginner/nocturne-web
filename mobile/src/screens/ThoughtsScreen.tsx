@@ -110,7 +110,7 @@ export default function ThoughtsScreen() {
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: '#050508' },
+    safe: { flex: 1, backgroundColor: '#000000' },
     compose: {
         flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12,
         borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)',
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     },
     list: { paddingHorizontal: 16, paddingTop: 8 },
     card: {
-        backgroundColor: '#0d0d14',
+        backgroundColor: '#0a0a0a',
         borderRadius: 14, borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
         padding: 14, marginBottom: 10,

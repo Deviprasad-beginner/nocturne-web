@@ -24,6 +24,7 @@ import {
     RefreshCw,
     ChevronRight,
     Library,
+    Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,8 +45,8 @@ interface TabDef {
 
 const TABS: TabDef[] = [
     { id: "intention", label: "Intention", sublabel: "Why tonight?", icon: BookOpen },
-    { id: "content",  label: "Content",   sublabel: "What to read",  icon: FileText },
-    { id: "begin",    label: "Begin",      sublabel: "Enter the room", icon: Eye },
+    { id: "content", label: "Content", sublabel: "What to read", icon: FileText },
+    { id: "begin", label: "Begin", sublabel: "Enter the room", icon: Eye },
 ];
 
 // ─── Mode palette ─────────────────────────────────────────────────────────────
@@ -110,7 +111,7 @@ export default function ReadCard() {
     const [isEphemeral, setIsEphemeral] = useState(false);
 
     // Content
-    const [inputMode, setInputMode] = useState<"text" | "file">("text");
+    const [inputMode, setInputMode] = useState<"text" | "file" | "library">("text");
     const [title, setTitle] = useState("");
     const [author, setAuthor] = useState("");
     const [pastedText, setPastedText] = useState("");
@@ -124,6 +125,12 @@ export default function ReadCard() {
     const [extractResult, setExtractResult] = useState<PdfExtractResult | null>(null);
     const [extractError, setExtractError] = useState<string | null>(null);
     const [showPreview, setShowPreview] = useState(false);
+
+    // Library Integration
+    const [libSearchQuery, setLibSearchQuery] = useState("");
+    const [isSearchingLib, setIsSearchingLib] = useState(false);
+    const [libResults, setLibResults] = useState<any[]>([]);
+    const [selectedLibBook, setSelectedLibBook] = useState<any | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -191,7 +198,27 @@ export default function ReadCard() {
     const canProceedToBegin =
         inputMode === "text"
             ? pastedText.trim().length > 0 && !!title
-            : !!extractResult && !!title;
+            : inputMode === "library"
+                ? !!selectedLibBook && !!title
+                : !!extractResult && !!title;
+
+    // Search Library
+    const searchLibrary = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!libSearchQuery.trim()) return;
+        setIsSearchingLib(true);
+        try {
+            const res = await fetch(`/api/v1/books/openlibrary/search?query=${encodeURIComponent(libSearchQuery.trim())}`);
+            if (res.ok) {
+                const data = await res.json();
+                setLibResults(data.data || []);
+            }
+        } catch (err) {
+            console.error("Library search error:", err);
+        } finally {
+            setIsSearchingLib(false);
+        }
+    };
 
     // Create read
     const createRead = useMutation({
@@ -221,8 +248,12 @@ export default function ReadCard() {
         formData.append("intention", selectedMode);
         formData.append("isEphemeral", String(isEphemeral));
 
-        if (inputMode === "file" && extractResult) {
-            // Send the extracted text (server already handles text; we avoid resending raw PDF)
+        if (inputMode === "library" && selectedLibBook) {
+            formData.append("content", `Open Library Link: https://openlibrary.org${selectedLibBook.key}`);
+            formData.append("contentUrl", `https://openlibrary.org${selectedLibBook.key}`);
+            formData.append("contentType", "curated");
+        } else if (inputMode === "file" && extractResult) {
+            // Send the extracted text
             formData.append("content", extractResult.text);
         } else {
             formData.append("content", pastedText);
@@ -397,132 +428,237 @@ export default function ReadCard() {
                                 >
                                     <Upload className="w-4 h-4" /> Upload File
                                 </button>
+                                <button
+                                    className={`rc-input-tab ${inputMode === "library" ? "is-active" : ""}`}
+                                    onClick={() => setInputMode("library")}
+                                >
+                                    <Library className="w-4 h-4" /> Search Library
+                                </button>
                             </div>
 
-                            {/* Text paste */}
-                            {inputMode === "text" && (
-                                <div className="rc-content-zone">
-                                    <Textarea
-                                        value={pastedText}
-                                        onChange={(e) => setPastedText(e.target.value)}
-                                        placeholder="Paste your text here… chapters, essays, stories, anything."
-                                        className="rc-textarea"
-                                    />
-                                    {pastedText.trim().length > 0 && (
-                                        <p className="rc-word-count">
-                                            {pastedText.split(/\s+/).filter(Boolean).length.toLocaleString()} words
-                                            &nbsp;·&nbsp;
-                                            ~{Math.max(1, Math.ceil(pastedText.split(/\s+/).filter(Boolean).length / 200))} min read
-                                        </p>
+                            {/* Library search plugin */}
+                            {inputMode === "library" && (
+                                <div className="rc-content-zone relative overflow-hidden bg-black border border-white/[0.03] shadow-2xl rounded-2xl p-5" style={{ minHeight: "300px" }}>
+                                    {/* Ambient glow */}
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-[60px] pointer-events-none" />
+                                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-600/10 rounded-full blur-[50px] pointer-events-none" />
+
+                                    {selectedLibBook ? (
+                                        <div className="relative z-10 rc-file-card bg-indigo-950/30 border border-indigo-500/20 shadow-[0_0_20px_rgba(79,70,229,0.1)] rounded-xl p-4 transition-all duration-300">
+                                            <div className="flex gap-5 items-start">
+                                                {selectedLibBook.cover_i ? (
+                                                    <img
+                                                        src={`https://covers.openlibrary.org/b/id/${selectedLibBook.cover_i}-M.jpg`}
+                                                        alt="Cover"
+                                                        className="w-20 h-28 object-cover rounded-md shadow-lg shadow-black/50 opacity-90"
+                                                    />
+                                                ) : (
+                                                    <div className="w-20 h-28 rounded-md bg-white/5 border border-white/10 shrink-0 flex items-center justify-center shadow-lg">
+                                                        <BookOpen className="w-8 h-8 text-white/20" />
+                                                    </div>
+                                                )}
+                                                <div className="pt-1 flex-1">
+                                                    <p className="font-semibold text-lg text-white/95 tracking-wide leading-tight mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                                                        {selectedLibBook.title}
+                                                    </p>
+                                                    <p className="text-sm text-indigo-300/80 font-medium">
+                                                        {selectedLibBook.author_name?.[0]}
+                                                        {selectedLibBook.first_publish_year ? ` · ${selectedLibBook.first_publish_year}` : ""}
+                                                    </p>
+                                                    <p className="text-xs text-white/40 mt-3 line-clamp-2">
+                                                        Sourced from the modern open library collection. This will be added to your Story Vault for atmospheric reading.
+                                                    </p>
+
+                                                    <div className="mt-4 flex gap-3">
+                                                        <Button variant="ghost" size="sm" onClick={() => setSelectedLibBook(null)} className="h-8 text-xs px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 rounded-full transition-all hover:shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                                                            <Search className="w-3 h-3 mr-2" /> Search Another
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="relative z-10 flex flex-col h-full">
+                                            <form onSubmit={searchLibrary} className="flex gap-2 relative">
+                                                <div className="absolute inset-0 bg-indigo-500/10 blur-xl rounded-full" />
+                                                <Input
+                                                    value={libSearchQuery}
+                                                    onChange={e => setLibSearchQuery(e.target.value)}
+                                                    placeholder="Search millions of books..."
+                                                    className="rc-input flex-1 bg-black/50 border-white/10 focus:border-indigo-500/50 focus:ring focus:ring-indigo-500/20 relative z-10 h-11 text-sm rounded-xl pl-4"
+                                                />
+                                                <Button type="submit" disabled={isSearchingLib || !libSearchQuery.trim()} className="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/30 h-11 px-6 rounded-xl relative z-10 transition-colors">
+                                                    {isSearchingLib ? <Loader2 className="w-4 h-4 animate-spin" /> : "Discover"}
+                                                </Button>
+                                            </form>
+
+                                            <div className="mt-5 grid grid-cols-2 gap-4 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar">
+                                                {libResults.map(book => (
+                                                    <div
+                                                        key={book.key}
+                                                        className="group flex gap-3 p-3 rounded-xl border border-white/[0.05] bg-white/[0.02] hover:bg-indigo-950/40 hover:border-indigo-500/30 hover:shadow-[0_0_15px_rgba(79,70,229,0.15)] transition-all duration-300 cursor-pointer"
+                                                        onClick={() => {
+                                                            setSelectedLibBook(book);
+                                                            setTitle(book.title);
+                                                            setAuthor(book.author_name?.[0] || "");
+                                                        }}
+                                                    >
+                                                        {book.cover_i ? (
+                                                            <img
+                                                                src={`https://covers.openlibrary.org/b/id/${book.cover_i}-S.jpg`}
+                                                                className="w-12 h-16 object-cover rounded shadow-md opacity-80 group-hover:opacity-100 transition-opacity shrink-0"
+                                                                alt=""
+                                                            />
+                                                        ) : (
+                                                            <div className="w-12 h-16 rounded bg-white/5 border border-white/10 shrink-0 flex items-center justify-center">
+                                                                <BookOpen className="w-4 h-4 text-white/20" />
+                                                            </div>
+                                                        )}
+                                                        <div className="min-w-0 py-0.5 flex flex-col justify-center">
+                                                            <p className="text-sm font-medium text-white/80 group-hover:text-indigo-200 truncate leading-snug transition-colors" style={{ fontFamily: 'Georgia, serif' }}>
+                                                                {book.title}
+                                                            </p>
+                                                            <p className="text-[10px] text-white/40 truncate mt-1 tracking-wide uppercase">
+                                                                {book.author_name?.[0] || "Unknown"}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             )}
+                            {/* Text paste */}
+                            {
+                                inputMode === "text" && (
+                                    <div className="rc-content-zone">
+                                        <Textarea
+                                            value={pastedText}
+                                            onChange={(e) => setPastedText(e.target.value)}
+                                            placeholder="Paste your text here… chapters, essays, stories, anything."
+                                            className="rc-textarea"
+                                        />
+                                        {pastedText.trim().length > 0 && (
+                                            <p className="rc-word-count">
+                                                {pastedText.split(/\s+/).filter(Boolean).length.toLocaleString()} words
+                                                &nbsp;·&nbsp;
+                                                ~{Math.max(1, Math.ceil(pastedText.split(/\s+/).filter(Boolean).length / 200))} min read
+                                            </p>
+                                        )}
+                                    </div>
+                                )
+                            }
 
                             {/* File drop */}
-                            {inputMode === "file" && (
-                                <div className="rc-content-zone">
-                                    <div
-                                        className={`rc-dropzone ${isDragging ? "is-dragging" : ""} ${file ? "has-file" : ""}`}
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                        onClick={() => !file && fileInputRef.current?.click()}
-                                    >
-                                        {extracting ? (
-                                            <div className="rc-extract-progress">
-                                                <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                                                <p className="text-sm text-gray-300 mt-3">Extracting text… {extractProgress}%</p>
-                                                <div className="rc-progress-bar">
-                                                    <div className="rc-progress-fill" style={{ width: `${extractProgress}%` }} />
+                            {
+                                inputMode === "file" && (
+                                    <div className="rc-content-zone">
+                                        <div
+                                            className={`rc-dropzone ${isDragging ? "is-dragging" : ""} ${file ? "has-file" : ""}`}
+                                            onDragOver={handleDragOver}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={handleDrop}
+                                            onClick={() => !file && fileInputRef.current?.click()}
+                                        >
+                                            {extracting ? (
+                                                <div className="rc-extract-progress">
+                                                    <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                                                    <p className="text-sm text-gray-300 mt-3">Extracting text… {extractProgress}%</p>
+                                                    <div className="rc-progress-bar">
+                                                        <div className="rc-progress-fill" style={{ width: `${extractProgress}%` }} />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ) : file && extractResult ? (
-                                            <div className="rc-file-card">
-                                                <FileText className="w-8 h-8 text-indigo-400 mb-2" />
-                                                <p className="font-medium text-sm">{file.name}</p>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    {extractResult.pageCount} pages · {extractResult.wordCount.toLocaleString()} words · ~{extractResult.estimatedReadMinutes} min
-                                                </p>
-                                                <div className="rc-file-actions">
-                                                    <Button
-                                                        variant="ghost" size="sm"
-                                                        onClick={(e) => { e.stopPropagation(); setShowPreview(!showPreview); }}
-                                                        className="text-xs text-indigo-400"
-                                                    >
-                                                        <Eye className="w-3 h-3 mr-1" />
-                                                        {showPreview ? "Hide" : "Preview"} text
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost" size="sm"
-                                                        onClick={(e) => { e.stopPropagation(); setFile(null); setExtractResult(null); }}
-                                                        className="text-xs text-gray-500"
-                                                    >
-                                                        <RefreshCw className="w-3 h-3 mr-1" /> Replace
-                                                    </Button>
+                                            ) : file && extractResult ? (
+                                                <div className="rc-file-card">
+                                                    <FileText className="w-8 h-8 text-indigo-400 mb-2" />
+                                                    <p className="font-medium text-sm">{file.name}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        {extractResult.pageCount} pages · {extractResult.wordCount.toLocaleString()} words · ~{extractResult.estimatedReadMinutes} min
+                                                    </p>
+                                                    <div className="rc-file-actions">
+                                                        <Button
+                                                            variant="ghost" size="sm"
+                                                            onClick={(e) => { e.stopPropagation(); setShowPreview(!showPreview); }}
+                                                            className="text-xs text-indigo-400"
+                                                        >
+                                                            <Eye className="w-3 h-3 mr-1" />
+                                                            {showPreview ? "Hide" : "Preview"} text
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost" size="sm"
+                                                            onClick={(e) => { e.stopPropagation(); setFile(null); setExtractResult(null); }}
+                                                            className="text-xs text-gray-500"
+                                                        >
+                                                            <RefreshCw className="w-3 h-3 mr-1" /> Replace
+                                                        </Button>
+                                                    </div>
+                                                    {showPreview && (
+                                                        <div className="rc-preview-text">{extractResult.preview}</div>
+                                                    )}
                                                 </div>
-                                                {showPreview && (
-                                                    <div className="rc-preview-text">{extractResult.preview}</div>
-                                                )}
-                                            </div>
-                                        ) : extractError ? (
-                                            <div className="rc-drop-empty">
-                                                <FileText className="w-8 h-8 text-red-400 mb-2" />
-                                                <p className="text-sm text-red-400">{extractError}</p>
-                                                <Button variant="ghost" size="sm" onClick={() => { setFile(null); setExtractError(null); }}>Try again</Button>
-                                            </div>
-                                        ) : (
-                                            <div className="rc-drop-empty">
-                                                <Upload className="w-8 h-8 text-gray-500 mb-3" />
-                                                <p className="text-sm text-gray-400 font-medium">Drop PDF or TXT here</p>
-                                                <p className="text-xs text-gray-600 mt-1">or click to browse · Max 10 MB</p>
-                                            </div>
-                                        )}
+                                            ) : extractError ? (
+                                                <div className="rc-drop-empty">
+                                                    <FileText className="w-8 h-8 text-red-400 mb-2" />
+                                                    <p className="text-sm text-red-400">{extractError}</p>
+                                                    <Button variant="ghost" size="sm" onClick={() => { setFile(null); setExtractError(null); }}>Try again</Button>
+                                                </div>
+                                            ) : (
+                                                <div className="rc-drop-empty">
+                                                    <Upload className="w-8 h-8 text-gray-500 mb-3" />
+                                                    <p className="text-sm text-gray-400 font-medium">Drop PDF or TXT here</p>
+                                                    <p className="text-xs text-gray-600 mt-1">or click to browse · Max 10 MB</p>
+                                                </div>
+                                            )}
 
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept=".pdf,.txt"
-                                            onChange={handleFileChange}
-                                            className="hidden"
-                                        />
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept=".pdf,.txt"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )
+                            }
 
                             {/* ── MOOD SUGGESTION BANNER ─────────────── */}
-                            {(isAnalyzing || moodResult) && (
-                                <div className={`rc-mood-banner ${isAnalyzing ? "is-loading" : ""}`}>
-                                    {isAnalyzing ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin text-indigo-400 shrink-0" />
-                                            <span className="text-sm text-gray-400">Reading the mood of your text…</span>
-                                        </>
-                                    ) : moodResult ? (
-                                        <>
-                                            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                                            <div className="rc-mood-body">
-                                                <p className="rc-mood-text">
-                                                    <span className="rc-mood-mode">{READING_MODES[moodResult.suggestedMode].label}</span>
-                                                    {" "}mode suggested
-                                                    <span className="rc-mood-conf"> · {moodResult.confidence}% match</span>
-                                                </p>
-                                                <p className="rc-mood-reason">{moodResult.reasoning}</p>
-                                            </div>
-                                            {moodResult.suggestedMode !== selectedMode && (
-                                                <button
-                                                    className="rc-mood-use"
-                                                    onClick={() => setSelectedMode(moodResult.suggestedMode)}
-                                                >
-                                                    Use this
-                                                </button>
-                                            )}
-                                            {moodResult.suggestedMode === selectedMode && (
-                                                <span className="rc-mood-match"><Check className="w-3 h-3 mr-1 inline" />Matches your choice</span>
-                                            )}
-                                        </>
-                                    ) : null}
-                                </div>
-                            )}
+                            {
+                                (isAnalyzing || moodResult) && (
+                                    <div className={`rc-mood-banner ${isAnalyzing ? "is-loading" : ""}`}>
+                                        {isAnalyzing ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin text-indigo-400 shrink-0" />
+                                                <span className="text-sm text-gray-400">Reading the mood of your text…</span>
+                                            </>
+                                        ) : moodResult ? (
+                                            <>
+                                                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                                                <div className="rc-mood-body">
+                                                    <p className="rc-mood-text">
+                                                        <span className="rc-mood-mode">{READING_MODES[moodResult.suggestedMode].label}</span>
+                                                        {" "}mode suggested
+                                                        <span className="rc-mood-conf"> · {moodResult.confidence}% match</span>
+                                                    </p>
+                                                    <p className="rc-mood-reason">{moodResult.reasoning}</p>
+                                                </div>
+                                                {moodResult.suggestedMode !== selectedMode && (
+                                                    <button
+                                                        className="rc-mood-use"
+                                                        onClick={() => setSelectedMode(moodResult.suggestedMode)}
+                                                    >
+                                                        Use this
+                                                    </button>
+                                                )}
+                                                {moodResult.suggestedMode === selectedMode && (
+                                                    <span className="rc-mood-match"><Check className="w-3 h-3 mr-1 inline" />Matches your choice</span>
+                                                )}
+                                            </>
+                                        ) : null}
+                                    </div>
+                                )
+                            }
 
                             {/* Metadata */}
                             <div className="rc-meta-grid">
@@ -578,118 +714,122 @@ export default function ReadCard() {
                                     Continue <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>
                             </div>
-                        </div>
+                        </div >
                     )}
 
                     {/* ── Tab 3 · Begin ─────────────────────────────── */}
-                    {activeTab === "begin" && selectedMode && (
-                        <div className="rc-panel rc-anim">
-                            <header className="rc-panel-head">
-                                <h1 className="rc-panel-title">Ready to enter the room?</h1>
-                                <p className="rc-panel-sub">Review your session, then step inside.</p>
-                            </header>
+                    {
+                        activeTab === "begin" && selectedMode && (
+                            <div className="rc-panel rc-anim">
+                                <header className="rc-panel-head">
+                                    <h1 className="rc-panel-title">Ready to enter the room?</h1>
+                                    <p className="rc-panel-sub">Review your session, then step inside.</p>
+                                </header>
 
-                            {/* Summary card */}
-                            <div className="rc-summary">
-                                {(() => {
-                                    const meta = MODE_META[selectedMode];
-                                    const Icon = meta.icon;
-                                    return (
-                                        <div
-                                            className="rc-summary-mode"
-                                            style={{ "--mode-accent": meta.accent } as React.CSSProperties}
-                                        >
-                                            <div className={`rc-summary-icon bg-gradient-to-br ${meta.gradient}`}>
-                                                <Icon className="w-5 h-5 text-white" />
+                                {/* Summary card */}
+                                <div className="rc-summary">
+                                    {(() => {
+                                        const meta = MODE_META[selectedMode];
+                                        const Icon = meta.icon;
+                                        return (
+                                            <div
+                                                className="rc-summary-mode"
+                                                style={{ "--mode-accent": meta.accent } as React.CSSProperties}
+                                            >
+                                                <div className={`rc-summary-icon bg-gradient-to-br ${meta.gradient}`}>
+                                                    <Icon className="w-5 h-5 text-white" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Reading Mode</p>
+                                                    <p className="font-semibold text-lg" style={{ color: meta.accent }}>
+                                                        {READING_MODES[selectedMode].label}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Reading Mode</p>
-                                                <p className="font-semibold text-lg" style={{ color: meta.accent }}>
-                                                    {READING_MODES[selectedMode].label}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
+                                        );
+                                    })()}
 
-                                <div className="rc-summary-rows">
-                                    <div className="rc-summary-row">
-                                        <span className="rc-summary-key">Title</span>
-                                        <span className="rc-summary-val">{title || "Untitled"}</span>
-                                    </div>
-                                    {author && (
+                                    <div className="rc-summary-rows">
                                         <div className="rc-summary-row">
-                                            <span className="rc-summary-key">Author</span>
-                                            <span className="rc-summary-val">{author}</span>
+                                            <span className="rc-summary-key">Title</span>
+                                            <span className="rc-summary-val">{title || "Untitled"}</span>
                                         </div>
-                                    )}
-                                    <div className="rc-summary-row">
-                                        <span className="rc-summary-key">Content</span>
-                                        <span className="rc-summary-val">
-                                            {inputMode === "file" && extractResult
-                                                ? `${extractResult.wordCount.toLocaleString()} words · ${extractResult.pageCount}p`
-                                                : `${pastedText.split(/\s+/).filter(Boolean).length.toLocaleString()} words`}
-                                        </span>
-                                    </div>
-                                    <div className="rc-summary-row">
-                                        <span className="rc-summary-key">Storage</span>
-                                        <span className={`rc-summary-val ${isEphemeral ? "text-amber-400" : "text-indigo-400"}`}>
-                                            {isEphemeral ? "Ephemeral (24 h)" : "Private"}
-                                        </span>
-                                    </div>
-                                    {moodResult && (
+                                        {author && (
+                                            <div className="rc-summary-row">
+                                                <span className="rc-summary-key">Author</span>
+                                                <span className="rc-summary-val">{author}</span>
+                                            </div>
+                                        )}
                                         <div className="rc-summary-row">
-                                            <span className="rc-summary-key">AI Mood</span>
-                                            <span className="rc-summary-val text-amber-400">
-                                                <Sparkles className="w-3 h-3 inline mr-1" />
-                                                {READING_MODES[moodResult.suggestedMode].label} · {moodResult.confidence}%
+                                            <span className="rc-summary-key">Content</span>
+                                            <span className="rc-summary-val">
+                                                {inputMode === "library"
+                                                    ? "Open Library Sourced"
+                                                    : inputMode === "file" && extractResult
+                                                        ? `${extractResult.wordCount.toLocaleString()} words · ${extractResult.pageCount}p`
+                                                        : `${pastedText.split(/\s+/).filter(Boolean).length.toLocaleString()} words`}
                                             </span>
                                         </div>
-                                    )}
+                                        <div className="rc-summary-row">
+                                            <span className="rc-summary-key">Storage</span>
+                                            <span className={`rc-summary-val ${isEphemeral ? "text-amber-400" : "text-indigo-400"}`}>
+                                                {isEphemeral ? "Ephemeral (24 h)" : "Private"}
+                                            </span>
+                                        </div>
+                                        {moodResult && (
+                                            <div className="rc-summary-row">
+                                                <span className="rc-summary-key">AI Mood</span>
+                                                <span className="rc-summary-val text-amber-400">
+                                                    <Sparkles className="w-3 h-3 inline mr-1" />
+                                                    {READING_MODES[moodResult.suggestedMode].label} · {moodResult.confidence}%
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Legal confirmation */}
+                                <button
+                                    className={`rc-confirm ${confirmed ? "is-confirmed" : ""}`}
+                                    onClick={() => setConfirmed(!confirmed)}
+                                >
+                                    <span className={`rc-confirm-box ${confirmed ? "is-checked" : ""}`}>
+                                        {confirmed && <Check className="w-3 h-3 text-white" />}
+                                    </span>
+                                    <span className="rc-confirm-text">
+                                        I have the right to use this text. This content is private and will not be shared.
+                                    </span>
+                                </button>
+
+                                {createRead.isError && (
+                                    <p className="text-sm text-red-400 text-center">
+                                        Something went wrong. Please try again.
+                                    </p>
+                                )}
+
+                                <div className="rc-panel-footer">
+                                    <Button variant="ghost" onClick={() => setActiveTab("content")} className="text-gray-500">
+                                        <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                                    </Button>
+                                    <Button
+                                        disabled={!confirmed || createRead.isPending}
+                                        onClick={handleSubmit}
+                                        size="lg"
+                                        className="rc-btn-enter"
+                                    >
+                                        {createRead.isPending ? (
+                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Preparing…</>
+                                        ) : (
+                                            <>Enter Reading Room <ArrowRight className="w-4 h-4 ml-2" /></>
+                                        )}
+                                    </Button>
                                 </div>
                             </div>
-
-                            {/* Legal confirmation */}
-                            <button
-                                className={`rc-confirm ${confirmed ? "is-confirmed" : ""}`}
-                                onClick={() => setConfirmed(!confirmed)}
-                            >
-                                <span className={`rc-confirm-box ${confirmed ? "is-checked" : ""}`}>
-                                    {confirmed && <Check className="w-3 h-3 text-white" />}
-                                </span>
-                                <span className="rc-confirm-text">
-                                    I have the right to use this text. This content is private and will not be shared.
-                                </span>
-                            </button>
-
-                            {createRead.isError && (
-                                <p className="text-sm text-red-400 text-center">
-                                    Something went wrong. Please try again.
-                                </p>
-                            )}
-
-                            <div className="rc-panel-footer">
-                                <Button variant="ghost" onClick={() => setActiveTab("content")} className="text-gray-500">
-                                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
-                                </Button>
-                                <Button
-                                    disabled={!confirmed || createRead.isPending}
-                                    onClick={handleSubmit}
-                                    size="lg"
-                                    className="rc-btn-enter"
-                                >
-                                    {createRead.isPending ? (
-                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Preparing…</>
-                                    ) : (
-                                        <>Enter Reading Room <ArrowRight className="w-4 h-4 ml-2" /></>
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </main>
-            </div>
-        </div>
+                        )
+                    }
+                </main >
+            </div >
+        </div >
     );
 }
 

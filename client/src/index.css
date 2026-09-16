@@ -23,6 +23,12 @@
   --destructive-foreground: 0 0% 98%;
   --ring: 240 4.9% 83.9%;
   --radius: 0.5rem;
+  
+  /* UI Customization Defaults */
+  --ui-radius: 12px;
+  --card-bg: rgba(255, 255, 255, 0.045);
+  --card-bg-hover: rgba(255, 255, 255, 0.065);
+  --font-family: 'Inter', system-ui, sans-serif;
 }
 
 .light {
@@ -53,9 +59,45 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply antialiased bg-background text-foreground;
+    font-family: var(--font-family) !important;
   }
 }
+
+/* ─── UI Ecosystem Customizations ─────────────────────────────────────────── */
+/* Border Radius Overrides */
+.rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl, .rounded-md {
+  border-radius: var(--ui-radius) !important;
+}
+.nc-section, .pf-card, .pf-badge, .nc-dd-item, .pf-tab, .pf-stat, .nc-service-card, .nc-sn-track, .nc-circle-row, .nc-vault-book {
+  border-radius: var(--ui-radius) !important;
+}
+.nc-dropdown, .nc-prompt-textarea, .nc-prompt-submit, .nc-sn-mood-btn, .nc-circles-start-btn {
+  border-radius: var(--ui-radius) !important;
+}
+
+/* Glassmorphism / Card Opacity Overrides */
+.nc-section, .pf-card, .pf-hero, .glass-card {
+  background-color: var(--card-bg) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.nc-section:hover, .pf-card:hover {
+  background-color: var(--card-bg-hover) !important;
+}
+
+/* Animation Modifiers */
+.anim-minimal *, .anim-minimal *::before, .anim-minimal *::after {
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+}
+.anim-vibrant .category-card:hover, .anim-vibrant .nc-service-card:hover {
+  transform: translateY(-10px) scale(1.04) !important;
+}
+.anim-vibrant .nc-moon {
+  box-shadow: 0 0 24px rgba(99, 102, 241, 0.6);
+}
+/* ───────────────────────────────────────────────────────────────────────── */
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {

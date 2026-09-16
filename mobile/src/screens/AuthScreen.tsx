@@ -17,7 +17,7 @@ export default function AuthScreen() {
     const { login, register } = useAuth();
 
     const [mode, setMode] = useState<Mode>('login');
-    const [identifier, setIdentifier] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
     const [error, setError] = useState('');
@@ -30,9 +30,9 @@ export default function AuthScreen() {
     };
 
     const handleSubmit = async () => {
-        if (!identifier.trim() || !password.trim()) {
+        if (!email.trim() || !password.trim()) {
             haptics.error();
-            setError('Email/Username and password are required.');
+            setError('Email and password are required.');
             return;
         }
         if (password.length < 6) {
@@ -47,9 +47,9 @@ export default function AuthScreen() {
 
         try {
             if (mode === 'login') {
-                await login(identifier.trim(), password);
+                await login(email.trim(), password);
             } else {
-                await register(identifier.trim(), password, displayName.trim() || identifier.trim());
+                await register(email.trim(), password, displayName.trim() || email.split('@')[0]);
             }
             haptics.success();
         } catch (e: any) {
@@ -110,12 +110,13 @@ export default function AuthScreen() {
                         )}
                         <TextInput
                             style={styles.input}
-                            placeholder="Email or Username"
+                            placeholder="Email address"
                             placeholderTextColor="#4b5563"
-                            value={identifier}
-                            onChangeText={setIdentifier}
+                            value={email}
+                            onChangeText={setEmail}
                             autoCapitalize="none"
                             autoCorrect={false}
+                            keyboardType="email-address"
                         />
                         <TextInput
                             style={styles.input}
@@ -143,6 +144,23 @@ export default function AuthScreen() {
                                 {mode === 'login' ? 'Enter the Night →' : 'Begin Your Night →'}
                             </Text>
                         }
+                    </TouchableOpacity>
+
+                    {/* Divider */}
+                    <View style={styles.divider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerText}>or continue with</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    {/* Google Login */}
+                    <TouchableOpacity
+                        style={styles.googleBtn}
+                        onPress={() => haptics.error()} // Placeholder for now
+                        activeOpacity={0.85}
+                    >
+                        <Text style={styles.googleBtnText}>G</Text>
+                        <Text style={styles.googleText}>Google</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -261,6 +279,44 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         letterSpacing: 0.3,
+    },
+    divider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 20,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+    dividerText: {
+        color: '#4b5563',
+        fontSize: 12,
+        paddingHorizontal: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    googleBtn: {
+        flexDirection: 'row',
+        backgroundColor: '#18181b',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+    },
+    googleBtnText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    googleText: {
+        color: '#e2e8f0',
+        fontSize: 15,
+        fontWeight: '500',
     },
     guestNote: {
         marginTop: 24,

@@ -11,10 +11,11 @@ import {
   AlertTriangle, Moon, Bell, Shield, User, Globe,
   Download, Trash2, LogOut, Notebook, MessageCircle,
   Brain, Coffee, Lightbulb, Star, Users, Headphones,
-  Settings2, ChevronRight,
+  Settings2, ChevronRight, ExternalLink
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useSettings } from "@/context/SettingsContext";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -181,6 +182,12 @@ export default function Settings() {
       accentColor: prefs.accentColor ?? "purple",
       fontSize: prefs.fontSize ?? "medium",
       compactMode: prefs.compactMode ?? false,
+      backgroundTheme: prefs.backgroundTheme ?? "classic-stars",
+      customBackgroundUrl: prefs.customBackgroundUrl ?? "",
+      fontFamily: prefs.fontFamily ?? "sans",
+      uiRadius: prefs.uiRadius ?? "rounded",
+      glassmorphism: prefs.glassmorphism ?? "frosted",
+      animationIntensity: prefs.animationIntensity ?? "standard",
       // Service defaults
       diariesPrivacy: prefs.diariesPrivacy ?? "Private",
       diariesAllowComments: prefs.diariesAllowComments ?? true,
@@ -223,8 +230,18 @@ export default function Settings() {
   // Debounced save for text inputs
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  // Use the local preview from context for instant UI feedback without waiting for backend
+  const { setLocalPreview } = useSettings();
+
   const set = (key: string, value: any, instant: boolean = true) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+
+    // Realtime preview for custom background URL
+    if (key === "customBackgroundUrl") {
+      setLocalPreview(settings.backgroundTheme, value);
+    } else if (key === "backgroundTheme") {
+      setLocalPreview(value, settings.customBackgroundUrl);
+    }
 
     if (instant) {
       updateSettingsMutation.mutate({ [key]: value });
@@ -250,7 +267,7 @@ export default function Settings() {
   const currentService = SERVICES.find(s => s.id === activeService)!;
 
   return (
-    <div className="min-h-screen bg-[#07070f] text-white">
+    <div className="min-h-screen text-white bg-transparent">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Header */}
@@ -372,6 +389,59 @@ export default function Settings() {
                 <p className={sectionTitle}><Moon className="w-4 h-4 text-indigo-400" /> Appearance</p>
                 <p className={sectionDesc}>Customize the look of Nocturne</p>
                 <div>
+                  {/* Background Theme */}
+                  <div className={row + " flex-col items-start gap-3"}>
+                    <div><p className={rowLabel}>Background Wallpaper</p><p className={rowSub}>Choose your preferred night sky</p></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 w-full">
+                      {[
+                        { id: "rainy-jungle", label: "Rainy Jungle", bg: "bg-emerald-950 border-slate-700" },
+                        { id: "classic-stars", label: "Classic Stars", bg: "bg-[#020617] border-slate-700" },
+                        { id: "aurora", label: "Aurora", bg: "bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#312e81]" },
+                        { id: "midnight-forest", label: "Forest", bg: "bg-emerald-950" },
+                        { id: "solid-black", label: "Solid Black", bg: "bg-black" },
+                        { id: "custom", label: "Custom URL", bg: "bg-slate-800" },
+                      ].map(theme => (
+                        <div 
+                          key={theme.id}
+                          onClick={() => set("backgroundTheme", theme.id)}
+                          className={`cursor-pointer rounded-xl overflow-hidden border-2 transition-all ${settings.backgroundTheme === theme.id ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'border-transparent hover:border-white/20'}`}
+                        >
+                          <div className={`h-16 w-full ${theme.bg} flex items-center justify-center`}>
+                             {theme.id === "rainy-jungle" && (
+                               <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1534067783941-51c9c23ecefd?q=80&w=200&auto=format&fit=crop")' }} />
+                             )}
+                             {theme.id === "midnight-forest" && (
+                               <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=200&auto=format&fit=crop")' }} />
+                             )}
+                             {theme.id === "custom" && settings.customBackgroundUrl && (
+                               <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url("${settings.customBackgroundUrl}")` }} />
+                             )}
+                          </div>
+                          <div className="p-2 text-center text-xs font-medium bg-white/5">{theme.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {settings.backgroundTheme === 'custom' && (
+                      <div className="w-full mt-2">
+                        <Label className="text-gray-400 text-xs mb-1.5 block">Custom Image URL</Label>
+                        <Input 
+                          placeholder="https://example.com/image.jpg" 
+                          value={settings.customBackgroundUrl} 
+                          onChange={e => set("customBackgroundUrl", e.target.value, false)}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-gray-600" 
+                        />
+                        <a 
+                          href="https://www.pinterest.com/search/pins/?q=dark%20aesthetic%20wallpaper%20desktop" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-indigo-400 hover:text-indigo-300 mt-2 inline-flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-3 h-3" /> Find wallpapers on Pinterest
+                        </a>
+                      </div>
+                    )}
+                  </div>
                   {[
                     { key: "darkMode", label: "Dark Mode", sub: "Optimized for late-night browsing" },
                     { key: "compactMode", label: "Compact Mode", sub: "Reduce spacing for more content" },
@@ -383,6 +453,10 @@ export default function Settings() {
                   ))}
                   {[
                     { key: "fontSize", label: "Font Size", options: ["small", "medium", "large"] },
+                    { key: "fontFamily", label: "Typography", options: ["sans", "serif", "mono", "dyslexic"] },
+                    { key: "uiRadius", label: "Corner Style", options: ["sharp", "rounded", "pill"] },
+                    { key: "glassmorphism", label: "Card Opacity", options: ["solid", "frosted", "crystal"] },
+                    { key: "animationIntensity", label: "Animations", options: ["minimal", "standard", "vibrant"] },
                   ].map(({ key, label, options }) => (
                     <div key={key} className={row}>
                       <div><p className={rowLabel}>{label}</p></div>

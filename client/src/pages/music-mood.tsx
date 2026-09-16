@@ -173,6 +173,10 @@ export default function MusicMood() {
     const [activeQuery, setActiveQuery] = useState<string | null>(null);
     const [activeLabel, setActiveLabel] = useState<string>("");
 
+    // Search state
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchInput, setSearchInput] = useState("");
+
     // Playlists-related states
     const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
 
@@ -300,6 +304,7 @@ export default function MusicMood() {
         setActivePlaylistId(null);
         setActiveLabel(feat.title);
         setMood("relax");
+        setIsSearchOpen(false);
     };
 
     const handlePlaylistClick = (pl: any) => {
@@ -308,6 +313,21 @@ export default function MusicMood() {
         setActivePlaylistId(pl.id);
         setActiveLabel(pl.name);
         setMood("relax");
+        setIsSearchOpen(false);
+    };
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchInput.trim()) {
+            setSelectedId("search");
+            setActiveQuery(searchInput.trim());
+            setActivePlaylistId(null);
+            setActiveLabel(`Search: ${searchInput}`);
+            setMood(null);
+
+            // On mobile, close search bar after submit to save space?
+            // Optional: setIsSearchOpen(false);
+        }
     };
 
     const handleClear = () => {
@@ -341,7 +361,7 @@ export default function MusicMood() {
     const handleTracksRetry = isPlaylist ? refetchPlaylistTracks : refetch;
 
     return (
-        <div className="min-h-screen bg-[#0f1115] text-white relative pb-32 pb-safe font-sans selection:bg-white/20">
+        <div className="min-h-screen text-white relative pb-32 pb-safe font-sans selection:/20 bg-transparent">
             <SEO
                 title="Soothing Night Sounds & Ambient Music"
                 description="Drift into deep sleep and evening focus with Nocturne's curated ambient soundscapes, nature sounds, and lofi beats."
@@ -408,7 +428,36 @@ export default function MusicMood() {
                             </div>
                         </div>
 
-                        <button className="hover:text-white transition-colors"><Search className="w-4 h-4" /></button>
+                        {/* Functional Search */}
+                        <div className="relative flex items-center group">
+                            {isSearchOpen ? (
+                                <form onSubmit={handleSearchSubmit} className="flex items-center">
+                                    <input
+                                        type="text"
+                                        autoFocus
+                                        placeholder="Search instrumental, piano..."
+                                        value={searchInput}
+                                        onChange={(e) => setSearchInput(e.target.value)}
+                                        className="w-32 sm:w-48 bg-white/10 border border-white/20 rounded-full py-1 px-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all mr-2"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsSearchOpen(false)}
+                                        className="text-white/50 hover:text-white mr-4 transition-colors"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </form>
+                            ) : (
+                                <button
+                                    onClick={() => setIsSearchOpen(true)}
+                                    className="hover:text-white transition-colors"
+                                >
+                                    <Search className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+
                         <button className="hover:text-white transition-colors"><Heart className="w-4 h-4" /></button>
                         <button className="hover:text-white transition-colors"><User className="w-4 h-4" /></button>
                     </div>

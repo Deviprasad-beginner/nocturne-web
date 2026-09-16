@@ -1,12 +1,22 @@
 /**
- * Auth Context — manages JWT token + current user for mobile
+ * Auth Context — manages Auth state for mobile via Firebase
+ * Supports a clean DEV_BYPASS_AUTH toggle for preview mode.
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api, saveToken, getToken, clearToken } from '../lib/api';
+import { DEV_BYPASS_AUTH } from '../lib/api';
+import { auth } from '../lib/firebase';
+import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    updateProfile,
+    signOut,
+    onAuthStateChanged,
+    User as FirebaseUser,
+} from 'firebase/auth';
 
 interface User {
-    id: number;
+    id: string | number;
     username: string;
     displayName: string;
     email: string | null;
@@ -20,10 +30,17 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-    login: (username: string, password: string) => Promise<void>;
-    register: (username: string, password: string, displayName?: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
+    register: (email: string, password: string, displayName?: string) => Promise<void>;
     logout: () => Promise<void>;
 }
+
+const GUEST_USER: User = {
+    id: '0',
+    username: 'guest',
+    displayName: 'Night Owl',
+    email: null,
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -35,52 +52,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
     });
 
-    // Rehydrate from secure storage on mount
+    // Rehydrate from Firebase Auth on mount
     useEffect(() => {
-        (async () => {
-            try {
-                const storedToken = await getToken();
-                if (storedToken) {
-                    // Validate token by hitting /api/v1/user
-                    const res = await api.get('/user');
-                    setState({
-                        user: res.data,
-                        token: storedToken,
-                        isLoading: false,
-                        isAuthenticated: true,
-                    });
-                } else {
-                    setState(s => ({ ...s, isLoading: false }));
-                }
-            } catch {
-                // Token expired or invalid — clear it
-                await clearToken();
+        if (DEV_BYPASS_AUTH) {
+            setState({
+                user: GUEST_USER,
+                token: 'dev-bypass-token',
+                isLoading: false,
+                isAuthenticated: true,
+            });
+            return;
+        }
+
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+            if (firebaseUser) {
+                const token = await firebaseUser.getIdToken();
+                setState({
+                    user: {
+                        id: firebaseUser.uid,
+                        username: firebaseUser.displayName || 'user',
+                        displayName: firebaseUser.displayName || 'Night Owl',
+                        email: firebaseUser.email,
+                    },
+                    token: token,
+                    isLoading: false,
+                    isAuthenticated: true,
+                });
+            } else {
                 setState({ user: null, token: null, isLoading: false, isAuthenticated: false });
             }
-        })();
+        });
+
+        return () => unsubscribe();
     }, []);
 
-    const login = async (username: string, password: string) => {
-        const res = await api.post<{ token: string; user: User }>('/auth/token', { username, password });
-        const { token, user } = res.data as any;
-        await saveToken(token);
-        setState({ user, token, isLoading: false, isAuthenticated: true });
+    const login = async (email: string, password: string) => {
+        await signInWithEmailAndPassword(auth, email, password);
     };
 
-    const register = async (username: string, password: string, displayName?: string) => {
-        const res = await api.post<{ token: string; user: User }>('/auth/register', {
-            username,
-            password,
-            displayName: displayName || username,
-        });
-        const { token, user } = res.data as any;
-        await saveToken(token);
-        setState({ user, token, isLoading: false, isAuthenticated: true });
+    const register = async (email: string, password: string, displayName?: string) => {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        if (displayName && userCredential.user) {
+            await updateProfile(userCredential.user, { displayName });
+
+            // Refresh local state manually after updating profile
+            const token = await userCredential.user.getIdToken();
+            setState((prev) => ({
+                ...prev,
+                user: {
+                    id: userCredential.user.uid,
+                    username: displayName,
+                    displayName: displayName,
+                    email: userCredential.user.email,
+                },
+                token
+            }));
+        }
     };
 
     const logout = async () => {
-        await clearToken();
-        setState({ user: null, token: null, isLoading: false, isAuthenticated: false });
+        await signOut(auth);
     };
 
     return (

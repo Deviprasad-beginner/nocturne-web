@@ -60,6 +60,8 @@ var schema_exports = {};
 __export(schema_exports, {
   amFounder: () => amFounder,
   amFounderReplies: () => amFounderReplies,
+  bookDiscussions: () => bookDiscussions,
+  bookQuotes: () => bookQuotes,
   cafeReplies: () => cafeReplies,
   circleMembers: () => circleMembers,
   circleMessages: () => circleMessages,
@@ -68,6 +70,8 @@ __export(schema_exports, {
   globalConsciousness: () => globalConsciousness,
   insertAmFounderReplySchema: () => insertAmFounderReplySchema,
   insertAmFounderSchema: () => insertAmFounderSchema,
+  insertBookDiscussionSchema: () => insertBookDiscussionSchema,
+  insertBookQuoteSchema: () => insertBookQuoteSchema,
   insertCafeReplySchema: () => insertCafeReplySchema,
   insertCircleMemberSchema: () => insertCircleMemberSchema,
   insertCircleMessageSchema: () => insertCircleMessageSchema,
@@ -123,7 +127,7 @@ __export(schema_exports, {
 import { pgTable, text, serial, integer, boolean, timestamp, varchar, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var sessions, users, diaries, diaryComments, whispers, globalConsciousness, whisperInteractions, mindMaze, mindMazeSparks, nightCircles, circleMembers, circleMessages, midnightCafe, cafeReplies, savedStations, moodLogs, upsertUserSchema, insertUserSchema, insertDiarySchema, insertDiaryCommentSchema, insertWhisperSchema, insertGlobalConsciousnessSchema, insertWhisperInteractionSchema, insertMindMazeSchema, insertMindMazeSparkSchema, insertNightCircleSchema, insertCircleMemberSchema, insertCircleMessageSchema, insertMidnightCafeSchema, insertCafeReplySchema, insertSavedStationSchema, nightThoughts, nightThoughtReplies, amFounder, amFounderReplies, starlitSpeaker, moonMessenger, nightlyPrompts, userReflections, personalReflections, insertAmFounderSchema, insertAmFounderReplySchema, insertStarlitSpeakerSchema, insertMoonMessengerSchema, insertNightlyPromptSchema, insertUserReflectionSchema, insertPersonalReflectionSchema, insertNightThoughtSchema, insertNightThoughtReplySchema, reads, readSessions, privateHighlights, silentLines, insertReadSchema, insertReadSessionSchema, insertPrivateHighlightSchema, insertSilentLineSchema, playlists, playlistTracks, insertPlaylistSchema, insertPlaylistTrackSchema;
+var sessions, users, diaries, diaryComments, whispers, globalConsciousness, whisperInteractions, mindMaze, mindMazeSparks, nightCircles, circleMembers, circleMessages, midnightCafe, cafeReplies, savedStations, moodLogs, upsertUserSchema, insertUserSchema, insertDiarySchema, insertDiaryCommentSchema, insertWhisperSchema, insertGlobalConsciousnessSchema, insertWhisperInteractionSchema, insertMindMazeSchema, insertMindMazeSparkSchema, insertNightCircleSchema, insertCircleMemberSchema, insertCircleMessageSchema, insertMidnightCafeSchema, insertCafeReplySchema, insertSavedStationSchema, nightThoughts, nightThoughtReplies, amFounder, amFounderReplies, starlitSpeaker, moonMessenger, nightlyPrompts, userReflections, personalReflections, insertAmFounderSchema, insertAmFounderReplySchema, insertStarlitSpeakerSchema, insertMoonMessengerSchema, insertNightlyPromptSchema, insertUserReflectionSchema, insertPersonalReflectionSchema, insertNightThoughtSchema, insertNightThoughtReplySchema, reads, readSessions, privateHighlights, silentLines, insertReadSchema, insertReadSessionSchema, insertPrivateHighlightSchema, insertSilentLineSchema, playlists, playlistTracks, insertPlaylistSchema, insertPlaylistTrackSchema, bookDiscussions, bookQuotes, insertBookDiscussionSchema, insertBookQuoteSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -167,7 +171,7 @@ var init_schema = __esm({
       content: text("content").notNull(),
       isPublic: boolean("is_public").default(false),
       mood: varchar("mood", { length: 100 }),
-      authorId: integer("author_id").references(() => users.id),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
       createdAt: timestamp("created_at").defaultNow(),
       // Emotional Analysis
       detectedEmotion: varchar("detected_emotion", { length: 50 }),
@@ -182,7 +186,7 @@ var init_schema = __esm({
     diaryComments = pgTable("diary_comments", {
       id: serial("id").primaryKey(),
       diaryId: integer("diary_id").references(() => diaries.id, { onDelete: "cascade" }).notNull(),
-      authorId: integer("author_id").references(() => users.id).notNull(),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
       content: text("content").notNull(),
       createdAt: timestamp("created_at").defaultNow()
     }, (table) => [
@@ -194,7 +198,7 @@ var init_schema = __esm({
       content: text("content").notNull(),
       type: varchar("type", { length: 20 }).default("text"),
       hearts: integer("hearts").default(0),
-      authorId: integer("author_id").references(() => users.id),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
       createdAt: timestamp("created_at").defaultNow(),
       // Emotional Analysis
       detectedEmotion: varchar("detected_emotion", { length: 50 }),
@@ -227,7 +231,7 @@ var init_schema = __esm({
     whisperInteractions = pgTable("whisper_interactions", {
       id: serial("id").primaryKey(),
       whisperId: integer("whisper_id").references(() => whispers.id, { onDelete: "cascade" }).notNull(),
-      userId: integer("user_id").references(() => users.id).notNull(),
+      userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
       type: varchar("type", { length: 20 }).notNull(),
       // "resonate", "echo", "absorb"
       weight: integer("weight").default(1),
@@ -242,7 +246,7 @@ var init_schema = __esm({
       content: text("content").notNull(),
       options: text("options").array(),
       responses: integer("responses").default(0),
-      authorId: integer("author_id").references(() => users.id),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
       isSystem: boolean("is_system").default(false),
       domain: varchar("domain", { length: 50 }),
       createdAt: timestamp("created_at").defaultNow()
@@ -250,7 +254,7 @@ var init_schema = __esm({
     mindMazeSparks = pgTable("mind_maze_sparks", {
       id: serial("id").primaryKey(),
       mazeId: integer("maze_id").references(() => mindMaze.id, { onDelete: "cascade" }).notNull(),
-      authorId: integer("author_id").references(() => users.id).notNull(),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
       content: text("content").notNull(),
       sparkType: varchar("spark_type", { length: 20 }).notNull(),
       // 'analytical' | 'abstract'
@@ -316,7 +320,7 @@ var init_schema = __esm({
       content: text("content").notNull(),
       category: varchar("category", { length: 100 }),
       replies: integer("replies").default(0),
-      authorId: integer("author_id").references(() => users.id),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
       createdAt: timestamp("created_at").defaultNow()
     }, (table) => [
       index("idx_midnight_cafe_author_id").on(table.authorId)
@@ -325,7 +329,7 @@ var init_schema = __esm({
       id: serial("id").primaryKey(),
       cafeId: integer("cafe_id").references(() => midnightCafe.id).notNull(),
       content: text("content").notNull(),
-      authorId: integer("author_id").references(() => users.id),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
       createdAt: timestamp("created_at").defaultNow()
     }, (table) => [
       index("idx_cafe_replies_cafe_id").on(table.cafeId),
@@ -333,7 +337,7 @@ var init_schema = __esm({
     ]);
     savedStations = pgTable("saved_stations", {
       id: serial("id").primaryKey(),
-      userId: integer("user_id").references(() => users.id).notNull(),
+      userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
       stationId: text("station_id").notNull(),
       createdAt: timestamp("created_at").defaultNow()
     }, (table) => [
@@ -341,7 +345,7 @@ var init_schema = __esm({
     ]);
     moodLogs = pgTable("mood_logs", {
       id: serial("id").primaryKey(),
-      userId: integer("user_id").references(() => users.id).notNull(),
+      userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
       emotion: varchar("emotion", { length: 50 }).notNull(),
       sentimentScore: integer("sentiment_score").notNull(),
       createdAt: timestamp("created_at").defaultNow()
@@ -444,17 +448,23 @@ var init_schema = __esm({
       hearts: integer("hearts").default(0),
       replies: integer("replies").default(0),
       // Metadata
-      authorId: integer("author_id").references(() => users.id),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
       mood: varchar("mood", { length: 100 }),
       createdAt: timestamp("created_at").defaultNow(),
       expiresAt: timestamp("expires_at")
       // For ephemeral whisper-style thoughts
-    });
+    }, (table) => [
+      index("idx_night_thoughts_author_id").on(table.authorId),
+      index("idx_night_thoughts_thought_type").on(table.thoughtType),
+      index("idx_night_thoughts_is_private").on(table.isPrivate),
+      index("idx_night_thoughts_created_at").on(table.createdAt),
+      index("idx_night_thoughts_expires_at").on(table.expiresAt)
+    ]);
     nightThoughtReplies = pgTable("night_thought_replies", {
       id: serial("id").primaryKey(),
       thoughtId: integer("thought_id").references(() => nightThoughts.id, { onDelete: "cascade" }).notNull(),
       content: text("content").notNull(),
-      authorId: integer("author_id").references(() => users.id),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
       // nullable = anonymous
       createdAt: timestamp("created_at").defaultNow()
     }, (table) => [
@@ -466,14 +476,18 @@ var init_schema = __esm({
       category: text("category").notNull(),
       upvotes: integer("upvotes").default(0),
       comments: integer("comments").default(0),
-      authorId: integer("author_id").references(() => users.id),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
       createdAt: timestamp("created_at").defaultNow()
-    });
+    }, (table) => [
+      index("idx_am_founder_author_id").on(table.authorId),
+      index("idx_am_founder_category").on(table.category),
+      index("idx_am_founder_created_at").on(table.createdAt)
+    ]);
     amFounderReplies = pgTable("am_founder_replies", {
       id: serial("id").primaryKey(),
       founderId: integer("founder_id").references(() => amFounder.id).notNull(),
       content: text("content").notNull(),
-      authorId: integer("author_id").references(() => users.id),
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
       // Nullable for anonymous
       createdAt: timestamp("created_at").defaultNow()
     }, (table) => [
@@ -512,7 +526,7 @@ var init_schema = __esm({
     userReflections = pgTable("user_reflections", {
       id: serial("id").primaryKey(),
       promptId: integer("prompt_id").references(() => nightlyPrompts.id).notNull(),
-      userId: integer("user_id").references(() => users.id).notNull(),
+      userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
       responseContent: text("response_content").notNull(),
       aiEvaluation: jsonb("ai_evaluation"),
       // Stores AI's reflection on the response
@@ -523,7 +537,7 @@ var init_schema = __esm({
     ]);
     personalReflections = pgTable("personal_reflections", {
       id: serial("id").primaryKey(),
-      userId: integer("user_id").references(() => users.id).notNull(),
+      userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
       userQuery: text("user_query").notNull(),
       aiReflection: text("ai_reflection").notNull(),
       createdAt: timestamp("created_at").defaultNow()
@@ -681,7 +695,7 @@ var init_schema = __esm({
     });
     playlists = pgTable("playlists", {
       id: serial("id").primaryKey(),
-      userId: integer("user_id").references(() => users.id).notNull(),
+      userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
       name: text("name").notNull(),
       createdAt: timestamp("created_at").defaultNow()
     }, (table) => [
@@ -704,6 +718,42 @@ var init_schema = __esm({
       createdAt: true
     });
     insertPlaylistTrackSchema = createInsertSchema(playlistTracks).omit({
+      id: true,
+      createdAt: true
+    });
+    bookDiscussions = pgTable("book_discussions", {
+      id: serial("id").primaryKey(),
+      bookId: text("book_id").notNull(),
+      // e.g., "gutenberg_123" or "ol_W123456"
+      bookTitle: text("book_title").notNull(),
+      author: text("author"),
+      content: text("content").notNull(),
+      rating: integer("rating"),
+      // 1-5 scale
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+      createdAt: timestamp("created_at").defaultNow()
+    }, (table) => [
+      index("idx_book_discussions_book_id").on(table.bookId),
+      index("idx_book_discussions_author_id").on(table.authorId)
+    ]);
+    bookQuotes = pgTable("book_quotes", {
+      id: serial("id").primaryKey(),
+      bookId: text("book_id").notNull(),
+      bookTitle: text("book_title").notNull(),
+      quoteText: text("quote_text").notNull(),
+      notes: text("notes"),
+      // User's POV on the quote
+      authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+      createdAt: timestamp("created_at").defaultNow()
+    }, (table) => [
+      index("idx_book_quotes_book_id").on(table.bookId),
+      index("idx_book_quotes_author_id").on(table.authorId)
+    ]);
+    insertBookDiscussionSchema = createInsertSchema(bookDiscussions).omit({
+      id: true,
+      createdAt: true
+    });
+    insertBookQuoteSchema = createInsertSchema(bookQuotes).omit({
       id: true,
       createdAt: true
     });
@@ -824,6 +874,14 @@ async function updateUser(userId, data) {
     return void 0;
   }
 }
+async function deleteUser(userId) {
+  try {
+    await db.delete(users).where(eq(users.id, userId));
+  } catch (error) {
+    logger.error("Error deleting user:", error);
+    throw error;
+  }
+}
 var init_user_repository = __esm({
   "server/repositories/user.repository.ts"() {
     "use strict";
@@ -834,16 +892,6 @@ var init_user_repository = __esm({
 });
 
 // server/repositories/diary.repository.ts
-var diary_repository_exports = {};
-__export(diary_repository_exports, {
-  createDiary: () => createDiary,
-  createDiaryComment: () => createDiaryComment,
-  deleteDiary: () => deleteDiary,
-  getDiaries: () => getDiaries,
-  getDiary: () => getDiary,
-  getDiaryComments: () => getDiaryComments,
-  getUserDiaries: () => getUserDiaries
-});
 import { eq as eq2, desc, or } from "drizzle-orm";
 function capLimit(limit) {
   return Math.min(limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -915,24 +963,6 @@ async function getUserDiaries(userId, limit) {
     return await db.select().from(diaries).where(eq2(diaries.authorId, userId)).orderBy(desc(diaries.createdAt)).limit(capLimit(limit));
   } catch (error) {
     logger.error("Error getting user diaries:", error);
-    return [];
-  }
-}
-async function createDiaryComment(comment) {
-  try {
-    const [newComment] = await db.insert(diaryComments).values(comment).returning();
-    return newComment;
-  } catch (error) {
-    logger.error("Error creating diary comment:", error);
-    throw error;
-  }
-}
-async function getDiaryComments(diaryId, limit) {
-  try {
-    const results = await db.select({ comment: diaryComments, author: users }).from(diaryComments).leftJoin(users, eq2(diaryComments.authorId, users.id)).where(eq2(diaryComments.diaryId, diaryId)).orderBy(desc(diaryComments.createdAt)).limit(capLimit(limit));
-    return results.map((r) => ({ ...r.comment, author: r.author || void 0 }));
-  } catch (error) {
-    logger.error("Error getting diary comments:", error);
     return [];
   }
 }
@@ -1299,6 +1329,43 @@ var init_misc_repository = __esm({
   }
 });
 
+// server/utils/encryption.ts
+import crypto from "crypto";
+function encryptText(text2) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(algorithm, key, iv);
+  let encrypted = cipher.update(text2, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const authTag = cipher.getAuthTag().toString("hex");
+  return `${iv.toString("hex")}:${authTag}:${encrypted}`;
+}
+function decryptText(encryptedData) {
+  try {
+    const parts = encryptedData.split(":");
+    if (parts.length !== 3) return encryptedData;
+    const [ivHex, authTagHex, encryptedText] = parts;
+    const iv = Buffer.from(ivHex, "hex");
+    const authTag = Buffer.from(authTagHex, "hex");
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (error) {
+    console.error("Decryption failed, returning original text.");
+    return encryptedData;
+  }
+}
+var algorithm, secretKeyString, key;
+var init_encryption = __esm({
+  "server/utils/encryption.ts"() {
+    "use strict";
+    algorithm = "aes-256-gcm";
+    secretKeyString = process.env.SESSION_SECRET || "nocturne_fallback_secret_key_1234567890";
+    key = crypto.createHash("sha256").update(String(secretKeyString)).digest();
+  }
+});
+
 // server/repositories/reflection.repository.ts
 import { eq as eq8, desc as desc7, and as and2, ne, sql as sql6 } from "drizzle-orm";
 async function createNightlyPrompt(prompt) {
@@ -1377,8 +1444,16 @@ async function getUserReflections(userId, limit = 20) {
 }
 async function createPersonalReflection(reflection, aiReflection) {
   try {
-    const [newReflection] = await db.insert(personalReflections).values({ ...reflection, aiReflection }).returning();
-    return newReflection;
+    const [newReflection] = await db.insert(personalReflections).values({
+      ...reflection,
+      userQuery: encryptText(reflection.userQuery),
+      aiReflection: aiReflection ? encryptText(aiReflection) : aiReflection
+    }).returning();
+    return {
+      ...newReflection,
+      userQuery: decryptText(newReflection.userQuery),
+      aiReflection: newReflection.aiReflection ? decryptText(newReflection.aiReflection) : newReflection.aiReflection
+    };
   } catch (error) {
     logger.error("Error creating personal reflection:", error);
     throw error;
@@ -1386,7 +1461,12 @@ async function createPersonalReflection(reflection, aiReflection) {
 }
 async function getPersonalReflections(userId, limit = 20) {
   try {
-    return await db.select().from(personalReflections).where(eq8(personalReflections.userId, userId)).orderBy(desc7(personalReflections.createdAt)).limit(Math.min(limit, 100));
+    const reflections = await db.select().from(personalReflections).where(eq8(personalReflections.userId, userId)).orderBy(desc7(personalReflections.createdAt)).limit(Math.min(limit, 100));
+    return reflections.map((ref) => ({
+      ...ref,
+      userQuery: decryptText(ref.userQuery),
+      aiReflection: ref.aiReflection ? decryptText(ref.aiReflection) : ref.aiReflection
+    }));
   } catch (error) {
     logger.error("Error getting personal reflections:", error);
     return [];
@@ -1398,6 +1478,7 @@ var init_reflection_repository = __esm({
     init_db();
     init_schema();
     init_logger();
+    init_encryption();
   }
 });
 
@@ -1578,6 +1659,12 @@ var init_storage = __esm({
           user.hasSeenOnboarding = completed;
         }
       }
+      async deleteUser(id) {
+        const index2 = this.users.findIndex((u) => u.id === id);
+        if (index2 !== -1) {
+          this.users.splice(index2, 1);
+        }
+      }
       // Diary operations
       async createDiary(diary) {
         const newDiary = {
@@ -1644,7 +1731,11 @@ var init_storage = __esm({
           visibilityOpacity: whisper.visibilityOpacity || 100,
           audioFrequency: whisper.audioFrequency || 444,
           resonanceScore: 0,
-          interactionCount: 0
+          // @ts-ignore
+          interactionCount: whisper.interactionCount || 0,
+          // @ts-ignore
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1e3),
+          type: null
         };
         this.whispers.push(newWhisper);
         return newWhisper;
@@ -1669,7 +1760,8 @@ var init_storage = __esm({
           responses: 0,
           authorId: mindMaze3.authorId || null,
           isSystem: mindMaze3.isSystem || false,
-          createdAt: /* @__PURE__ */ new Date()
+          createdAt: /* @__PURE__ */ new Date(),
+          domain: null
         };
         this.mindMazes.push(newMindMaze);
         return newMindMaze;
@@ -1717,9 +1809,13 @@ var init_storage = __esm({
           isActive: true,
           state: "forming",
           primaryEmotion: null,
-          vibeScore: 0,
-          expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1e3),
-          createdAt: /* @__PURE__ */ new Date()
+          // @ts-ignore
+          vibeScore: nightCircle.vibeScore || 100,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1e3),
+          createdAt: /* @__PURE__ */ new Date(),
+          topic: null,
+          category: null,
+          roomType: null
         };
         this.nightCircles.push(newNightCircle);
         return newNightCircle;
@@ -2262,6 +2358,7 @@ var init_storage = __esm({
       upsertUser = upsertUser;
       updateUser = updateUser;
       updateUserOnboarding = updateUserOnboarding;
+      deleteUser = deleteUser;
       // ── Diaries ───────────────────────────────────────────────────────────────
       createDiary = createDiary;
       getDiaries = getDiaries;
@@ -2617,7 +2714,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import session2 from "express-session";
 import { scrypt as scrypt2, randomBytes as randomBytes2, timingSafeEqual as timingSafeEqual2 } from "crypto";
 import { promisify as promisify2 } from "util";
-import { z as z12 } from "zod";
+import { z as z8 } from "zod";
 async function hashPassword2(password) {
   const salt = randomBytes2(16).toString("hex");
   const buf = await scryptAsync2(password, salt, 64);
@@ -2804,11 +2901,19 @@ function setupAuth(app2) {
         return res.status(400).json({ success: false, error: { message: "Username already exists", code: "CONFLICT" } });
       }
       const hashedPassword = await hashPassword2(parseResult.data.password);
-      const user = await storage.createUser({
-        ...req.body,
-        username: parseResult.data.username,
-        password: hashedPassword
-      });
+      let user;
+      try {
+        user = await storage.createUser({
+          ...req.body,
+          username: parseResult.data.username,
+          password: hashedPassword
+        });
+      } catch (err) {
+        if (err.code === "23505" || err.message.includes("unique")) {
+          return res.status(400).json({ success: false, error: { message: "Username or email already exists", code: "CONFLICT" } });
+        }
+        throw err;
+      }
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json(user);
@@ -2851,14 +2956,14 @@ var init_auth = __esm({
     "use strict";
     init_storage();
     init_logger();
-    registerSchema = z12.object({
-      username: z12.string().min(3, "Username must be at least 3 characters").max(30, "Username too long").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores"),
-      password: z12.string().min(8, "Password must be at least 8 characters"),
-      email: z12.string().email("Invalid email").optional()
+    registerSchema = z8.object({
+      username: z8.string().min(3, "Username must be at least 3 characters").max(30, "Username too long").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores"),
+      password: z8.string().min(8, "Password must be at least 8 characters"),
+      email: z8.string().email("Invalid email").optional()
     });
-    loginSchema = z12.object({
-      username: z12.string().min(1, "Username is required"),
-      password: z12.string().min(1, "Password is required")
+    loginSchema = z8.object({
+      username: z8.string().min(1, "Username is required"),
+      password: z8.string().min(1, "Password is required")
     });
     scryptAsync2 = promisify2(scrypt2);
   }
@@ -3398,12 +3503,6 @@ var UnauthorizedError = class _UnauthorizedError extends AppError {
     Object.setPrototypeOf(this, _UnauthorizedError.prototype);
   }
 };
-var ForbiddenError = class _ForbiddenError extends AppError {
-  constructor(message = "Access forbidden", code = "FORBIDDEN") {
-    super(403, message, code);
-    Object.setPrototypeOf(this, _ForbiddenError.prototype);
-  }
-};
 
 // server/utils/api-response.ts
 function successResponse(data, meta) {
@@ -3516,94 +3615,15 @@ function requestId(req, res, next) {
 }
 
 // server/routes/api/v1/index.ts
-import { Router as Router20 } from "express";
+import { Router as Router18 } from "express";
 
-// server/routes/api/v1/whispers.routes.ts
+// server/routes/api/v1/night-circles.routes.ts
 import { Router } from "express";
 
-// server/config/database.ts
+// server/services/night-circles.service.ts
 init_db();
-async function testDatabaseConnection() {
-  try {
-    const { pool: pool2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    if (!pool2) {
-      console.warn("\u26A0\uFE0F  Database pool not initialized (DATABASE_URL not set)");
-      return false;
-    }
-    await pool2.query("SELECT 1");
-    console.log("\u2705 Database connection successful");
-    return true;
-  } catch (error) {
-    console.error("\u274C Database connection failed:", error);
-    return false;
-  }
-}
-
-// server/repositories/whispers.repository.ts
 init_schema();
-import { eq as eq11, desc as desc9, sql as sql8 } from "drizzle-orm";
-var WhispersRepository = class {
-  /**
-   * Get all whispers, ordered by newest first
-   */
-  async getAll() {
-    return await db.select().from(whispers).orderBy(desc9(whispers.createdAt));
-  }
-  /**
-   * Get whisper by ID
-   */
-  async getById(id) {
-    const result = await db.select().from(whispers).where(eq11(whispers.id, id)).limit(1);
-    return result[0];
-  }
-  /**
-   * Get whispers by author ID
-   */
-  async getByAuthorId(authorId) {
-    return await db.select().from(whispers).where(eq11(whispers.authorId, authorId)).orderBy(desc9(whispers.createdAt));
-  }
-  /**
-   * Create a new whisper
-   */
-  async create(data) {
-    const result = await db.insert(whispers).values(data).returning();
-    return result[0];
-  }
-  /**
-   * Increment hearts count for a whisper
-   */
-  async incrementHearts(id) {
-    await db.update(whispers).set({ hearts: sql8`${whispers.hearts} + 1` }).where(eq11(whispers.id, id));
-  }
-  /**
-   * Delete a whisper
-   */
-  async delete(id) {
-    await db.delete(whispers).where(eq11(whispers.id, id));
-  }
-  /**
-   * Add an interaction (resonate, echo, absorb)
-   */
-  async addInteraction(whisperId, userId, type, weight) {
-    await db.insert(whisperInteractions).values({
-      whisperId,
-      userId,
-      type,
-      weight
-    });
-    let resonanceIncrease = 1;
-    if (type === "echo") resonanceIncrease = 2;
-    if (type === "absorb") resonanceIncrease = 3;
-    await db.update(whispers).set({
-      resonanceScore: sql8`${whispers.resonanceScore} + ${resonanceIncrease}`,
-      interactionCount: sql8`${whispers.interactionCount} + 1`
-    }).where(eq11(whispers.id, whisperId));
-  }
-};
-var whispersRepository = new WhispersRepository();
-
-// server/services/whispers.service.ts
-init_storage();
+import { eq as eq11, desc as desc9, and as and5, sql as sql8, ne as ne3 } from "drizzle-orm";
 init_logger();
 
 // server/services/emotion-analyzer.ts
@@ -3640,684 +3660,7 @@ function analyzeEmotion(text2) {
   };
 }
 
-// server/services/whispers.service.ts
-var WhispersService = class {
-  /**
-   * Get all whispers
-   */
-  async getAllWhispers(limit) {
-    logger.debug("Fetching all whispers");
-    return await storage.getWhispers(limit);
-  }
-  /**
-   * Get whisper by ID
-   */
-  async getWhisperById(id) {
-    logger.debug(`Fetching whisper with id: ${id}`);
-    const whisper = await whispersRepository.getById(id);
-    if (!whisper) {
-      throw new NotFoundError(`Whisper with id ${id} not found`);
-    }
-    return whisper;
-  }
-  /**
-   * Get whispers by user
-   */
-  async getUserWhispers(userId) {
-    logger.debug(`Fetching whispers for user: ${userId}`);
-    return await whispersRepository.getByAuthorId(userId);
-  }
-  /**
-   * Create a new whisper
-   */
-  async createWhisper(data, userId) {
-    logger.info("Creating new whisper", { userId });
-    const analysis = analyzeEmotion(data.content);
-    const emotion = analysis.detectedEmotion || "neutral";
-    const EMOTION_FREQ_MAP = {
-      loneliness: 396,
-      curiosity: 432,
-      peace: 528,
-      anxiety: 741,
-      mystery: 639,
-      neutral: 444,
-      joy: 528,
-      // Map joy to peace/love freq
-      sadness: 396,
-      // Map sadness to loneliness/release
-      love: 639,
-      // Map love to connection
-      ambition: 432,
-      // Map ambition to change
-      nostalgia: 417
-      // 417 is undoing situations/facilitating change
-    };
-    const frequency = EMOTION_FREQ_MAP[emotion] || 444;
-    const whisperData = {
-      ...data,
-      authorId: userId,
-      // Link to user if logged in
-      detectedEmotion: emotion,
-      sentimentScore: analysis.sentimentScore,
-      reflectionDepth: analysis.reflectionDepthScore,
-      audioFrequency: frequency,
-      decayStage: "fresh",
-      decayProgress: 0,
-      visibilityOpacity: 100
-    };
-    return await whispersRepository.create(whisperData);
-  }
-  /**
-   * Like a whisper (increment hearts)
-   */
-  async likeWhisper(id) {
-    logger.info(`Incrementing hearts for whisper: ${id}`);
-    await this.getWhisperById(id);
-    await whispersRepository.incrementHearts(id);
-  }
-  /**
-   * Delete a whisper
-   * Only the author can delete their whisper
-   */
-  async deleteWhisper(id, userId) {
-    logger.info(`Deleting whisper: ${id}`, { userId });
-    const whisper = await this.getWhisperById(id);
-    if (whisper.authorId && whisper.authorId !== userId) {
-      throw new ForbiddenError("You can only delete your own whispers");
-    }
-    await whispersRepository.delete(id);
-  }
-  /**
-   * Interact with a whisper (resonate, echo, absorb)
-   */
-  async interact(userId, whisperId, type) {
-    logger.info(`Interaction: ${type} on whisper ${whisperId} by user ${userId}`);
-    await this.getWhisperById(whisperId);
-    await whispersRepository.addInteraction(whisperId, userId, type, type === "echo" ? 2 : 1);
-  }
-};
-var whispersService = new WhispersService();
-
-// server/controllers/whispers.controller.ts
-var WhispersController = class {
-  /**
-   * GET /api/v1/whispers
-   * Get all whispers
-   */
-  getAll = asyncHandler(async (req, res) => {
-    const limit = req.query.limit ? parseInt(req.query.limit) : void 0;
-    const whispers2 = await whispersService.getAllWhispers(limit);
-    res.json(successResponse(whispers2));
-  });
-  /**
-   * GET /api/v1/whispers/:id
-   * Get whisper by ID
-   */
-  getById = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    const whisper = await whispersService.getWhisperById(id);
-    res.json(successResponse(whisper));
-  });
-  /**
-   * POST /api/v1/whispers
-   * Create new whisper
-   */
-  create = asyncHandler(async (req, res) => {
-    const whisper = await whispersService.createWhisper(
-      req.body,
-      req.user?.id
-    );
-    res.status(201).json(successResponse(whisper));
-  });
-  /**
-   * POST /api/v1/whispers/:id/like
-   * Like a whisper
-   */
-  like = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    await whispersService.likeWhisper(id);
-    res.json(successResponse({ message: "Whisper liked successfully" }));
-  });
-  /**
-   * DELETE /api/v1/whispers/:id
-   * Delete whisper (requires auth)
-   */
-  delete = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    await whispersService.deleteWhisper(id, req.user.id);
-    res.json(successResponse({ message: "Whisper deleted successfully" }));
-  });
-  /**
-   * POST /api/v1/whispers/:id/interaction
-   * Interact with a whisper
-   */
-  interact = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    const { type } = req.body;
-    if (!["resonate", "echo", "absorb"].includes(type)) {
-      res.status(400).json({ success: false, message: "Invalid interaction type" });
-      return;
-    }
-    await whispersService.interact(req.user.id, id, type);
-    res.json(successResponse({ message: `Interaction ${type} recorded` }));
-  });
-};
-var whispersController = new WhispersController();
-
-// server/middleware/auth.middleware.ts
-init_storage();
-import jwt from "jsonwebtoken";
-var JWT_SECRET = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
-async function attachJwtUser(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) return false;
-  try {
-    const token = authHeader.slice(7);
-    const payload = jwt.verify(token, JWT_SECRET);
-    const user = await storage.getUser(payload.sub);
-    if (!user) return false;
-    req.user = user;
-    return true;
-  } catch {
-    return false;
-  }
-}
-function requireAuth(req, res, next) {
-  if (req.isAuthenticated()) return next();
-  attachJwtUser(req).then((ok) => {
-    if (ok) return next();
-    throw new UnauthorizedError("Authentication required");
-  }).catch(next);
-}
-function optionalAuth(req, res, next) {
-  next();
-}
-
-// server/middleware/validation.middleware.ts
-import { ZodError as ZodError2 } from "zod";
-function validate(schema, target = "body") {
-  return async (req, res, next) => {
-    try {
-      const data = req[target];
-      const validated = await schema.parseAsync(data);
-      req[target] = validated;
-      next();
-    } catch (error) {
-      if (error instanceof ZodError2) {
-        next(error);
-      } else {
-        next(new ValidationError("Validation failed"));
-      }
-    }
-  };
-}
-
-// server/routes/api/v1/whispers.routes.ts
-init_schema();
-import { z as z2 } from "zod";
-var router = Router();
-router.get("/", whispersController.getAll);
-router.get(
-  "/:id",
-  validate(z2.object({ id: z2.string().regex(/^\d+$/) }), "params"),
-  whispersController.getById
-);
-router.post(
-  "/",
-  validate(insertWhisperSchema),
-  whispersController.create
-);
-router.post(
-  "/:id/like",
-  validate(z2.object({ id: z2.string().regex(/^\d+$/) }), "params"),
-  whispersController.like
-);
-router.delete(
-  "/:id",
-  requireAuth,
-  validate(z2.object({ id: z2.string().regex(/^\d+$/) }), "params"),
-  whispersController.delete
-);
-router.post(
-  "/:id/interaction",
-  requireAuth,
-  validate(z2.object({ id: z2.string().regex(/^\d+$/) }), "params"),
-  validate(z2.object({ type: z2.enum(["resonate", "echo", "absorb"]) })),
-  whispersController.interact
-);
-var whispers_routes_default = router;
-
-// server/routes/api/v1/diaries.routes.ts
-import { Router as Router2 } from "express";
-
-// server/services/diaries.service.ts
-init_storage();
-init_logger();
-var DiariesService = class {
-  /**
-   * Get all public diaries
-   */
-  async getAllDiaries(userId, limit) {
-    logger.debug(`Fetching diaries for viewer: ${userId || "Guest"}`);
-    return await storage.getDiaries(userId, limit);
-  }
-  /**
-   * Get diary by ID
-   */
-  async getDiaryById(id) {
-    logger.debug(`Fetching diary with id: ${id}`);
-    const diary = await storage.getDiary(id);
-    if (!diary) {
-      throw new NotFoundError(`Diary with id ${id} not found`);
-    }
-    return diary;
-  }
-  /**
-   * Get diaries by user
-   * Note: This functionality may need to be implemented in storage layer
-   * For now, getDiaries returns all public diaries, not user-specific ones
-   */
-  async getUserDiaries(userId) {
-    logger.debug(`Fetching diaries for user: ${userId}`);
-    return await storage.getUserDiaries(userId);
-  }
-  /**
-   * Create a new diary
-   */
-  async createDiary(data, userId) {
-    logger.info("Creating new diary", { userId });
-    const analysis = analyzeEmotion(data.content);
-    const diaryData = {
-      ...data,
-      authorId: userId,
-      detectedEmotion: analysis.detectedEmotion,
-      sentimentScore: analysis.sentimentScore,
-      reflectionDepth: analysis.reflectionDepthScore
-    };
-    return await storage.createDiary(diaryData);
-  }
-  /**
-   * Delete a diary
-   * Only the author can delete their diary
-   */
-  async deleteDiary(id, userId) {
-    logger.info(`Deleting diary: ${id}`, { userId });
-    const diary = await this.getDiaryById(id);
-    if (diary.authorId !== userId) {
-      throw new ForbiddenError("You can only delete your own diaries");
-    }
-    const success = await storage.deleteDiary(id);
-    if (!success) {
-      throw new Error("Failed to delete diary");
-    }
-  }
-};
-var diariesService = new DiariesService();
-
-// server/controllers/diaries.controller.ts
-var DiariesController = class {
-  /**
-   * GET /api/v1/diaries
-   * Get all public diaries
-   */
-  getAll = asyncHandler(async (req, res) => {
-    const userId = req.user?.id;
-    const limit = req.query.limit ? parseInt(req.query.limit) : void 0;
-    const diaries2 = await diariesService.getAllDiaries(userId, limit);
-    res.json(successResponse(diaries2));
-  });
-  /**
-   * GET /api/v1/diaries/:id
-   * Get diary by ID
-   */
-  getById = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    const diary = await diariesService.getDiaryById(id);
-    res.json(successResponse(diary));
-  });
-  /**
-   * POST /api/v1/diaries
-   * Create new diary (requires auth)
-   */
-  create = asyncHandler(async (req, res) => {
-    const diary = await diariesService.createDiary(
-      req.body,
-      req.user.id
-    );
-    res.status(201).json(successResponse(diary));
-  });
-  /**
-   * DELETE /api/v1/diaries/:id
-   * Delete diary (requires auth)
-   */
-  delete = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    await diariesService.deleteDiary(id, req.user.id);
-    res.json(successResponse({ message: "Diary deleted successfully" }));
-  });
-  /**
-   * GET /api/v1/diaries/:id/comments
-   * Get comments for a diary
-   */
-  getComments = asyncHandler(async (req, res) => {
-    const diaryId = parseInt(req.params.id);
-    const limit = req.query.limit ? parseInt(req.query.limit) : void 0;
-    const { getDiaryComments: getDiaryComments2 } = await Promise.resolve().then(() => (init_diary_repository(), diary_repository_exports));
-    const comments = await getDiaryComments2(diaryId, limit);
-    res.json(successResponse(comments));
-  });
-  /**
-   * POST /api/v1/diaries/:id/comments
-   * Add a comment to a diary
-   */
-  addComment = asyncHandler(async (req, res) => {
-    const diaryId = parseInt(req.params.id);
-    const { content } = req.body;
-    const authorId = req.user.id;
-    if (!content) {
-      res.status(400).json({ success: false, error: "Content is required" });
-      return;
-    }
-    const { createDiaryComment: createDiaryComment2 } = await Promise.resolve().then(() => (init_diary_repository(), diary_repository_exports));
-    const comment = await createDiaryComment2({
-      diaryId,
-      content,
-      authorId
-    });
-    const result = {
-      ...comment,
-      author: req.user
-    };
-    res.status(201).json(successResponse(result));
-  });
-};
-var diariesController = new DiariesController();
-
-// server/routes/api/v1/diaries.routes.ts
-init_schema();
-import { z as z3 } from "zod";
-var router2 = Router2();
-router2.get("/", diariesController.getAll);
-router2.get(
-  "/:id",
-  validate(z3.object({ id: z3.string().regex(/^\d+$/) }), "params"),
-  diariesController.getById
-);
-router2.post(
-  "/",
-  requireAuth,
-  validate(insertDiarySchema),
-  diariesController.create
-);
-router2.delete(
-  "/:id",
-  requireAuth,
-  validate(z3.object({ id: z3.string().regex(/^\d+$/) }), "params"),
-  diariesController.delete
-);
-router2.get(
-  "/:id/comments",
-  validate(z3.object({ id: z3.string().regex(/^\d+$/) }), "params"),
-  diariesController.getComments
-);
-router2.post(
-  "/:id/comments",
-  requireAuth,
-  validate(z3.object({ id: z3.string().regex(/^\d+$/) }), "params"),
-  diariesController.addComment
-);
-var diaries_routes_default = router2;
-
-// server/routes/api/v1/midnight-cafe.routes.ts
-import { Router as Router3 } from "express";
-
-// server/services/midnight-cafe.service.ts
-init_storage();
-init_logger();
-var MidnightCafeService = class {
-  /**
-   * Get all cafe posts
-   */
-  async getAllPosts(limit) {
-    logger.debug("Fetching all midnight cafe posts");
-    return await storage.getMidnightCafe(limit);
-  }
-  /**
-   * Get cafe post by ID
-   */
-  async getPostById(id) {
-    logger.debug(`Fetching cafe post with id: ${id}`);
-    const post = await storage.getMidnightCafeById(id);
-    if (!post) {
-      throw new NotFoundError(`Cafe post with id ${id} not found`);
-    }
-    return post;
-  }
-  /**
-   * Get cafe posts by user
-   */
-  async getUserPosts(userId) {
-    logger.debug(`Fetching cafe posts for user: ${userId}`);
-    return await storage.getUserCafePosts(userId);
-  }
-  /**
-   * Create a new cafe post
-   */
-  async createPost(data, userId) {
-    logger.info("Creating new cafe post", { userId });
-    const postData = {
-      ...data,
-      authorId: userId
-    };
-    return await storage.createMidnightCafe(postData);
-  }
-  /**
-   * Increment reply count for a post
-   */
-  async incrementReplies(id) {
-    logger.info(`Incrementing replies for cafe post: ${id}`);
-    await this.getPostById(id);
-    await storage.incrementCafeReplies(id);
-  }
-  /**
-   * Get replies for a post
-   */
-  async getReplies(postId) {
-    logger.debug(`Fetching replies for cafe post: ${postId}`);
-    return await storage.getCafeReplies(postId);
-  }
-  /**
-   * Create a reply
-   */
-  async createReply(data, userId) {
-    logger.info("Creating new cafe reply", { userId, cafeId: data.cafeId });
-    const replyData = {
-      ...data,
-      authorId: userId
-    };
-    const reply = await storage.createCafeReply(replyData);
-    await storage.incrementCafeReplies(data.cafeId);
-    return reply;
-  }
-  /**
-   * Delete a post
-   */
-  async deletePost(id, userId) {
-    logger.info(`Deleting cafe post: ${id} by user: ${userId}`);
-    const post = await this.getPostById(id);
-    if (post.authorId !== userId) {
-      throw new ForbiddenError("You can only delete your own posts");
-    }
-    await storage.deleteCafePost(id);
-  }
-};
-var midnightCafeService = new MidnightCafeService();
-
-// server/controllers/midnight-cafe.controller.ts
-init_schema();
-init_logger();
-var MidnightCafeController = class {
-  /**
-   * Get all posts
-   */
-  static async getAll(req, res) {
-    try {
-      const limit = req.query.limit ? parseInt(req.query.limit) : void 0;
-      const posts = await midnightCafeService.getAllPosts(limit);
-      res.json(posts);
-    } catch (error) {
-      logger.error("Error fetching all cafe posts", error);
-      res.status(500).json({ error: "Failed to fetch posts" });
-    }
-  }
-  /**
-   * Get post by ID
-   */
-  static async getById(req, res) {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid ID" });
-      }
-      const post = await midnightCafeService.getPostById(id);
-      res.json(post);
-    } catch (error) {
-      if (error.name === "NotFoundError") {
-        return res.status(404).json({ error: error.message });
-      }
-      logger.error(`Error fetching post ${req.params.id}`, error);
-      res.status(500).json({ error: "Failed to fetch post" });
-    }
-  }
-  /**
-   * Create a post
-   */
-  static async create(req, res) {
-    try {
-      const data = insertMidnightCafeSchema.parse(req.body);
-      const post = await midnightCafeService.createPost(data, req.user?.id);
-      res.status(201).json(post);
-    } catch (error) {
-      logger.error("Error creating post", error);
-      if (error.name === "ZodError") {
-        return res.status(400).json({ error: error.errors });
-      }
-      res.status(500).json({ error: "Failed to create post" });
-    }
-  }
-  /**
-   * Old reply endpoint (increment counter)
-   * Kept for backward compatibility if needed, though we prefer real replies now.
-   */
-  static async reply(req, res) {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid ID" });
-      }
-      await midnightCafeService.incrementReplies(id);
-      res.json({ success: true });
-    } catch (error) {
-      if (error.name === "NotFoundError") {
-        return res.status(404).json({ error: error.message });
-      }
-      logger.error(`Error incrementing replies for ${req.params.id}`, error);
-      res.status(500).json({ error: "Failed to increment replies" });
-    }
-  }
-  /**
-   * Get replies for a post
-   */
-  static async getReplies(req, res) {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid post ID" });
-      }
-      const replies = await midnightCafeService.getReplies(id);
-      res.json(replies);
-    } catch (error) {
-      logger.error("Error fetching replies", error);
-      res.status(500).json({ error: "Failed to fetch replies" });
-    }
-  }
-  /**
-   * Create a reply
-   */
-  static async createReply(req, res) {
-    try {
-      const data = insertCafeReplySchema.parse(req.body);
-      const reply = await midnightCafeService.createReply(data, req.user?.id);
-      res.status(201).json(reply);
-    } catch (error) {
-      logger.error("Error creating reply", error);
-      if (error.name === "ZodError") {
-        return res.status(400).json({ error: error.errors });
-      }
-      res.status(500).json({ error: "Failed to create reply" });
-    }
-  }
-  /**
-   * Delete a post
-   */
-  static async deletePost(req, res) {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid post ID" });
-      }
-      await midnightCafeService.deletePost(id, req.user.id);
-      res.sendStatus(200);
-    } catch (error) {
-      logger.error("Error deleting post", error);
-      if (error.message === "You can only delete your own posts") {
-        return res.status(403).json({ error: error.message });
-      }
-      if (error.name === "NotFoundError") {
-        return res.status(404).json({ error: error.message });
-      }
-      res.status(500).json({ error: "Failed to delete post" });
-    }
-  }
-};
-
-// server/routes/api/v1/midnight-cafe.routes.ts
-init_schema();
-import { z as z4 } from "zod";
-var router3 = Router3();
-router3.get("/", MidnightCafeController.getAll);
-router3.get(
-  "/:id",
-  validate(z4.object({ id: z4.string().regex(/^\d+$/) }), "params"),
-  MidnightCafeController.getById
-);
-router3.post(
-  "/",
-  optionalAuth,
-  validate(insertMidnightCafeSchema),
-  MidnightCafeController.create
-);
-router3.post(
-  "/:id/reply",
-  validate(z4.object({ id: z4.string().regex(/^\d+$/) }), "params"),
-  MidnightCafeController.reply
-);
-router3.get("/:id/replies", MidnightCafeController.getReplies);
-router3.post("/replies", MidnightCafeController.createReply);
-router3.delete("/:id", requireAuth, MidnightCafeController.deletePost);
-var midnight_cafe_routes_default = router3;
-
-// server/routes/api/v1/night-circles.routes.ts
-import { Router as Router4 } from "express";
-
 // server/services/night-circles.service.ts
-init_db();
-init_schema();
-import { eq as eq12, desc as desc10, and as and5, sql as sql9, ne as ne3 } from "drizzle-orm";
-init_logger();
 var ALIASES = [
   "Silent Moon",
   "Night Wanderer",
@@ -4355,7 +3698,7 @@ var EMOTION_VIBE_MAP = {
 var NightCirclesService = class {
   // ── Assign a unique alias to a user joining a circle ──────────────────────
   async assignAlias(circleId) {
-    const currentMembersResult = await db.select({ alias: circleMembers.alias }).from(circleMembers).where(and5(eq12(circleMembers.circleId, circleId), eq12(circleMembers.state, "active")));
+    const currentMembersResult = await db.select({ alias: circleMembers.alias }).from(circleMembers).where(and5(eq11(circleMembers.circleId, circleId), eq11(circleMembers.state, "active")));
     const usedAliases = new Set(currentMembersResult.map((m) => m.alias));
     const available = ALIASES.filter((a) => !usedAliases.has(a));
     const alias = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : `Night Soul ${Math.floor(Math.random() * 99)}`;
@@ -4368,10 +3711,10 @@ var NightCirclesService = class {
       const now = /* @__PURE__ */ new Date();
       return await db.select().from(nightCircles).where(
         and5(
-          eq12(nightCircles.isActive, true),
+          eq11(nightCircles.isActive, true),
           ne3(nightCircles.state, "ended")
         )
-      ).orderBy(desc10(nightCircles.createdAt));
+      ).orderBy(desc9(nightCircles.createdAt));
     } catch (error) {
       logger.error("Error fetching night circles", error);
       return [];
@@ -4379,7 +3722,7 @@ var NightCirclesService = class {
   }
   // ── Get a single circle by ID ─────────────────────────────────────────────
   async getCircleById(id) {
-    const [circle] = await db.select().from(nightCircles).where(eq12(nightCircles.id, id));
+    const [circle] = await db.select().from(nightCircles).where(eq11(nightCircles.id, id));
     if (!circle) throw new NotFoundError(`Circle ${id} not found`);
     return circle;
   }
@@ -4390,11 +3733,11 @@ var NightCirclesService = class {
     if (preferredEmotion) {
       const matches = await db.select().from(nightCircles).where(
         and5(
-          eq12(nightCircles.primaryEmotion, preferredEmotion),
+          eq11(nightCircles.primaryEmotion, preferredEmotion),
           ne3(nightCircles.state, "ended"),
           ne3(nightCircles.state, "closing"),
-          eq12(nightCircles.maxMembers, targetMaxMembers),
-          sql9`COALESCE(${nightCircles.currentMembers}, 0) < COALESCE(${nightCircles.maxMembers}, ${targetMaxMembers})`
+          eq11(nightCircles.maxMembers, targetMaxMembers),
+          sql8`COALESCE(${nightCircles.currentMembers}, 0) < COALESCE(${nightCircles.maxMembers}, ${targetMaxMembers})`
         )
       ).limit(1);
       if (matches.length > 0) best = matches[0];
@@ -4404,10 +3747,10 @@ var NightCirclesService = class {
         and5(
           ne3(nightCircles.state, "ended"),
           ne3(nightCircles.state, "closing"),
-          eq12(nightCircles.maxMembers, targetMaxMembers),
-          sql9`COALESCE(${nightCircles.currentMembers}, 0) < COALESCE(${nightCircles.maxMembers}, ${targetMaxMembers})`
+          eq11(nightCircles.maxMembers, targetMaxMembers),
+          sql8`COALESCE(${nightCircles.currentMembers}, 0) < COALESCE(${nightCircles.maxMembers}, ${targetMaxMembers})`
         )
-      ).orderBy(desc10(nightCircles.state)).limit(1);
+      ).orderBy(desc9(nightCircles.state)).limit(1);
       if (matches.length > 0) best = matches[0];
     }
     if (!best) {
@@ -4436,7 +3779,7 @@ var NightCirclesService = class {
   // ── Join a circle: assign alias, record membership, update lifecycle ───────
   async joinCircle(circleId, userId, mode = "listener") {
     return await db.transaction(async (tx) => {
-      const [circle] = await tx.select().from(nightCircles).where(eq12(nightCircles.id, circleId));
+      const [circle] = await tx.select().from(nightCircles).where(eq11(nightCircles.id, circleId));
       if (!circle) {
         throw new Error("Circle not found");
       }
@@ -4458,7 +3801,7 @@ var NightCirclesService = class {
         currentMembers: newCount,
         state: newState,
         isActive: newState !== "ended"
-      }).where(eq12(nightCircles.id, circleId));
+      }).where(eq11(nightCircles.id, circleId));
       logger.info(`User joined circle ${circleId} as "${alias}" [${mode}]`);
       return member;
     });
@@ -4468,14 +3811,14 @@ var NightCirclesService = class {
     await db.transaction(async (tx) => {
       const [member] = await tx.select().from(circleMembers).where(
         and5(
-          eq12(circleMembers.circleId, circleId),
-          eq12(circleMembers.userId, userId),
-          eq12(circleMembers.state, "active")
+          eq11(circleMembers.circleId, circleId),
+          eq11(circleMembers.userId, userId),
+          eq11(circleMembers.state, "active")
         )
       ).limit(1);
       if (!member) return;
-      await tx.update(circleMembers).set({ state: "inactive", leftAt: /* @__PURE__ */ new Date() }).where(eq12(circleMembers.id, member.id));
-      const [circle] = await tx.select().from(nightCircles).where(eq12(nightCircles.id, circleId));
+      await tx.update(circleMembers).set({ state: "inactive", leftAt: /* @__PURE__ */ new Date() }).where(eq11(circleMembers.id, member.id));
+      const [circle] = await tx.select().from(nightCircles).where(eq11(nightCircles.id, circleId));
       if (circle) {
         const newCount = Math.max(0, (circle.currentMembers ?? 1) - 1);
         const newState = deriveState(newCount, false);
@@ -4483,7 +3826,7 @@ var NightCirclesService = class {
           currentMembers: newCount,
           state: newState,
           isActive: newState !== "ended"
-        }).where(eq12(nightCircles.id, circleId));
+        }).where(eq11(nightCircles.id, circleId));
         logger.info(`User left circle ${circleId} (alias: ${member.alias})`);
       }
     });
@@ -4498,7 +3841,7 @@ var NightCirclesService = class {
       imageUrl,
       sentimentScore: emotion.sentimentScore
     }).returning();
-    const recent = await db.select({ sentimentScore: circleMessages.sentimentScore }).from(circleMessages).where(eq12(circleMessages.circleId, circleId)).orderBy(desc10(circleMessages.createdAt)).limit(20);
+    const recent = await db.select({ sentimentScore: circleMessages.sentimentScore }).from(circleMessages).where(eq11(circleMessages.circleId, circleId)).orderBy(desc9(circleMessages.createdAt)).limit(20);
     const avg = recent.length > 0 ? Math.round(recent.reduce((s, m) => s + (m.sentimentScore ?? 0), 0) / recent.length) : 0;
     let primary = "calm";
     if (avg > 3) primary = "curious";
@@ -4506,16 +3849,16 @@ var NightCirclesService = class {
     else if (avg < -3) primary = "emotional";
     else if (avg < -1) primary = "lonely";
     const vibeScore = EMOTION_VIBE_MAP[primary] ?? 40;
-    await db.update(nightCircles).set({ primaryEmotion: primary, vibeScore }).where(eq12(nightCircles.id, circleId));
+    await db.update(nightCircles).set({ primaryEmotion: primary, vibeScore }).where(eq11(nightCircles.id, circleId));
     return message;
   }
   // ── Get messages for a circle ─────────────────────────────────────────────
   async getMessages(circleId, limit = 50) {
-    return await db.select().from(circleMessages).where(eq12(circleMessages.circleId, circleId)).orderBy(desc10(circleMessages.createdAt)).limit(limit);
+    return await db.select().from(circleMessages).where(eq11(circleMessages.circleId, circleId)).orderBy(desc9(circleMessages.createdAt)).limit(limit);
   }
   // ── Get active members in a circle ────────────────────────────────────────
   async getMembers(circleId) {
-    return await db.select().from(circleMembers).where(and5(eq12(circleMembers.circleId, circleId), eq12(circleMembers.state, "active")));
+    return await db.select().from(circleMembers).where(and5(eq11(circleMembers.circleId, circleId), eq11(circleMembers.state, "active")));
   }
   // ── Get a random AI seed message ─────────────────────────────────────────
   getAiSeedMessage() {
@@ -4526,7 +3869,7 @@ var NightCirclesService = class {
     const now = /* @__PURE__ */ new Date();
     const result = await db.update(nightCircles).set({ state: "ended", isActive: false }).where(
       and5(
-        sql9`${nightCircles.expiresAt} < ${now}`,
+        sql8`${nightCircles.expiresAt} < ${now}`,
         ne3(nightCircles.state, "ended")
       )
     ).returning();
@@ -4535,9 +3878,35 @@ var NightCirclesService = class {
 };
 var nightCirclesService = new NightCirclesService();
 
+// server/middleware/auth.middleware.ts
+init_storage();
+import jwt from "jsonwebtoken";
+var JWT_SECRET = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
+async function attachJwtUser(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) return false;
+  try {
+    const token = authHeader.slice(7);
+    const payload = jwt.verify(token, JWT_SECRET);
+    const user = await storage.getUser(payload.sub);
+    if (!user) return false;
+    req.user = user;
+    return true;
+  } catch {
+    return false;
+  }
+}
+function requireAuth(req, res, next) {
+  if (req.isAuthenticated()) return next();
+  attachJwtUser(req).then((ok) => {
+    if (ok) return next();
+    throw new UnauthorizedError("Authentication required");
+  }).catch(next);
+}
+
 // server/routes/api/v1/night-circles.routes.ts
-var router4 = Router4();
-router4.get("/", async (req, res) => {
+var router = Router();
+router.get("/", async (req, res) => {
   try {
     const circles = await nightCirclesService.getAllCircles();
     res.json({ success: true, data: circles });
@@ -4545,7 +3914,7 @@ router4.get("/", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch circles" });
   }
 });
-router4.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
     const { name, description, maxMembers, topic, category } = req.body;
     if (!name?.trim()) return res.status(400).json({ success: false, error: "Name is required" });
@@ -4562,7 +3931,7 @@ router4.post("/", requireAuth, async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to create circle" });
   }
 });
-router4.post("/quick-join", async (req, res) => {
+router.post("/quick-join", async (req, res) => {
   try {
     const { mood, preferredMode, preferredEmotion, size } = req.body;
     const userId = req.user?.id;
@@ -4573,7 +3942,7 @@ router4.post("/quick-join", async (req, res) => {
     res.status(500).json({ success: false, error: err.message || "Quick join failed" });
   }
 });
-router4.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: "Invalid circle ID" });
@@ -4587,7 +3956,7 @@ router4.get("/:id", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch circle" });
   }
 });
-router4.post("/:id/join", async (req, res) => {
+router.post("/:id/join", async (req, res) => {
   try {
     const circleId = parseInt(req.params.id);
     const mode = req.body.mode ?? "listener";
@@ -4601,7 +3970,7 @@ router4.post("/:id/join", async (req, res) => {
     res.status(status).json({ success: false, error: err.message || "Failed to join circle" });
   }
 });
-router4.post("/:id/leave", requireAuth, async (req, res) => {
+router.post("/:id/leave", requireAuth, async (req, res) => {
   try {
     const circleId = parseInt(req.params.id);
     const userId = req.user?.id;
@@ -4611,7 +3980,7 @@ router4.post("/:id/leave", requireAuth, async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to leave circle" });
   }
 });
-router4.get("/:id/messages", async (req, res) => {
+router.get("/:id/messages", async (req, res) => {
   try {
     const circleId = parseInt(req.params.id);
     const messages = await nightCirclesService.getMessages(circleId);
@@ -4620,7 +3989,7 @@ router4.get("/:id/messages", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch messages" });
   }
 });
-router4.post("/:id/messages", async (req, res) => {
+router.post("/:id/messages", async (req, res) => {
   try {
     const circleId = parseInt(req.params.id);
     const { senderAlias, content, imageUrl } = req.body;
@@ -4633,10 +4002,10 @@ router4.post("/:id/messages", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to send message" });
   }
 });
-var night_circles_routes_default = router4;
+var night_circles_routes_default = router;
 
 // server/routes/api/v1/mind-maze.routes.ts
-import { Router as Router5 } from "express";
+import { Router as Router2 } from "express";
 
 // server/services/mind-maze.service.ts
 init_storage();
@@ -4764,47 +4133,66 @@ var MindMazeController = class {
 };
 var mindMazeController = new MindMazeController();
 
+// server/middleware/validation.middleware.ts
+import { ZodError as ZodError2 } from "zod";
+function validate(schema, target = "body") {
+  return async (req, res, next) => {
+    try {
+      const data = req[target];
+      const validated = await schema.parseAsync(data);
+      req[target] = validated;
+      next();
+    } catch (error) {
+      if (error instanceof ZodError2) {
+        next(error);
+      } else {
+        next(new ValidationError("Validation failed"));
+      }
+    }
+  };
+}
+
 // server/routes/api/v1/mind-maze.routes.ts
 init_schema();
-import { z as z5 } from "zod";
-var router5 = Router5();
-router5.get("/", mindMazeController.getAll);
-router5.get(
+import { z as z2 } from "zod";
+var router2 = Router2();
+router2.get("/", mindMazeController.getAll);
+router2.get(
   "/:id",
-  validate(z5.object({ id: z5.string().regex(/^\d+$/) }), "params"),
+  validate(z2.object({ id: z2.string().regex(/^\d+$/) }), "params"),
   mindMazeController.getById
 );
-router5.post(
+router2.post(
   "/",
   validate(insertMindMazeSchema),
   mindMazeController.create
 );
-router5.post(
+router2.post(
   "/:id/respond",
-  validate(z5.object({ id: z5.string().regex(/^\d+$/) }), "params"),
+  validate(z2.object({ id: z2.string().regex(/^\d+$/) }), "params"),
   mindMazeController.respond
 );
-router5.get(
+router2.get(
   "/:id/sparks",
-  validate(z5.object({ id: z5.string().regex(/^\d+$/) }), "params"),
+  validate(z2.object({ id: z2.string().regex(/^\d+$/) }), "params"),
   mindMazeController.getSparks
 );
-router5.post(
+router2.post(
   "/:id/sparks",
-  validate(z5.object({ id: z5.string().regex(/^\d+$/) }), "params"),
+  validate(z2.object({ id: z2.string().regex(/^\d+$/) }), "params"),
   // Also requires validation of body: content, sparkType. 
   // Handled broadly in controller for now based on fast-iteration requirement.
   mindMazeController.createSpark
 );
-router5.post(
+router2.post(
   "/sparks/:sparkId/resonate",
-  validate(z5.object({ sparkId: z5.string().regex(/^\d+$/) }), "params"),
+  validate(z2.object({ sparkId: z2.string().regex(/^\d+$/) }), "params"),
   mindMazeController.resonateSpark
 );
-var mind_maze_routes_default = router5;
+var mind_maze_routes_default = router2;
 
 // server/routes/api/v1/music.routes.ts
-import { Router as Router6 } from "express";
+import { Router as Router3 } from "express";
 
 // server/services/music.service.ts
 init_storage();
@@ -4960,165 +4348,15 @@ var MusicController = class {
 var musicController = new MusicController();
 
 // server/routes/api/v1/music.routes.ts
-import { z as z6 } from "zod";
-var router6 = Router6();
-router6.get("/search", validate(z6.object({ query: z6.string().optional().default("") }), "query"), musicController.search);
-router6.post("/favorites/:stationId", requireAuth, validate(z6.object({ stationId: z6.string() }), "params"), musicController.toggleFavorite);
-router6.get("/favorites", requireAuth, musicController.getFavorites);
-var music_routes_default = router6;
-
-// server/routes/api/v1/3am-founder.routes.ts
-import { Router as Router7 } from "express";
-
-// server/services/3am-founder.service.ts
-init_storage();
-init_logger();
-var AmFounderService = class {
-  /**
-   * Get all founder posts
-   */
-  async getAllPosts() {
-    logger.debug("Fetching all 3AM founder posts");
-    return await storage.getAmFounder();
-  }
-  /**
-   * Create a new founder post
-   */
-  async createPost(data, userId) {
-    logger.info("Creating new 3AM founder post", { userId });
-    const postData = {
-      ...data,
-      authorId: userId
-    };
-    return await storage.createAmFounder(postData);
-  }
-  /**
-   * Increment upvote count
-   */
-  async incrementUpvotes(id) {
-    logger.info(`Incrementing upvotes for founder post: ${id}`);
-    await storage.incrementFounderUpvotes(id);
-  }
-  /**
-   * Increment comment count
-   */
-  async incrementComments(id) {
-    logger.info(`Incrementing comments for founder post: ${id}`);
-    await storage.incrementFounderComments(id);
-  }
-  /**
-   * Create a reply to a founder post
-   */
-  async createReply(founderId, content, userId) {
-    logger.info(`Creating reply for founder post: ${founderId}`, { userId });
-    await Promise.all([
-      storage.createAmFounderReply({
-        founderId,
-        content,
-        authorId: userId
-      }),
-      storage.incrementFounderComments(founderId)
-    ]);
-  }
-  /**
-   * Get replies for a founder post
-   */
-  async getReplies(founderId) {
-    logger.debug(`Fetching replies for founder post: ${founderId}`);
-    return await storage.getAmFounderReplies(founderId);
-  }
-};
-var amFounderService = new AmFounderService();
-
-// server/controllers/3am-founder.controller.ts
-var AmFounderController = class {
-  /**
-   * GET /api/v1/founder
-   */
-  getAll = asyncHandler(async (req, res) => {
-    const posts = await amFounderService.getAllPosts();
-    res.json(successResponse(posts));
-  });
-  /**
-   * POST /api/v1/founder
-   */
-  create = asyncHandler(async (req, res) => {
-    const post = await amFounderService.createPost(req.body, req.user?.id);
-    res.status(201).json(successResponse(post));
-  });
-  /**
-   * POST /api/v1/founder/:id/upvote
-   */
-  upvote = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    await amFounderService.incrementUpvotes(id);
-    res.json(successResponse({ message: "Upvoted successfully" }));
-  });
-  /**
-   * POST /api/v1/founder/:id/comment
-   */
-  comment = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    await amFounderService.incrementComments(id);
-    res.json(successResponse({ message: "Comment count incremented" }));
-  });
-  /**
-   * POST /api/v1/founder/:id/replies
-   */
-  createReply = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    const { content } = req.body;
-    await amFounderService.createReply(id, content, req.user?.id);
-    res.status(201).json(successResponse({ message: "Reply created successfully" }));
-  });
-  /**
-   * GET /api/v1/founder/:id/replies
-   */
-  getReplies = asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    const replies = await amFounderService.getReplies(id);
-    res.json(successResponse(replies));
-  });
-};
-var amFounderController = new AmFounderController();
-
-// server/routes/api/v1/3am-founder.routes.ts
-init_schema();
-import { z as z7 } from "zod";
-var router7 = Router7();
-router7.get("/", amFounderController.getAll);
-router7.post(
-  "/",
-  optionalAuth,
-  validate(insertAmFounderSchema),
-  amFounderController.create
-);
-router7.post(
-  "/:id/upvote",
-  validate(z7.object({ id: z7.string().regex(/^\d+$/) }), "params"),
-  amFounderController.upvote
-);
-router7.post(
-  "/:id/comment",
-  validate(z7.object({ id: z7.string().regex(/^\d+$/) }), "params"),
-  amFounderController.comment
-);
-router7.get(
-  "/:id/replies",
-  validate(z7.object({ id: z7.string().regex(/^\d+$/) }), "params"),
-  amFounderController.getReplies
-);
-router7.post(
-  "/:id/replies",
-  optionalAuth,
-  validate(z7.object({ id: z7.string().regex(/^\d+$/) }), "params"),
-  validate(z7.object({ content: z7.string().min(1) })),
-  amFounderController.createReply
-);
-var am_founder_routes_default = router7;
+import { z as z3 } from "zod";
+var router3 = Router3();
+router3.get("/search", validate(z3.object({ query: z3.string().optional().default("") }), "query"), musicController.search);
+router3.post("/favorites/:stationId", requireAuth, validate(z3.object({ stationId: z3.string() }), "params"), musicController.toggleFavorite);
+router3.get("/favorites", requireAuth, musicController.getFavorites);
+var music_routes_default = router3;
 
 // server/routes/api/v1/starlit-speaker.routes.ts
-import { Router as Router8 } from "express";
+import { Router as Router4 } from "express";
 
 // server/services/starlit-speaker.service.ts
 init_storage();
@@ -5184,30 +4422,30 @@ var starlitSpeakerController = new StarlitSpeakerController();
 
 // server/routes/api/v1/starlit-speaker.routes.ts
 init_schema();
-import { z as z8 } from "zod";
-var router8 = Router8();
-router8.get("/stats", starlitSpeakerController.getStats);
-router8.get("/", starlitSpeakerController.getAll);
-router8.post(
+import { z as z4 } from "zod";
+var router4 = Router4();
+router4.get("/stats", starlitSpeakerController.getStats);
+router4.get("/", starlitSpeakerController.getAll);
+router4.post(
   "/",
   validate(insertStarlitSpeakerSchema),
   starlitSpeakerController.create
 );
-router8.patch(
+router4.patch(
   "/:id/participants",
-  validate(z8.object({ id: z8.string().regex(/^\d+$/) }), "params"),
-  validate(z8.object({ participants: z8.number() })),
+  validate(z4.object({ id: z4.string().regex(/^\d+$/) }), "params"),
+  validate(z4.object({ participants: z4.number() })),
   starlitSpeakerController.updateParticipants
 );
-router8.patch(
+router4.patch(
   "/:id/end",
-  validate(z8.object({ id: z8.string().regex(/^\d+$/) }), "params"),
+  validate(z4.object({ id: z4.string().regex(/^\d+$/) }), "params"),
   starlitSpeakerController.endRoom
 );
-var starlit_speaker_routes_default = router8;
+var starlit_speaker_routes_default = router4;
 
 // server/routes/api/v1/moon-messenger.routes.ts
-import { Router as Router9 } from "express";
+import { Router as Router5 } from "express";
 
 // server/services/moon-messenger.service.ts
 init_storage();
@@ -5257,23 +4495,23 @@ var moonMessengerController = new MoonMessengerController();
 
 // server/routes/api/v1/moon-messenger.routes.ts
 init_schema();
-import { z as z9 } from "zod";
-var router9 = Router9();
-router9.get("/", moonMessengerController.getSessions);
-router9.get(
+import { z as z5 } from "zod";
+var router5 = Router5();
+router5.get("/", moonMessengerController.getSessions);
+router5.get(
   "/:sessionId",
-  validate(z9.object({ sessionId: z9.string() }), "params"),
+  validate(z5.object({ sessionId: z5.string() }), "params"),
   moonMessengerController.getMessages
 );
-router9.post(
+router5.post(
   "/",
   validate(insertMoonMessengerSchema),
   moonMessengerController.createMessage
 );
-var moon_messenger_routes_default = router9;
+var moon_messenger_routes_default = router5;
 
 // server/routes/api/v1/user.routes.ts
-import { Router as Router10 } from "express";
+import { Router as Router6 } from "express";
 
 // server/services/user.service.ts
 init_storage();
@@ -5325,6 +4563,13 @@ var UserService = class {
     const { password, googleId, ...safeUser } = updatedUser;
     return safeUser;
   }
+  /**
+   * Delete user account (and all cascaded data)
+   */
+  async deleteAccount(userId) {
+    logger.info(`Deleting account for user: ${userId}`);
+    await storage.deleteUser(userId);
+  }
 };
 var userService = new UserService();
 
@@ -5346,23 +4591,33 @@ var UserController = class {
     const updatedUser = await userService.updateUserSettings(req.user.id, req.body);
     res.json(successResponse(updatedUser));
   });
+  deleteAccount = asyncHandler(async (req, res) => {
+    await userService.deleteAccount(req.user.id);
+    req.logout((err) => {
+      if (err) throw err;
+      req.session.destroy(() => {
+        res.json(successResponse({ message: "Account deleted successfully" }));
+      });
+    });
+  });
 };
 var userController = new UserController();
 
 // server/routes/api/v1/user.routes.ts
-var router10 = Router10();
-router10.use(requireAuth);
-router10.get("/me/whispers", userController.getMyWhispers);
-router10.get("/me/cafe", userController.getMyCafePosts);
-router10.get("/me/favorites", userController.getMyFavorites);
-router10.patch("/me/settings", userController.updateMySettings);
-var user_routes_default = router10;
+var router6 = Router6();
+router6.use(requireAuth);
+router6.get("/me/whispers", userController.getMyWhispers);
+router6.get("/me/cafe", userController.getMyCafePosts);
+router6.get("/me/favorites", userController.getMyFavorites);
+router6.patch("/me/settings", userController.updateMySettings);
+router6.delete("/me", userController.deleteAccount);
+var user_routes_default = router6;
 
 // server/routes/api/v1/onboarding.routes.ts
 init_storage();
-import { Router as Router11 } from "express";
-var router11 = Router11();
-router11.post("/complete", async (req, res) => {
+import { Router as Router7 } from "express";
+var router7 = Router7();
+router7.post("/complete", async (req, res) => {
   try {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({
@@ -5384,10 +4639,10 @@ router11.post("/complete", async (req, res) => {
     });
   }
 });
-var onboarding_routes_default = router11;
+var onboarding_routes_default = router7;
 
 // server/routes/api/v1/trending.routes.ts
-import { Router as Router12 } from "express";
+import { Router as Router8 } from "express";
 
 // server/controllers/trending.controller.ts
 var TrendingController = class {
@@ -5414,13 +4669,13 @@ var TrendingController = class {
 
 // server/routes/api/v1/trending.routes.ts
 init_storage();
-var router12 = Router12();
+var router8 = Router8();
 var trendingController = new TrendingController(storage);
-router12.get("/topics", trendingController.getTopics);
-var trending_routes_default = router12;
+router8.get("/topics", trendingController.getTopics);
+var trending_routes_default = router8;
 
 // server/routes/api/v1/activity.routes.ts
-import { Router as Router13 } from "express";
+import { Router as Router9 } from "express";
 
 // server/controllers/activity.controller.ts
 init_logger();
@@ -5463,14 +4718,14 @@ var ActivityController = class {
 
 // server/routes/api/v1/activity.routes.ts
 init_storage();
-var router13 = Router13();
+var router9 = Router9();
 var activityController = new ActivityController(storage);
-router13.get("/recent", activityController.getRecent);
-router13.get("/stats", activityController.getStats);
-var activity_routes_default = router13;
+router9.get("/recent", activityController.getRecent);
+router9.get("/stats", activityController.getStats);
+var activity_routes_default = router9;
 
 // server/routes/api/v1/profile.routes.ts
-import { Router as Router14 } from "express";
+import { Router as Router10 } from "express";
 
 // server/controllers/profile.controller.ts
 var ProfileController = class {
@@ -5526,19 +4781,19 @@ var ProfileController = class {
 
 // server/routes/api/v1/profile.routes.ts
 init_storage();
-var router14 = Router14();
+var router10 = Router10();
 var profileController = new ProfileController(storage);
-router14.get("/stats", profileController.getStats);
-router14.get("/achievements", profileController.getAchievements);
-var profile_routes_default = router14;
+router10.get("/stats", profileController.getStats);
+router10.get("/achievements", profileController.getAchievements);
+var profile_routes_default = router10;
 
 // server/routes/api/v1/night-thoughts.routes.ts
-import { Router as Router15 } from "express";
+import { Router as Router11 } from "express";
 
 // server/services/night-thoughts.service.ts
 init_db();
 init_schema();
-import { eq as eq13, desc as desc11, and as and6, or as or3, sql as sql10 } from "drizzle-orm";
+import { eq as eq12, desc as desc10, and as and6, or as or3, sql as sql9 } from "drizzle-orm";
 var NightThoughtsService = class {
   /**
    * Smart categorization logic - auto-detect thought type based on content
@@ -5558,10 +4813,13 @@ var NightThoughtsService = class {
   async create(thought) {
     const thoughtType = thought.thoughtType || this.detectThoughtType(thought.content, thought.topic);
     const expiresAt = thoughtType === "whisper" ? new Date(Date.now() + 24 * 60 * 60 * 1e3) : null;
+    const analysis = analyzeEmotion(thought.content || "");
+    const mood = thought.mood || analysis.detectedEmotion;
     const [newThought] = await db.insert(nightThoughts).values({
       ...thought,
       thoughtType,
-      expiresAt
+      expiresAt,
+      mood
     }).returning();
     return newThought;
   }
@@ -5571,65 +4829,65 @@ var NightThoughtsService = class {
   async getAll(filters) {
     const conditions = [];
     if (filters?.authorId) {
-      conditions.push(eq13(nightThoughts.authorId, filters.authorId));
+      conditions.push(eq12(nightThoughts.authorId, filters.authorId));
     }
     if (filters?.thoughtType) {
-      conditions.push(eq13(nightThoughts.thoughtType, filters.thoughtType));
+      conditions.push(eq12(nightThoughts.thoughtType, filters.thoughtType));
     }
     if (filters?.isPrivate !== void 0) {
-      conditions.push(eq13(nightThoughts.isPrivate, filters.isPrivate));
+      conditions.push(eq12(nightThoughts.isPrivate, filters.isPrivate));
     }
     if (!filters?.includeExpired) {
       conditions.push(
         or3(
-          eq13(nightThoughts.expiresAt, null),
-          sql10`${nightThoughts.expiresAt} > NOW()`
+          eq12(nightThoughts.expiresAt, null),
+          sql9`${nightThoughts.expiresAt} > NOW()`
         )
       );
     }
     const query = conditions.length > 0 ? db.select().from(nightThoughts).where(and6(...conditions)) : db.select().from(nightThoughts);
-    return await query.orderBy(desc11(nightThoughts.createdAt));
+    return await query.orderBy(desc10(nightThoughts.createdAt));
   }
   /**
    * Get a single thought by ID
    */
   async getById(id) {
-    const [thought] = await db.select().from(nightThoughts).where(eq13(nightThoughts.id, id));
+    const [thought] = await db.select().from(nightThoughts).where(eq12(nightThoughts.id, id));
     return thought;
   }
   /**
    * Update a thought
    */
   async update(id, updates) {
-    const [updated] = await db.update(nightThoughts).set(updates).where(eq13(nightThoughts.id, id)).returning();
+    const [updated] = await db.update(nightThoughts).set(updates).where(eq12(nightThoughts.id, id)).returning();
     return updated;
   }
   /**
    * Delete a thought
    */
   async delete(id) {
-    await db.delete(nightThoughts).where(eq13(nightThoughts.id, id));
+    await db.delete(nightThoughts).where(eq12(nightThoughts.id, id));
   }
   async addHeart(id) {
-    const [updated] = await db.update(nightThoughts).set({ hearts: sql10`${nightThoughts.hearts} + 1` }).where(eq13(nightThoughts.id, id)).returning();
+    const [updated] = await db.update(nightThoughts).set({ hearts: sql9`${nightThoughts.hearts} + 1` }).where(eq12(nightThoughts.id, id)).returning();
     return updated;
   }
   async incrementReplies(id) {
-    const [updated] = await db.update(nightThoughts).set({ replies: sql10`${nightThoughts.replies} + 1` }).where(eq13(nightThoughts.id, id)).returning();
+    const [updated] = await db.update(nightThoughts).set({ replies: sql9`${nightThoughts.replies} + 1` }).where(eq12(nightThoughts.id, id)).returning();
     return updated;
   }
   /**
    * Get all replies for a thought, oldest first
    */
   async getReplies(thoughtId) {
-    return db.select().from(nightThoughtReplies).where(eq13(nightThoughtReplies.thoughtId, thoughtId)).orderBy(nightThoughtReplies.createdAt);
+    return db.select().from(nightThoughtReplies).where(eq12(nightThoughtReplies.thoughtId, thoughtId)).orderBy(nightThoughtReplies.createdAt);
   }
   /**
    * Create a reply and atomically increment the replies counter
    */
   async addReply(data) {
     const [reply] = await db.insert(nightThoughtReplies).values(data).returning();
-    await db.update(nightThoughts).set({ replies: sql10`${nightThoughts.replies} + 1` }).where(eq13(nightThoughts.id, data.thoughtId));
+    await db.update(nightThoughts).set({ replies: sql9`${nightThoughts.replies} + 1` }).where(eq12(nightThoughts.id, data.thoughtId));
     return reply;
   }
   async cleanupExpired() {
@@ -5641,7 +4899,7 @@ var nightThoughtsService = new NightThoughtsService();
 // server/controllers/night-thoughts.controller.ts
 init_schema();
 init_logger();
-import { z as z10 } from "zod";
+import { z as z6 } from "zod";
 var NightThoughtsController = class {
   /**
    * GET /api/v1/thoughts
@@ -5690,17 +4948,14 @@ var NightThoughtsController = class {
    */
   create = async (req, res, next) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
       const validatedData = insertNightThoughtSchema.parse({
         ...req.body,
-        authorId: req.user.id
+        authorId: req.user?.id || null
       });
       const thought = await nightThoughtsService.create(validatedData);
       res.status(201).json(thought);
     } catch (error) {
-      if (error instanceof z10.ZodError) {
+      if (error instanceof z6.ZodError) {
         return res.status(400).json({ error: "Validation error", details: error.errors });
       }
       logger.error("Error creating thought:", error);
@@ -5815,7 +5070,7 @@ var NightThoughtsController = class {
       const reply = await nightThoughtsService.addReply(validated);
       res.status(201).json(reply);
     } catch (error) {
-      if (error instanceof z10.ZodError) {
+      if (error instanceof z6.ZodError) {
         return res.status(400).json({ error: "Validation error", details: error.errors });
       }
       logger.error("Error posting reply:", error);
@@ -5826,25 +5081,25 @@ var NightThoughtsController = class {
 var nightThoughtsController = new NightThoughtsController();
 
 // server/routes/api/v1/night-thoughts.routes.ts
-var router15 = Router15();
-router15.get("/", nightThoughtsController.getAll);
-router15.get("/:id", nightThoughtsController.getById);
-router15.post("/", nightThoughtsController.create);
-router15.patch("/:id", nightThoughtsController.update);
-router15.delete("/:id", nightThoughtsController.delete);
-router15.post("/:id/heart", nightThoughtsController.addHeart);
-router15.get("/:id/replies", nightThoughtsController.getReplies);
-router15.post("/:id/replies", nightThoughtsController.addReply);
-var night_thoughts_routes_default = router15;
+var router11 = Router11();
+router11.get("/", nightThoughtsController.getAll);
+router11.get("/:id", nightThoughtsController.getById);
+router11.post("/", nightThoughtsController.create);
+router11.patch("/:id", nightThoughtsController.update);
+router11.delete("/:id", nightThoughtsController.delete);
+router11.post("/:id/heart", nightThoughtsController.addHeart);
+router11.get("/:id/replies", nightThoughtsController.getReplies);
+router11.post("/:id/replies", nightThoughtsController.addReply);
+var night_thoughts_routes_default = router11;
 
 // server/routes/api/v1/reads.routes.ts
-import { Router as Router16 } from "express";
+import { Router as Router12 } from "express";
 
 // server/controllers/reads.controller.ts
 init_db();
 init_schema();
 import { createRequire } from "module";
-import { eq as eq14, and as and7, desc as desc12, or as or4, gt, isNull } from "drizzle-orm";
+import { eq as eq13, and as and7, desc as desc11, or as or4, gt, isNull } from "drizzle-orm";
 var require2 = createRequire(import.meta.url);
 var pdfParse = require2("pdf-parse");
 var readsController = {
@@ -5871,21 +5126,25 @@ var readsController = {
           content = file.buffer.toString("utf-8");
           contentType = "text";
         }
+      } else if (req.body.contentType && req.body.contentUrl) {
+        content = req.body.content || "";
+        contentType = req.body.contentType;
       } else if (req.body.content) {
         content = req.body.content;
         contentType = "text";
       }
-      if (!content || content.trim().length === 0) {
-        return res.status(400).json({ error: "No content provided" });
+      if (!content && !req.body.contentUrl) {
+        return res.status(400).json({ error: "No content or URL provided" });
       }
-      const { title, author, intention, estimatedReadTimeMinutes, isEphemeral } = req.body;
-      const wordCount = content.split(/\s+/).length;
+      const { title, author, intention, estimatedReadTimeMinutes, isEphemeral, contentUrl } = req.body;
+      const wordCount = content.split(/\s+/).length || 1e4;
       const calculatedReadTime = estimatedReadTimeMinutes || Math.ceil(wordCount / 200);
       const expiresAt = isEphemeral ? new Date(Date.now() + 24 * 60 * 60 * 1e3) : null;
       const newRead = await db.insert(reads).values({
         title: title || "Untitled",
         author: author || null,
         content,
+        contentUrl: contentUrl || null,
         contentType,
         estimatedReadTimeMinutes: calculatedReadTime,
         intention: intention || "think",
@@ -5909,14 +5168,14 @@ var readsController = {
       }
       const userReads = await db.select().from(reads).where(
         and7(
-          eq14(reads.ownerId, req.user.id),
-          eq14(reads.visibility, "private"),
+          eq13(reads.ownerId, req.user.id),
+          eq13(reads.visibility, "private"),
           or4(
             isNull(reads.expiresAt),
             gt(reads.expiresAt, /* @__PURE__ */ new Date())
           )
         )
-      ).orderBy(desc12(reads.lastAccessedAt), desc12(reads.createdAt));
+      ).orderBy(desc11(reads.lastAccessedAt), desc11(reads.createdAt));
       res.json(userReads);
     } catch (error) {
       console.error("Error fetching user reads:", error);
@@ -5930,7 +5189,7 @@ var readsController = {
         return res.status(401).json({ error: "Unauthorized" });
       }
       const readId = parseInt(req.params.id);
-      const [read] = await db.select().from(reads).where(eq14(reads.id, readId));
+      const [read] = await db.select().from(reads).where(eq13(reads.id, readId));
       if (!read) {
         return res.status(404).json({ error: "Read not found" });
       }
@@ -5939,8 +5198,8 @@ var readsController = {
       }
       let [session3] = await db.select().from(readSessions).where(
         and7(
-          eq14(readSessions.readId, readId),
-          eq14(readSessions.userId, req.user.id)
+          eq13(readSessions.readId, readId),
+          eq13(readSessions.userId, req.user.id)
         )
       );
       if (!session3) {
@@ -5952,7 +5211,7 @@ var readsController = {
           lastPositionType: "percentage"
         }).returning();
       }
-      await db.update(reads).set({ lastAccessedAt: /* @__PURE__ */ new Date() }).where(eq14(reads.id, readId));
+      await db.update(reads).set({ lastAccessedAt: /* @__PURE__ */ new Date() }).where(eq13(reads.id, readId));
       res.json({ read, session: session3 });
     } catch (error) {
       console.error("Error fetching read:", error);
@@ -5969,8 +5228,8 @@ var readsController = {
       const { position, positionType, timeSpentSeconds, completed } = req.body;
       const [session3] = await db.select().from(readSessions).where(
         and7(
-          eq14(readSessions.readId, readId),
-          eq14(readSessions.userId, req.user.id)
+          eq13(readSessions.readId, readId),
+          eq13(readSessions.userId, req.user.id)
         )
       );
       if (!session3) {
@@ -5982,7 +5241,7 @@ var readsController = {
         totalTimeSeconds: (session3.totalTimeSeconds || 0) + (timeSpentSeconds || 0),
         completed: completed || false,
         lastActivityAt: /* @__PURE__ */ new Date()
-      }).where(eq14(readSessions.id, session3.id));
+      }).where(eq13(readSessions.id, session3.id));
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating progress:", error);
@@ -5996,14 +5255,14 @@ var readsController = {
         return res.status(401).json({ error: "Unauthorized" });
       }
       const readId = parseInt(req.params.id);
-      const [read] = await db.select().from(reads).where(eq14(reads.id, readId));
+      const [read] = await db.select().from(reads).where(eq13(reads.id, readId));
       if (!read) {
         return res.status(404).json({ error: "Read not found" });
       }
       if (read.ownerId !== req.user.id) {
         return res.status(403).json({ error: "Forbidden" });
       }
-      await db.delete(reads).where(eq14(reads.id, readId));
+      await db.delete(reads).where(eq13(reads.id, readId));
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting read:", error);
@@ -6015,10 +5274,10 @@ var readsController = {
     try {
       const curatedReads = await db.select().from(reads).where(
         and7(
-          eq14(reads.visibility, "curated"),
-          eq14(reads.moderationStatus, "approved")
+          eq13(reads.visibility, "curated"),
+          eq13(reads.moderationStatus, "approved")
         )
-      ).orderBy(desc12(reads.createdAt)).limit(5);
+      ).orderBy(desc11(reads.createdAt)).limit(5);
       const readsWithCounts = curatedReads.map((read) => ({
         ...read,
         readerCountLabel: "quiet"
@@ -6164,16 +5423,16 @@ var uploadMiddleware = multer({
 var uploadSingle = uploadMiddleware.single("file");
 
 // server/routes/api/v1/reads.routes.ts
-var router16 = Router16();
-router16.use(requireAuth);
-router16.post("/analyze-mood", readAnalysisController.analyzeMood);
-router16.post("/", uploadSingle, readsController.createRead);
-router16.get("/mine", readsController.getUserReads);
-router16.get("/tonight", readsController.getTonightReads);
-router16.get("/:id", readsController.getRead);
-router16.patch("/:id/progress", readsController.updateProgress);
-router16.delete("/:id", readsController.deleteRead);
-var reads_routes_default = router16;
+var router12 = Router12();
+router12.use(requireAuth);
+router12.post("/analyze-mood", readAnalysisController.analyzeMood);
+router12.post("/", uploadSingle, readsController.createRead);
+router12.get("/mine", readsController.getUserReads);
+router12.get("/tonight", readsController.getTonightReads);
+router12.get("/:id", readsController.getRead);
+router12.patch("/:id/progress", readsController.updateProgress);
+router12.delete("/:id", readsController.deleteRead);
+var reads_routes_default = router12;
 
 // server/routes/api/v1/reflections.routes.ts
 import express2 from "express";
@@ -6582,26 +5841,26 @@ var ReflectionsController = class {
 
 // server/routes/api/v1/reflections.routes.ts
 init_storage();
-var router17 = express2.Router();
+var router13 = express2.Router();
 var reflectionsController = new ReflectionsController(storage);
-router17.get("/prompt", reflectionsController.getPrompt);
-router17.post("/respond", reflectionsController.submitResponse);
-router17.post("/sentiment", reflectionsController.analyzeSentiment);
-router17.get("/history", reflectionsController.getHistory);
-router17.post("/personal", reflectionsController.requestPersonal);
-router17.get("/personal", reflectionsController.getPersonalHistory);
-var reflections_routes_default = router17;
+router13.get("/prompt", reflectionsController.getPrompt);
+router13.post("/respond", reflectionsController.submitResponse);
+router13.post("/sentiment", reflectionsController.analyzeSentiment);
+router13.get("/history", reflectionsController.getHistory);
+router13.post("/personal", reflectionsController.requestPersonal);
+router13.get("/personal", reflectionsController.getPersonalHistory);
+var reflections_routes_default = router13;
 
 // server/routes/api/v1/consciousness.routes.ts
-import { Router as Router17 } from "express";
+import { Router as Router13 } from "express";
 
 // server/services/consciousness.service.ts
 init_db();
 init_schema();
-import { desc as desc13 } from "drizzle-orm";
+import { desc as desc12 } from "drizzle-orm";
 var ConsciousnessService = class {
   static async getGlobalState() {
-    const [state] = await db.select().from(globalConsciousness).orderBy(desc13(globalConsciousness.lastUpdated)).limit(1);
+    const [state] = await db.select().from(globalConsciousness).orderBy(desc12(globalConsciousness.lastUpdated)).limit(1);
     if (state) return state;
     const [newState] = await db.insert(globalConsciousness).values({
       activityLevel: "low",
@@ -6654,12 +5913,12 @@ var ConsciousnessController = class {
 var consciousnessController = new ConsciousnessController();
 
 // server/routes/api/v1/consciousness.routes.ts
-var router18 = Router17();
-router18.get("/", consciousnessController.getState);
-var consciousness_routes_default = router18;
+var router14 = Router13();
+router14.get("/", consciousnessController.getState);
+var consciousness_routes_default = router14;
 
 // server/routes/api/v1/playlists.routes.ts
-import { Router as Router18 } from "express";
+import { Router as Router14 } from "express";
 
 // server/controllers/playlist.controller.ts
 init_storage();
@@ -6769,42 +6028,237 @@ var PlaylistController = class {
 var playlistController = new PlaylistController();
 
 // server/routes/api/v1/playlists.routes.ts
-import { z as z11 } from "zod";
-var router19 = Router18();
-router19.use(requireAuth);
-router19.get("/", playlistController.getUserPlaylists);
-router19.post(
+import { z as z7 } from "zod";
+var router15 = Router14();
+router15.use(requireAuth);
+router15.get("/", playlistController.getUserPlaylists);
+router15.post(
   "/",
-  validate(z11.object({ name: z11.string().min(1, "Playlist name is required") }), "body"),
+  validate(z7.object({ name: z7.string().min(1, "Playlist name is required") }), "body"),
   playlistController.createPlaylist
 );
-router19.delete("/:playlistId", playlistController.deletePlaylist);
-router19.get("/:playlistId/tracks", playlistController.getPlaylistTracks);
-router19.post(
+router15.delete("/:playlistId", playlistController.deletePlaylist);
+router15.get("/:playlistId/tracks", playlistController.getPlaylistTracks);
+router15.post(
   "/:playlistId/tracks",
   validate(
-    z11.object({
-      trackId: z11.union([z11.string(), z11.number()]),
-      trackTitle: z11.string(),
-      trackArtist: z11.string(),
-      trackUrl: z11.string(),
-      trackCoverArt: z11.string().optional().nullable()
+    z7.object({
+      trackId: z7.union([z7.string(), z7.number()]),
+      trackTitle: z7.string(),
+      trackArtist: z7.string(),
+      trackUrl: z7.string(),
+      trackCoverArt: z7.string().optional().nullable()
     }),
     "body"
   ),
   playlistController.addTrackToPlaylist
 );
-router19.delete("/:playlistId/tracks/:trackId", playlistController.removeTrackFromPlaylist);
-var playlists_routes_default = router19;
+router15.delete("/:playlistId/tracks/:trackId", playlistController.removeTrackFromPlaylist);
+var playlists_routes_default = router15;
+
+// server/routes/api/v1/books.routes.ts
+import { Router as Router15 } from "express";
+
+// server/controllers/books.controller.ts
+var GUTENDEX_BASE = "https://gutendex.com/books";
+async function fetchWithTimeout(url, timeoutMs = 15e3) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Nocturne/1.0 (contact@example.com)" },
+      signal: controller.signal
+    });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+var booksController = {
+  /** GET /api/v1/books/search?query=&page=&topic= */
+  async search(req, res) {
+    try {
+      const { query = "", page = "1", topic = "" } = req.query;
+      const params = new URLSearchParams({ languages: "en", page });
+      if (query.trim()) params.set("search", query.trim());
+      if (topic.trim()) params.set("topic", topic.trim());
+      const upstream = await fetchWithTimeout(`${GUTENDEX_BASE}?${params}`);
+      if (!upstream.ok) throw new Error(`Gutendex error: ${upstream.status}`);
+      const data = await upstream.json();
+      res.json({ success: true, data: data.results ?? [], count: data.count, next: data.next });
+    } catch (err) {
+      res.status(502).json({ success: false, message: err.message });
+    }
+  },
+  /** GET /api/v1/books/featured — curated nightly reading list */
+  async featured(req, res) {
+    try {
+      const queries = ["philosophy", "meditation", "poetry", "stoic", "wisdom"];
+      const dayOfYear = Math.floor(
+        (Date.now() - new Date((/* @__PURE__ */ new Date()).getFullYear(), 0, 0).getTime()) / 864e5
+      );
+      const query = queries[dayOfYear % queries.length];
+      const upstream = await fetchWithTimeout(
+        `${GUTENDEX_BASE}?search=${encodeURIComponent(query)}&languages=en&page=1`
+      );
+      if (!upstream.ok) throw new Error(`Gutendex error: ${upstream.status}`);
+      const data = await upstream.json();
+      res.json({ success: true, data: (data.results ?? []).slice(0, 12), topic: query });
+    } catch (err) {
+      res.status(502).json({ success: false, message: err.message });
+    }
+  },
+  /** GET /api/v1/books/:id — single book metadata */
+  async getBook(req, res) {
+    try {
+      const { id } = req.params;
+      const upstream = await fetchWithTimeout(`${GUTENDEX_BASE}/${id}`);
+      if (!upstream.ok) throw new Error(`Book not found: ${upstream.status}`);
+      const data = await upstream.json();
+      res.json({ success: true, data });
+    } catch (err) {
+      res.status(502).json({ success: false, message: err.message });
+    }
+  },
+  /** GET /api/v1/books/openlibrary/search?query= */
+  async openLibrarySearch(req, res) {
+    try {
+      const query = req.query.query || "";
+      if (!query.trim()) {
+        res.json({ success: true, data: [] });
+        return;
+      }
+      const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query.trim())}&limit=12&fields=key,title,author_name,cover_i,first_publish_year,availability`;
+      const upstream = await fetchWithTimeout(url);
+      if (!upstream.ok) throw new Error(`OpenLibrary error: ${upstream.status}`);
+      const data = await upstream.json();
+      res.json({ success: true, data: data.docs ?? [] });
+    } catch (err) {
+      res.status(502).json({ success: false, message: err.message });
+    }
+  }
+};
+
+// server/routes/api/v1/books.routes.ts
+var router16 = Router15();
+router16.get("/search", booksController.search);
+router16.get("/featured", booksController.featured);
+router16.get("/openlibrary/search", booksController.openLibrarySearch);
+router16.get("/:id", booksController.getBook);
+var books_routes_default = router16;
+
+// server/routes/api/v1/books-social.routes.ts
+import { Router as Router16 } from "express";
+
+// server/controllers/books-social.controller.ts
+init_db();
+init_schema();
+import { eq as eq14, desc as desc13 } from "drizzle-orm";
+var booksSocialController = {
+  // Get community reviews/discussions for a book
+  async getDiscussions(req, res) {
+    try {
+      const { bookId } = req.params;
+      const discussions = await db.select({
+        id: bookDiscussions.id,
+        bookId: bookDiscussions.bookId,
+        bookTitle: bookDiscussions.bookTitle,
+        content: bookDiscussions.content,
+        rating: bookDiscussions.rating,
+        createdAt: bookDiscussions.createdAt,
+        author: {
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName
+        }
+      }).from(bookDiscussions).leftJoin(users, eq14(bookDiscussions.authorId, users.id)).where(eq14(bookDiscussions.bookId, bookId)).orderBy(desc13(bookDiscussions.createdAt));
+      return res.json({ data: discussions });
+    } catch (error) {
+      console.error("Error fetching discussions:", error);
+      return res.status(500).json({ error: "Failed to fetch book discussions" });
+    }
+  },
+  // Create a new night review/POV
+  async createDiscussion(req, res) {
+    try {
+      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+      const { bookId } = req.params;
+      const { bookTitle, content, rating, authorName } = req.body;
+      if (!content) return res.status(400).json({ error: "Content is required" });
+      const [discussion] = await db.insert(bookDiscussions).values({
+        bookId,
+        bookTitle: bookTitle || "Unknown Book",
+        author: authorName,
+        content,
+        rating,
+        authorId: req.user.id
+      }).returning();
+      return res.status(201).json({ data: discussion });
+    } catch (error) {
+      console.error("Error creating discussion:", error);
+      return res.status(500).json({ error: "Failed to post review" });
+    }
+  },
+  // Get quotes shared by the community for a book
+  async getQuotes(req, res) {
+    try {
+      const { bookId } = req.params;
+      const quotes = await db.select({
+        id: bookQuotes.id,
+        bookId: bookQuotes.bookId,
+        quoteText: bookQuotes.quoteText,
+        notes: bookQuotes.notes,
+        createdAt: bookQuotes.createdAt,
+        author: {
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName
+        }
+      }).from(bookQuotes).leftJoin(users, eq14(bookQuotes.authorId, users.id)).where(eq14(bookQuotes.bookId, bookId)).orderBy(desc13(bookQuotes.createdAt));
+      return res.json({ data: quotes });
+    } catch (error) {
+      console.error("Error fetching quotes:", error);
+      return res.status(500).json({ error: "Failed to fetch book quotes" });
+    }
+  },
+  // Share a new quote from the reader
+  async shareQuote(req, res) {
+    try {
+      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+      const { bookId } = req.params;
+      const { bookTitle, quoteText, notes } = req.body;
+      if (!quoteText) return res.status(400).json({ error: "Quote text is required" });
+      const [quote] = await db.insert(bookQuotes).values({
+        bookId,
+        bookTitle: bookTitle || "Unknown Book",
+        quoteText,
+        notes,
+        authorId: req.user.id
+      }).returning();
+      return res.status(201).json({ data: quote });
+    } catch (error) {
+      console.error("Error sharing quote:", error);
+      return res.status(500).json({ error: "Failed to share quote" });
+    }
+  }
+};
+
+// server/routes/api/v1/books-social.routes.ts
+var router17 = Router16();
+router17.get("/:bookId/discussions", booksSocialController.getDiscussions);
+router17.post("/:bookId/discussions", requireAuth, booksSocialController.createDiscussion);
+router17.get("/:bookId/quotes", booksSocialController.getQuotes);
+router17.post("/:bookId/quotes", requireAuth, booksSocialController.shareQuote);
+var books_social_routes_default = router17;
 
 // server/routes/api/v1/auth.routes.ts
-import { Router as Router19 } from "express";
+import { Router as Router17 } from "express";
 import jwt2 from "jsonwebtoken";
 init_storage();
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 var scryptAsync = promisify(scrypt);
-var router20 = Router19();
+var router18 = Router17();
 var JWT_SECRET2 = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
 var JWT_EXPIRES_IN = "30d";
 async function hashPassword(password) {
@@ -6825,7 +6279,7 @@ async function verifyPassword(supplied, stored) {
 function signToken(userId, username) {
   return jwt2.sign({ sub: userId, username }, JWT_SECRET2, { expiresIn: JWT_EXPIRES_IN });
 }
-router20.post("/token", asyncHandler(async (req, res) => {
+router18.post("/token", asyncHandler(async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ success: false, message: "Username and password required" });
@@ -6855,7 +6309,7 @@ router20.post("/token", asyncHandler(async (req, res) => {
     }
   });
 }));
-router20.post("/register", asyncHandler(async (req, res) => {
+router18.post("/register", asyncHandler(async (req, res) => {
   const { username, password, email, displayName } = req.body;
   if (!username || !password) {
     return res.status(400).json({ success: false, message: "Username and password required" });
@@ -6888,7 +6342,7 @@ router20.post("/register", asyncHandler(async (req, res) => {
     }
   });
 }));
-router20.post("/refresh", asyncHandler(async (req, res) => {
+router18.post("/refresh", asyncHandler(async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).json({ success: false, message: "No token provided" });
@@ -6902,12 +6356,12 @@ router20.post("/refresh", asyncHandler(async (req, res) => {
     return res.status(401).json({ success: false, message: "Invalid or expired token" });
   }
 }));
-var auth_routes_default = router20;
+var auth_routes_default = router18;
 
 // server/routes/api/v1/index.ts
-var router21 = Router20();
-router21.use("/auth", auth_routes_default);
-router21.get("/user", requireAuth, async (req, res) => {
+var router19 = Router18();
+router19.use("/auth", auth_routes_default);
+router19.get("/user", requireAuth, async (req, res) => {
   const user = req.user;
   res.json({
     success: true,
@@ -6919,26 +6373,38 @@ router21.get("/user", requireAuth, async (req, res) => {
     }
   });
 });
-router21.use("/whispers", whispers_routes_default);
-router21.use("/consciousness", consciousness_routes_default);
-router21.use("/diaries", diaries_routes_default);
-router21.use("/cafe", midnight_cafe_routes_default);
-router21.use("/circles", night_circles_routes_default);
-router21.use("/mind-maze", mind_maze_routes_default);
-router21.use("/music", music_routes_default);
-router21.use("/founder", am_founder_routes_default);
-router21.use("/speaker", starlit_speaker_routes_default);
-router21.use("/messenger", moon_messenger_routes_default);
-router21.use("/users", user_routes_default);
-router21.use("/onboarding", onboarding_routes_default);
-router21.use("/trending", trending_routes_default);
-router21.use("/activity", activity_routes_default);
-router21.use("/profile", profile_routes_default);
-router21.use("/thoughts", night_thoughts_routes_default);
-router21.use("/reads", reads_routes_default);
-router21.use("/reflections", reflections_routes_default);
-router21.use("/playlists", playlists_routes_default);
-router21.get("/health", (req, res) => {
+router19.use("/consciousness", consciousness_routes_default);
+router19.use("/circles", night_circles_routes_default);
+router19.use("/mind-maze", mind_maze_routes_default);
+router19.use("/music", music_routes_default);
+router19.use("/speaker", starlit_speaker_routes_default);
+router19.use("/messenger", moon_messenger_routes_default);
+router19.use("/users", user_routes_default);
+router19.use("/onboarding", onboarding_routes_default);
+router19.use("/trending", trending_routes_default);
+router19.use("/activity", activity_routes_default);
+router19.use("/profile", profile_routes_default);
+router19.use("/thoughts", night_thoughts_routes_default);
+router19.use("/reads", reads_routes_default);
+router19.use("/reflections", reflections_routes_default);
+router19.use("/playlists", playlists_routes_default);
+router19.use("/books", books_routes_default);
+router19.use("/books-social", books_social_routes_default);
+router19.use("/whispers", (req, res, next) => {
+  req.query.thoughtType = "whisper";
+  if (req.method === "POST" && req.url.match(/\/\d+\/like/)) {
+    req.url = req.url.replace("/like", "/heart");
+  }
+  if (req.method === "POST" && req.url.match(/\/\d+\/interaction/)) {
+    req.url = req.url.replace("/interaction", "/heart");
+  }
+  night_thoughts_routes_default(req, res, next);
+});
+router19.use("/diaries", (req, res, next) => {
+  req.query.thoughtType = "diary";
+  night_thoughts_routes_default(req, res, next);
+});
+router19.get("/health", (req, res) => {
   res.json({
     success: true,
     data: {
@@ -6948,11 +6414,29 @@ router21.get("/health", (req, res) => {
     }
   });
 });
-var v1_default = router21;
+var v1_default = router19;
+
+// server/config/database.ts
+init_db();
+async function testDatabaseConnection() {
+  try {
+    const { pool: pool2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    if (!pool2) {
+      console.warn("\u26A0\uFE0F  Database pool not initialized (DATABASE_URL not set)");
+      return false;
+    }
+    await pool2.query("SELECT 1");
+    console.log("\u2705 Database connection successful");
+    return true;
+  } catch (error) {
+    console.error("\u274C Database connection failed:", error);
+    return false;
+  }
+}
 
 // server/routes/sitemap.routes.ts
-import { Router as Router21 } from "express";
-var router22 = Router21();
+import { Router as Router19 } from "express";
+var router20 = Router19();
 var BASE_URL = "https://nocturnesocial.in";
 var routes = [
   { path: "/", changefreq: "daily", priority: 1 },
@@ -6996,7 +6480,7 @@ function buildSitemapXml() {
 ${urlEntries}
 </urlset>`;
 }
-router22.get("/sitemap.xml", (_req, res) => {
+router20.get("/sitemap.xml", (_req, res) => {
   const xml = buildSitemapXml();
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=3600");
@@ -7040,7 +6524,7 @@ Disallow: /api/
 # Sitemap
 Sitemap: ${BASE_URL}/sitemap.xml
 `;
-router22.get("/robots.txt", (_req, res) => {
+router20.get("/robots.txt", (_req, res) => {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=86400");
   res.status(200).send(ROBOTS_TXT);
@@ -7052,12 +6536,12 @@ Policy: ${BASE_URL}/privacy
 Expires: ${new Date(Date.now() + 365 * 24 * 60 * 60 * 1e3).toISOString()}
 Acknowledgments: ${BASE_URL}/help
 `;
-router22.get("/.well-known/security.txt", (_req, res) => {
+router20.get("/.well-known/security.txt", (_req, res) => {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=86400");
   res.status(200).send(SECURITY_TXT);
 });
-var sitemap_routes_default = router22;
+var sitemap_routes_default = router20;
 
 // server/index.ts
 config2({ override: true });
@@ -7141,7 +6625,7 @@ app.use((req, res, next) => {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "Bypass-Tunnel-Reminder"]
   })(req, res, next);
 });
 app.use(compression());
@@ -7180,4 +6664,15 @@ app.use("/", sitemap_routes_default);
     logger.info(`\u{1F4CD} Environment: ${app.get("env")}`);
     logger.info(`\u{1F517} API v1: http://localhost:${port}/api/v1`);
   });
+  setInterval(async () => {
+    try {
+      logger.info("Running Ephemerality Job: Scrubbing expired content...");
+      const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { sql: sql11 } = await import("drizzle-orm");
+      await db2.execute(sql11`DELETE FROM night_thoughts WHERE expires_at < NOW()`);
+      logger.info("Ephemerality Job completed successfully.");
+    } catch (err) {
+      logger.error("Ephemerality Job failed:", err);
+    }
+  }, 60 * 60 * 1e3);
 })();

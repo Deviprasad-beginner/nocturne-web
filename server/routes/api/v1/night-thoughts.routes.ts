@@ -9,6 +9,9 @@ router.get("/", nightThoughtsController.getAll);
 // GET /api/v1/thoughts/:id - Get a single thought by ID
 router.get("/:id", nightThoughtsController.getById);
 
+// POST /api/v1/thoughts/resonate - Get recommendations for a whisper
+router.post("/resonate", nightThoughtsController.getRecommendations);
+
 // POST /api/v1/thoughts - Create a new night thought
 router.post("/", nightThoughtsController.create);
 

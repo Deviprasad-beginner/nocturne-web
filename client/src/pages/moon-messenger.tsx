@@ -123,7 +123,7 @@ export default function MoonMessengerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white p-4">
+    <div className="min-h-screen text-white p-4 bg-transparent">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">

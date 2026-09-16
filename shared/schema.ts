@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, varchar, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, index, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -39,6 +39,11 @@ export const users = pgTable("users", {
   reportCount: integer("report_count").default(0),
   trustScore: integer("trust_score").default(100),
   lastActiveTime: timestamp("last_active_time"),
+
+  // Moon Phase Streak
+  moonPhaseLevel: integer("moon_phase_level").default(0),
+  permanentStars: integer("permanent_stars").default(0),
+  lastCheckIn: timestamp("last_check_in"),
 }, (table) => [
   index("idx_users_last_active_time").on(table.lastActiveTime),
 ]);
@@ -48,7 +53,7 @@ export const diaries = pgTable("diaries", {
   content: text("content").notNull(),
   isPublic: boolean("is_public").default(false),
   mood: varchar("mood", { length: 100 }),
-  authorId: integer("author_id").references(() => users.id),
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").defaultNow(),
   // Emotional Analysis
   detectedEmotion: varchar("detected_emotion", { length: 50 }),
@@ -62,7 +67,7 @@ export const diaries = pgTable("diaries", {
 export const diaryComments = pgTable("diary_comments", {
   id: serial("id").primaryKey(),
   diaryId: integer("diary_id").references(() => diaries.id, { onDelete: "cascade" }).notNull(),
-  authorId: integer("author_id").references(() => users.id).notNull(),
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
@@ -70,27 +75,46 @@ export const diaryComments = pgTable("diary_comments", {
   index("idx_diary_comments_author_id").on(table.authorId),
 ]);
 
+// --- Vector Type for pgvector ---
+const vector = customType<{ data: number[]; driverData: string }>({
+  dataType() {
+    return 'vector(384)';
+  },
+  toDriver(value: number[]): string {
+    return JSON.stringify(value);
+  },
+  fromDriver(value: unknown): number[] {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        // sometimes it comes back as a string like "[0.1, 0.2, ...]"
+        return value.replace(/^\[|\]$/g, '').split(',').map(Number);
+      }
+    }
+    return value as number[];
+  },
+});
+
 export const whispers = pgTable("whispers", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
   type: varchar("type", { length: 20 }).default("text"),
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }),
+  isAnonymous: boolean("is_anonymous").default(true),
   hearts: integer("hearts").default(0),
-  authorId: integer("author_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  // Emotional Analysis
+  decayStage: varchar("decay_stage", { length: 50 }).default("fresh"), // fresh | fading | echo | dust
+  decayProgress: integer("decay_progress").default(0),
+  visibilityOpacity: integer("visibility_opacity").default(100),
+  audioFrequency: integer("audio_frequency"),
+  resonanceScore: integer("resonance_score").default(0),
+  interactionCount: integer("interaction_count").default(0),
   detectedEmotion: varchar("detected_emotion", { length: 50 }),
   sentimentScore: integer("sentiment_score"),
   reflectionDepth: integer("reflection_depth"),
-
-  // Whisper System 2.0 Fields
-  decayStage: varchar("decay_stage", { length: 20 }).default("fresh"),
-  decayProgress: integer("decay_progress").default(0), // 0-100 representing 0.0-1.0
-  visibilityOpacity: integer("visibility_opacity").default(100), // 0-100 representing 0.0-1.0
-  audioFrequency: integer("audio_frequency"),
-
-  // Resonance tracking
-  resonanceScore: integer("resonance_score").default(0),
-  interactionCount: integer("interaction_count").default(0),
+  embedding: vector("embedding"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_whispers_author_id").on(table.authorId),
   index("idx_whispers_created_at").on(table.createdAt),
@@ -109,7 +133,7 @@ export const globalConsciousness = pgTable("global_consciousness", {
 export const whisperInteractions = pgTable("whisper_interactions", {
   id: serial("id").primaryKey(),
   whisperId: integer("whisper_id").references(() => whispers.id, { onDelete: "cascade" }).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   type: varchar("type", { length: 20 }).notNull(), // "resonate", "echo", "absorb"
   weight: integer("weight").default(1),
   createdAt: timestamp("created_at").defaultNow(),
@@ -124,7 +148,7 @@ export const mindMaze = pgTable("mind_maze", {
   content: text("content").notNull(),
   options: text("options").array(),
   responses: integer("responses").default(0),
-  authorId: integer("author_id").references(() => users.id),
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }),
   isSystem: boolean("is_system").default(false),
   domain: varchar("domain", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow(),
@@ -133,7 +157,7 @@ export const mindMaze = pgTable("mind_maze", {
 export const mindMazeSparks = pgTable("mind_maze_sparks", {
   id: serial("id").primaryKey(),
   mazeId: integer("maze_id").references(() => mindMaze.id, { onDelete: "cascade" }).notNull(),
-  authorId: integer("author_id").references(() => users.id).notNull(),
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   content: text("content").notNull(),
   sparkType: varchar("spark_type", { length: 20 }).notNull(), // 'analytical' | 'abstract'
   resonance: integer("resonance").default(0),
@@ -201,7 +225,7 @@ export const midnightCafe = pgTable("midnight_cafe", {
   content: text("content").notNull(),
   category: varchar("category", { length: 100 }),
   replies: integer("replies").default(0),
-  authorId: integer("author_id").references(() => users.id),
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_midnight_cafe_author_id").on(table.authorId),
@@ -211,7 +235,7 @@ export const cafeReplies = pgTable("cafe_replies", {
   id: serial("id").primaryKey(),
   cafeId: integer("cafe_id").references(() => midnightCafe.id).notNull(),
   content: text("content").notNull(),
-  authorId: integer("author_id").references(() => users.id),
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_cafe_replies_cafe_id").on(table.cafeId),
@@ -221,7 +245,7 @@ export const cafeReplies = pgTable("cafe_replies", {
 // Saved Stations for Music
 export const savedStations = pgTable("saved_stations", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   stationId: text("station_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
@@ -231,12 +255,33 @@ export const savedStations = pgTable("saved_stations", {
 // Mood Analytics Logs
 export const moodLogs = pgTable("mood_logs", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   emotion: varchar("emotion", { length: 50 }).notNull(),
   sentimentScore: integer("sentiment_score").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_mood_logs_user_id").on(table.userId),
+]);
+
+// Ephemeral Circles (Dynamic Grouping)
+export const ephemeralCircles = pgTable("ephemeral_circles", {
+  id: serial("id").primaryKey(),
+  themeSummary: text("theme_summary"),
+  memberCount: integer("member_count").default(0),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_ephemeral_circles_created_at").on(table.createdAt),
+]);
+
+export const ephemeralCircleMembers = pgTable("ephemeral_circle_members", {
+  id: serial("id").primaryKey(),
+  circleId: integer("circle_id").references(() => ephemeralCircles.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  joinedAt: timestamp("joined_at").defaultNow(),
+}, (table) => [
+  index("idx_ephemeral_circle_members_circle_id").on(table.circleId),
+  index("idx_ephemeral_circle_members_user_id").on(table.userId),
 ]);
 
 // Upsert user schema for auth systems
@@ -258,6 +303,9 @@ export const insertUserSchema = createInsertSchema(users).omit({
   reportCount: z.number().optional(),
   trustScore: z.number().optional(),
   lastActiveTime: z.date().optional(),
+  moonPhaseLevel: z.number().optional(),
+  permanentStars: z.number().optional(),
+  lastCheckIn: z.date().optional(),
 });
 
 export const insertDiarySchema = createInsertSchema(diaries).omit({
@@ -270,12 +318,12 @@ export const insertDiaryCommentSchema = createInsertSchema(diaryComments).omit({
   createdAt: true,
 });
 
-export const insertWhisperSchema = createInsertSchema(whispers).omit({
+export const insertWhisperSchema = createInsertSchema(whispers, {
+  embedding: z.array(z.number()).nullable().optional()
+}).omit({
   id: true,
   hearts: true,
   createdAt: true,
-  interactionCount: true,
-  resonanceScore: true,
 });
 
 export const insertGlobalConsciousnessSchema = createInsertSchema(globalConsciousness).omit({
@@ -359,6 +407,12 @@ export interface UserPreferences {
   accentColor: "purple" | "blue" | "green" | "orange";
   fontSize: "small" | "medium" | "large";
   compactMode: boolean;
+  backgroundTheme?: string;
+  customBackgroundUrl?: string;
+  fontFamily?: "sans" | "serif" | "mono" | "dyslexic";
+  uiRadius?: "sharp" | "rounded" | "pill";
+  glassmorphism?: "solid" | "frosted" | "crystal";
+  animationIntensity?: "minimal" | "standard" | "vibrant";
   // Night Diaries
   diariesPrivacy: "Private" | "Friends" | "Public";
   diariesAllowComments: boolean;
@@ -452,18 +506,25 @@ export const nightThoughts = pgTable("night_thoughts", {
   replies: integer("replies").default(0),
 
   // Metadata
-  authorId: integer("author_id").references(() => users.id),
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }),
   mood: varchar("mood", { length: 100 }),
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at"), // For ephemeral whisper-style thoughts
-});
+  embedding: vector("embedding", { dimensions: 384 }), // For Vibe Matching
+}, (table) => [
+  index("idx_night_thoughts_author_id").on(table.authorId),
+  index("idx_night_thoughts_thought_type").on(table.thoughtType),
+  index("idx_night_thoughts_is_private").on(table.isPrivate),
+  index("idx_night_thoughts_created_at").on(table.createdAt),
+  index("idx_night_thoughts_expires_at").on(table.expiresAt),
+]);
 
 // Replies for Night Thoughts — stores actual reply content
 export const nightThoughtReplies = pgTable("night_thought_replies", {
   id: serial("id").primaryKey(),
   thoughtId: integer("thought_id").references(() => nightThoughts.id, { onDelete: "cascade" }).notNull(),
   content: text("content").notNull(),
-  authorId: integer("author_id").references(() => users.id), // nullable = anonymous
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }), // nullable = anonymous
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_night_thought_replies_thought_id").on(table.thoughtId),
@@ -476,16 +537,20 @@ export const amFounder = pgTable("am_founder", {
   category: text("category").notNull(),
   upvotes: integer("upvotes").default(0),
   comments: integer("comments").default(0),
-  authorId: integer("author_id").references(() => users.id),
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_am_founder_author_id").on(table.authorId),
+  index("idx_am_founder_category").on(table.category),
+  index("idx_am_founder_created_at").on(table.createdAt),
+]);
 
 // 3AM Founder Replies - Conversations around founder posts
 export const amFounderReplies = pgTable("am_founder_replies", {
   id: serial("id").primaryKey(),
   founderId: integer("founder_id").references(() => amFounder.id).notNull(),
   content: text("content").notNull(),
-  authorId: integer("author_id").references(() => users.id), // Nullable for anonymous
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }), // Nullable for anonymous
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_am_founder_replies_founder_id").on(table.founderId),
@@ -529,7 +594,7 @@ export const nightlyPrompts = pgTable("nightly_prompts", {
 export const userReflections = pgTable("user_reflections", {
   id: serial("id").primaryKey(),
   promptId: integer("prompt_id").references(() => nightlyPrompts.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   responseContent: text("response_content").notNull(),
   aiEvaluation: jsonb("ai_evaluation"), // Stores AI's reflection on the response
   createdAt: timestamp("created_at").defaultNow(),
@@ -540,7 +605,7 @@ export const userReflections = pgTable("user_reflections", {
 
 export const personalReflections = pgTable("personal_reflections", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   userQuery: text("user_query").notNull(),
   aiReflection: text("ai_reflection").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -614,7 +679,9 @@ export type InsertUserReflection = z.infer<typeof insertUserReflectionSchema>;
 export type PersonalReflection = typeof personalReflections.$inferSelect;
 export type InsertPersonalReflection = z.infer<typeof insertPersonalReflectionSchema>;
 // Night Thoughts schemas
-export const insertNightThoughtSchema = createInsertSchema(nightThoughts).omit({
+export const insertNightThoughtSchema = createInsertSchema(nightThoughts, {
+  embedding: z.array(z.number()).nullable().optional(),
+}).omit({
   id: true,
   hearts: true,
   replies: true,
@@ -777,7 +844,7 @@ export type InsertSilentLine = z.infer<typeof insertSilentLineSchema>;
 // Playlists for Music
 export const playlists = pgTable("playlists", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
@@ -812,3 +879,75 @@ export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
 
 export type PlaylistTrack = typeof playlistTracks.$inferSelect;
 export type InsertPlaylistTrack = z.infer<typeof insertPlaylistTrackSchema>;
+
+// --- Social Book Hub ---
+
+export const bookDiscussions = pgTable("book_discussions", {
+  id: serial("id").primaryKey(),
+  bookId: text("book_id").notNull(), // e.g., "gutenberg_123" or "ol_W123456"
+  bookTitle: text("book_title").notNull(),
+  author: text("author"),
+  content: text("content").notNull(),
+  rating: integer("rating"), // 1-5 scale
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_book_discussions_book_id").on(table.bookId),
+  index("idx_book_discussions_author_id").on(table.authorId),
+]);
+
+export const bookQuotes = pgTable("book_quotes", {
+  id: serial("id").primaryKey(),
+  bookId: text("book_id").notNull(),
+  bookTitle: text("book_title").notNull(),
+  quoteText: text("quote_text").notNull(),
+  notes: text("notes"), // User's POV on the quote
+  authorId: integer("author_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_book_quotes_book_id").on(table.bookId),
+  index("idx_book_quotes_author_id").on(table.authorId),
+]);
+
+export const insertBookDiscussionSchema = createInsertSchema(bookDiscussions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBookQuoteSchema = createInsertSchema(bookQuotes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type BookDiscussion = typeof bookDiscussions.$inferSelect;
+export type InsertBookDiscussion = z.infer<typeof insertBookDiscussionSchema>;
+
+export type BookQuote = typeof bookQuotes.$inferSelect;
+export type InsertBookQuote = z.infer<typeof insertBookQuoteSchema>;
+
+// ─── User Gutenberg Library ───────────────────────────────────────────────────
+// Stores books a user has added from the Gutendex / Project Gutenberg catalogue.
+// `currentCfi` persists the EpubCFI read-position so the user can resume.
+export const userBooks = pgTable("user_books", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  gutenbergId: integer("gutenberg_id").notNull(),
+  title: varchar("title", { length: 500 }).notNull(),
+  author: varchar("author", { length: 300 }),
+  coverUrl: varchar("cover_url", { length: 1000 }),
+  epubUrl: varchar("epub_url", { length: 1000 }).notNull(),
+  currentCfi: varchar("current_cfi", { length: 2000 }), // EpubCFI read position
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_user_books_user_id").on(table.userId),
+  index("idx_user_books_gutenberg_id").on(table.gutenbergId),
+]);
+
+export const insertUserBookSchema = createInsertSchema(userBooks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type UserBook = typeof userBooks.$inferSelect;
+export type InsertUserBook = z.infer<typeof insertUserBookSchema>;
+

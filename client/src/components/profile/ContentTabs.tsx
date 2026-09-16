@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Music, Coffee, Heart, MessageSquare } from "lucide-react";
-import { Whisper, MidnightCafe } from "@shared/schema";
+import { NightThought } from "@shared/schema";
 import { format } from "date-fns";
 import { Link } from "wouter";
 
 interface ContentTabsProps {
-    whispers?: Whisper[];
-    cafePosts?: MidnightCafe[];
+    whispers?: NightThought[];
+    cafePosts?: NightThought[];
     savedStations?: string[];
     whispersLoading: boolean;
     cafeLoading: boolean;
@@ -89,9 +89,9 @@ export default function ContentTabs({
                                     <span>{format(new Date(whisper.createdAt || ''), 'PP p')}</span>
                                     <div className="flex gap-4">
                                         {/* Display Emotion Tag if available */}
-                                        {whisper.detectedEmotion && (
+                                        {whisper.mood && (
                                             <Badge variant="outline" className="text-[10px] border-purple-500/30 text-purple-400 capitalize">
-                                                {whisper.detectedEmotion}
+                                                {whisper.mood}
                                             </Badge>
                                         )}
                                         <span className="flex items-center gap-1"><Heart className="w-3 h-3 text-pink-500" /> {whisper.hearts}</span>
@@ -103,8 +103,8 @@ export default function ContentTabs({
                 ) : (
                     <div className="text-center p-12 text-gray-500 bg-gray-900/30 rounded-xl border border-dashed border-gray-800">
                         <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                        <p>You haven't told any secrets to the night yet.</p>
-                        <Link href="/whispers">
+                        <p>You haven't whispered anything into the night yet.</p>
+                        <Link href="/night-thoughts">
                             <Button variant="link" className="text-purple-400 mt-2">Share a Whisper</Button>
                         </Link>
                     </div>
@@ -119,8 +119,8 @@ export default function ContentTabs({
                         <Card key={post.id} className="bg-gray-800/30 border-gray-700">
                             <CardHeader className="pb-2">
                                 <div className="flex justify-between items-start">
-                                    <CardTitle className="text-base text-amber-200/80">{post.topic}</CardTitle>
-                                    <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500">{post.category}</Badge>
+                                    <CardTitle className="text-base text-amber-200/80">{post.topic || "Discussion"}</CardTitle>
+                                    <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500">{post.mood || "General"}</Badge>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-4 pt-0">
@@ -136,7 +136,7 @@ export default function ContentTabs({
                     <div className="text-center p-12 text-gray-500 bg-gray-900/30 rounded-xl border border-dashed border-gray-800">
                         <Coffee className="w-12 h-12 mx-auto mb-3 opacity-20" />
                         <p>The cafe is quiet. Start a conversation.</p>
-                        <Link href="/midnight-cafe">
+                        <Link href="/night-thoughts">
                             <Button variant="link" className="text-amber-400 mt-2">Enter Cafe</Button>
                         </Link>
                     </div>

@@ -590,7 +590,7 @@ export default function NightCircles() {
   const closingCircles = circles.filter(c => c.state === "closing");
 
   return (
-    <div className="min-h-screen bg-[#080810] text-white">
+    <div className="min-h-screen text-white bg-transparent">
       {/* Join flow overlay */}
       <AnimatePresence>
         {view === "join-flow" && (
