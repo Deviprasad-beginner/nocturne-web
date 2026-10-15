@@ -24,6 +24,10 @@ import booksSocialRoutes from "./books-social.routes";
 import authMobileRoutes from "./auth.routes";
 import userBooksRoutes from "./user-books.routes";
 import midnightCafeRoutes from "./midnight-cafe.routes";
+import bridgesRoutes from "./bridges.routes";
+import nightcapStudioRoutes from "./nightcap-studio.routes";
+import resonanceRoutes from "./resonance.routes";
+import whispersRoutes from "./whispers.routes";
 import { requireAuth } from "../../../middleware/auth.middleware";
 import { storage } from "../../../storage";
 
@@ -72,21 +76,14 @@ router.use("/books", booksRoutes);
 router.use("/books-social", booksSocialRoutes);
 router.use("/user-books", userBooksRoutes);
 router.use("/midnight-cafe", midnightCafeRoutes);
-
+router.use("/bridges", bridgesRoutes);
+router.use("/nightcap", nightcapStudioRoutes);
+router.use("/resonance", resonanceRoutes);
+// Dedicated whispers routes (used by whisper-connect mobile app and web client)
+router.use("/whispers", whispersRoutes);
 
 // --- LEGACY COMPATIBILITY ROUTES ---
-// The frontend still calls /whispers and /diaries which have been unified into /thoughts
-router.use("/whispers", (req, res, next) => {
-    req.query.thoughtType = 'whisper';
-    // Rewrite specific endpoints
-    if (req.method === 'POST' && req.url.match(/\/\d+\/like/)) {
-        req.url = req.url.replace('/like', '/heart');
-    }
-    if (req.method === 'POST' && req.url.match(/\/\d+\/interaction/)) {
-        req.url = req.url.replace('/interaction', '/heart');
-    }
-    nightThoughtsRoutes(req, res, next);
-});
+// /diaries still proxied into /thoughts for web client backward compat
 router.use("/diaries", (req, res, next) => {
     req.query.thoughtType = 'diary';
     nightThoughtsRoutes(req, res, next);

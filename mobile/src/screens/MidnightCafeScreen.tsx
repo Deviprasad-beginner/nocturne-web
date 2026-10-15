@@ -18,18 +18,18 @@ export default function MidnightCafeScreen({ navigation }: any) {
 
     const { data: posts = [], isLoading } = useQuery<any[]>({
         queryKey: ['cafe-posts'],
-        queryFn: () => api.get('/cafe').then(r => r.data ?? []),
+        queryFn: () => api.get('/midnight-cafe').then(r => r.data ?? []),
     });
 
     const { data: replies = [], isLoading: loadingReplies } = useQuery<any[]>({
         queryKey: ['cafe-replies', activeReplyPost],
-        queryFn: () => api.get(`/cafe/${activeReplyPost}/replies`).then(r => r.data ?? []),
+        queryFn: () => api.get(`/midnight-cafe/${activeReplyPost}/replies`).then(r => r.data ?? []),
         enabled: !!activeReplyPost,
     });
 
     const createPostMutation = useMutation({
         mutationFn: (payload: { topic: string; content: string; category: string }) =>
-            api.post('/cafe', payload),
+            api.post('/midnight-cafe', payload),
         onSuccess: () => {
             haptics.success();
             setTopic('');
@@ -41,7 +41,7 @@ export default function MidnightCafeScreen({ navigation }: any) {
 
     const createReplyMutation = useMutation({
         mutationFn: (payload: { cafeId: number; content: string }) =>
-            api.post('/cafe/replies', payload),
+            api.post(`/midnight-cafe/${payload.cafeId}/replies`, { content: payload.content }),
         onSuccess: () => {
             haptics.success();
             setReplyContent('');

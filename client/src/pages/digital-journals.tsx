@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, BookOpen, Star, Calendar, Palette, Lock, Globe } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
-
+import { useSentimentTracker } from "@/hooks/useSentimentTracker";
+import { useMusic } from "@/context/MusicContext";
 interface JournalEntry {
   id: number;
   title: string;
@@ -33,6 +34,9 @@ export default function DigitalJournals() {
   const [isPrivate, setIsPrivate] = useState(true);
   const [author, setAuthor] = useState("");
   const [filter, setFilter] = useState("all");
+
+  const { sentiment, score, isAnalyzing } = useSentimentTracker(content);
+  const { playTrack } = useMusic();
 
   // Mock data for journal entries
   const journalEntries: JournalEntry[] = [
@@ -277,6 +281,33 @@ export default function DigitalJournals() {
                     rows={6}
                     className="bg-gray-700/50 border-gray-600 text-white"
                   />
+                  
+                  {/* The Atmospheric Bridge (Diaries -> Music Engine) */}
+                  {sentiment === 'nostalgic' && (
+                    <div className="mt-4 p-4 rounded-xl border border-indigo-500/30 bg-indigo-900/20 flex items-center justify-between shadow-lg">
+                      <div className="text-sm text-indigo-200">
+                        <span className="font-semibold text-indigo-400">Match the vibe with Rain & Lofi?</span>
+                        <p className="text-xs text-indigo-300/70 mt-1">We noticed a nostalgic tone in your writing.</p>
+                      </div>
+                      <Button 
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // In a real app we'd fetch a real track, we'll mock one for the spec
+                          playTrack({
+                            id: "rain-lofi-1",
+                            title: "Midnight Rain",
+                            artist: "Lofi Cafe",
+                            url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                            mood: "nostalgic"
+                          });
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white"
+                      >
+                        Play Music
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 
                 <Button 

@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 interface WhisperCardProps {
     whisper: Whisper;
     isLiked?: boolean;
-    onInteract: (id: number, type: 'resonate' | 'echo' | 'absorb') => void;
-    onLike?: (id: number) => void;
+    onInteract: (id: string, type: 'resonate' | 'echo' | 'absorb') => void;
+    onLike?: (id: string) => void;
 }
 
 export function WhisperCard({ whisper, isLiked = false, onInteract, onLike }: WhisperCardProps) {
@@ -23,8 +23,8 @@ export function WhisperCard({ whisper, isLiked = false, onInteract, onLike }: Wh
         }
     };
 
-    const colorClass = getEmotionColor(whisper.detectedEmotion);
-    const opacity = (whisper.visibilityOpacity || 100) / 100;
+    const colorClass = getEmotionColor((whisper as any).detectedEmotion);
+    const opacity = ((whisper as any).visibilityOpacity || 100) / 100;
 
     // Check if this is a scanned quote from a book
     const isQuote = (whisper as any).type === "quote";
@@ -55,7 +55,7 @@ export function WhisperCard({ whisper, isLiked = false, onInteract, onLike }: Wh
 
                         <div className="mt-8 flex justify-between items-center opacity-60 group-hover:opacity-100 transition-opacity">
                             <span className="font-mono text-xs text-[#5c5855] italic">
-                                Scanned at {whisper.decayStage?.toUpperCase()} • {Math.round(whisper.audioFrequency || 444)}Hz
+                                Scanned at {(whisper as any).decayStage?.toUpperCase()} • {Math.round((whisper as any).audioFrequency || 444)}Hz
                             </span>
 
                             <div className="flex gap-2">
@@ -113,7 +113,7 @@ export function WhisperCard({ whisper, isLiked = false, onInteract, onLike }: Wh
 
                     <div className="flex justify-between items-center text-sm opacity-70 group-hover:opacity-100 transition-opacity">
                         <span className="font-mono text-xs">
-                            {whisper.decayStage?.toUpperCase()} • {Math.round(whisper.audioFrequency || 444)}Hz
+                            {(whisper as any).decayStage?.toUpperCase()} • {Math.round((whisper as any).audioFrequency || 444)}Hz
                         </span>
 
                         <div className="flex gap-2">

@@ -49,6 +49,88 @@ function getDomain(id: string | null | undefined) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Thinker's Bridge (Mind Maze -> Midnight Cafe)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ThinkersBridgePrompt() {
+  const [voteData, setVoteData] = useState<{threadId: number, agreeCount: number, disagreeCount: number} | null>(null);
+  const [isVoting, setIsVoting] = useState(false);
+
+  const handleVote = async (voteValue: string) => {
+    setIsVoting(true);
+    try {
+      const res = await apiRequest("POST", "/api/v1/bridges/mind-maze/vote", {
+        promptId: 1, // Mock prompt ID
+        promptText: "Does the night reveal the truth, or hide it?",
+        voteValue
+      });
+      const json = await res.json();
+      if (json.success) {
+        setVoteData(json.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsVoting(false);
+    }
+  };
+
+  return (
+    <div className="mb-8 p-6 rounded-2xl bg-[#111122] border border-cyan-900/30 shadow-lg relative overflow-hidden">
+      {/* Background aesthetic */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl" />
+      
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <span className="text-[10px] uppercase tracking-widest text-cyan-400/80 font-bold mb-3 flex items-center gap-2">
+          <Sparkles className="w-3 h-3" /> Daily Philosophical Prompt
+        </span>
+        <h3 className="text-lg font-medium text-white mb-6">"Does the night reveal the truth, or hide it?"</h3>
+        
+        {!voteData ? (
+          <div className="flex gap-4 w-full max-w-sm">
+            <button 
+              onClick={() => handleVote('reveal')}
+              disabled={isVoting}
+              className="flex-1 py-3 px-4 rounded-xl border border-cyan-500/20 bg-cyan-950/20 text-cyan-100 hover:bg-cyan-900/40 transition-colors text-sm font-medium"
+            >
+              Reveals It
+            </button>
+            <button 
+              onClick={() => handleVote('hide')}
+              disabled={isVoting}
+              className="flex-1 py-3 px-4 rounded-xl border border-purple-500/20 bg-purple-950/20 text-purple-100 hover:bg-purple-900/40 transition-colors text-sm font-medium"
+            >
+              Hides It
+            </button>
+          </div>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full"
+          >
+            <Link href={`/midnight-cafe/${voteData.threadId}`}>
+              <div className="w-full py-4 px-5 rounded-xl bg-gradient-to-r from-cyan-950/50 to-purple-950/50 border border-white/10 hover:border-cyan-500/30 transition-colors cursor-pointer group flex items-center justify-between">
+                <div className="text-left">
+                  <p className="text-sm text-gray-200">
+                    Dive deeper with <span className="text-cyan-400 font-bold">{voteData.agreeCount}</span> others who feel the same... 
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    and {voteData.disagreeCount} who see it differently.
+                  </p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-cyan-400 transition-colors" />
+              </div>
+            </Link>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SparkCard
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -402,6 +484,8 @@ export default function MindMazePage() {
               {" "}— every question here has two honest answers. reason and feeling. choose which voice you will use.
             </p>
           </div>
+
+          <ThinkersBridgePrompt />
 
           {/* ── Domain filter bar ────────────────────────────────── */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-6 hide-scrollbar -mx-4 px-4">

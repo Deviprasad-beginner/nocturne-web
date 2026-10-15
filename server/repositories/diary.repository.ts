@@ -22,7 +22,7 @@ export async function createDiary(diary: InsertDiary): Promise<Diary> {
   // Update streak logic
   if (diary.authorId) {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, diary.authorId));
+      const [user] = await db.select().from(users).where(eq(users.id, String(diary.authorId)));
       if (user) {
         const now = new Date();
         const lastEntry = user.lastEntryDate ? new Date(user.lastEntryDate) : null;
@@ -44,7 +44,7 @@ export async function createDiary(diary: InsertDiary): Promise<Diary> {
 
         await db.update(users)
           .set({ currentStreak: newStreak, lastEntryDate: now })
-          .where(eq(users.id, diary.authorId));
+          .where(eq(users.id, String(diary.authorId)));
       }
     } catch (error) {
       logger.error("Error updating user streak:", error);
@@ -54,7 +54,7 @@ export async function createDiary(diary: InsertDiary): Promise<Diary> {
   return newDiary;
 }
 
-export async function getDiaries(viewerId?: number, limit?: number): Promise<Diary[]> {
+export async function getDiaries(viewerId?: string, limit?: number): Promise<Diary[]> {
   try {
     const safeLimit = capLimit(limit);
     if (viewerId) {
@@ -102,7 +102,7 @@ export async function deleteDiary(id: number): Promise<boolean> {
   }
 }
 
-export async function getUserDiaries(userId: number, limit?: number): Promise<Diary[]> {
+export async function getUserDiaries(userId: string, limit?: number): Promise<Diary[]> {
   try {
     return await db
       .select()

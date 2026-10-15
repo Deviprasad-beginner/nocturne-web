@@ -1,29 +1,28 @@
-// We no longer use @xenova/transformers in Node.js
-// Instead, we use the Python FastAPI microservice (see python_service/main.py)
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+let genAI: GoogleGenerativeAI | null = null;
+if (process.env.GEMINI_API_KEY) {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+}
 
 /**
- * Get embedding for a given text using Python FastAPI microservice (all-MiniLM-L6-v2)
+ * Get embedding for a given text using Google Gemini text-embedding-004
  */
 export async function getEmbedding(text: string): Promise<number[]> {
     if (!text || text.trim() === '') return [];
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/embed', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ text })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Python API returned ${response.status}`);
+        if (!genAI) {
+            console.warn("GEMINI_API_KEY is not set. Returning empty embedding.");
+            return [];
         }
 
-        const data = await response.json();
-        return data.embedding;
+        const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+        const result = await model.embedContent(text);
+        const embedding = result.embedding;
+        return embedding.values;
     } catch (error) {
-        console.error('Error generating embedding from Python microservice:', error);
+        console.error('Error generating embedding from Gemini:', error);
         return [];
     }
 }

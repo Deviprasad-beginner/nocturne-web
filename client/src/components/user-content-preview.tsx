@@ -114,7 +114,7 @@ export function UserContentPreview({ type }: UserContentPreviewProps) {
                                                 {format(new Date(whisper.createdAt || new Date()), "MMM d, h:mm a")}
                                             </span>
                                             <span className="text-[10px] text-pink-500/70 flex items-center gap-1">
-                                                {whisper.hearts} <span className="opacity-50">hearts</span>
+                                                {(whisper as any).hearts || 0} <span className="opacity-50">hearts</span>
                                             </span>
                                         </div>
                                     </div>

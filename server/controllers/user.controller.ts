@@ -29,7 +29,8 @@ export class UserController {
     });
 
     checkIn = asyncHandler(async (req: Request, res: Response) => {
-        const updatedUser = await userService.checkInUser(req.user!.id);
+        const { timezoneOffset } = req.body;
+        const updatedUser = await userService.checkInUser(req.user!.id, timezoneOffset);
         res.json(successResponse(updatedUser));
     });
 

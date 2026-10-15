@@ -26,8 +26,8 @@ interface FAQ {
 
 const FAQS: FAQ[] = [
     {
-        question: 'What is Nocturne?',
-        answer: 'Nocturne is a social sanctuary designed for night owls. It provides a calm, atmospheric space for deep conversations, anonymous whispers, collaborative reading, and introspective activities — all during the hours when the world sleeps.',
+        question: 'What is Whisper Connect?',
+        answer: 'Whisper Connect is a social sanctuary designed for night owls. It provides a calm, atmospheric space for deep conversations, anonymous whispers, collaborative reading, and introspective activities — all during the hours when the world sleeps.',
         category: 'General',
     },
     {
@@ -61,8 +61,8 @@ const FAQS: FAQ[] = [
         category: 'Features',
     },
     {
-        question: 'Can I use Nocturne during the day?',
-        answer: 'Absolutely! While Nocturne is designed with night owls in mind, all features are available 24/7. Some features like Night Thoughts have sunrise-based expiry, but you can use the app anytime.',
+        question: 'Can I use Whisper Connect during the day?',
+        answer: 'Absolutely! While Whisper Connect is designed with night owls in mind, all features are available 24/7. Some features like Night Thoughts have sunrise-based expiry, but you can use the app anytime.',
         category: 'General',
     },
 ];
@@ -254,7 +254,7 @@ export default function HelpScreen() {
                     {/* App Info Footer */}
                     <FadeInView delay={300}>
                         <View style={styles.footer}>
-                            <Text style={styles.footerText}>Nocturne v1.0.0</Text>
+                            <Text style={styles.footerText}>Whisper Connect v1.0.0</Text>
                             <Text style={styles.footerText}>Made with 🌙 for night owls</Text>
                         </View>
                     </FadeInView>

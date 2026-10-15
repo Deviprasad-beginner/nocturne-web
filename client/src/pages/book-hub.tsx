@@ -139,7 +139,7 @@ export default function BookHub() {
                             {user.profileImageUrl ? (
                                 <img src={user.profileImageUrl} alt="avatar" className="w-8 h-8 rounded-full" />
                             ) : (
-                                <span className="text-xs text-indigo-200">{user.username[0].toUpperCase()}</span>
+                                <span className="text-xs text-indigo-200">{(user.username || user.anonymousHandle)[0].toUpperCase()}</span>
                             )}
                         </div>
                     )}

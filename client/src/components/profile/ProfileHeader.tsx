@@ -46,7 +46,7 @@ export default function ProfileHeader({
                         <Avatar className="w-32 h-32 border-4 border-slate-900 shadow-2xl">
                             <AvatarImage src={user.profileImageUrl || ""} className="object-cover" />
                             <AvatarFallback className="bg-slate-800 text-white text-3xl font-bold">
-                                {user.displayName?.charAt(0) || user.username.charAt(0)}
+                                {user.displayName?.charAt(0) || (user.username || "").charAt(0)}
                             </AvatarFallback>
                         </Avatar>
                         <Button
@@ -69,9 +69,9 @@ export default function ProfileHeader({
                     <div className="flex flex-col md:flex-row items-center md:justify-between gap-4">
                         <div>
                             <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-200 tracking-tight">
-                                {user.displayName || user.username}
+                                {user.displayName || (user.username || "")}
                             </h1>
-                            <p className="text-slate-400 font-medium text-lg">@{user.username}</p>
+                            <p className="text-slate-400 font-medium text-lg">@{(user.username || "")}</p>
                         </div>
                         <Button
                             onClick={onEditToggle}

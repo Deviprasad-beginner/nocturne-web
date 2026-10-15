@@ -58,16 +58,20 @@ export default function NightThoughtsScreen() {
 
     const MAX_CHARS = 280;
 
-    // Fetch thoughts
+    // Fetch thoughts — server: GET /api/v1/thoughts
     const { data: thoughts = [], isLoading } = useQuery<NightThought[]>({
         queryKey: ['night-thoughts'],
-        queryFn: () => api.get('/night-thoughts').then(r => r.data ?? []),
+        queryFn: () => api.get('/thoughts').then(r => r.data ?? []),
     });
 
-    // Create thought
+    // Create thought — server: POST /api/v1/thoughts
     const createMutation = useMutation({
         mutationFn: (data: { content: string; type: string }) =>
-            api.post('/night-thoughts', data).then(r => r.data),
+            api.post('/thoughts', {
+                content: data.content,
+                thoughtType: data.type === 'default' ? 'text' : data.type,
+                isPrivate: false,
+            }).then(r => r.data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['night-thoughts'] });
             setNewThought('');
@@ -77,9 +81,9 @@ export default function NightThoughtsScreen() {
         },
     });
 
-    // Like thought
+    // Heart thought — server: POST /api/v1/thoughts/:id/heart
     const likeMutation = useMutation({
-        mutationFn: (id: number) => api.post(`/night-thoughts/${id}/like`).then(r => r.data),
+        mutationFn: (id: number) => api.post(`/thoughts/${id}/heart`).then(r => r.data),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['night-thoughts'] }),
     });
 

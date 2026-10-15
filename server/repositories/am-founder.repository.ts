@@ -68,7 +68,7 @@ export async function getAmFounderReplies(founderId: number): Promise<AmFounderR
   }
 }
 
-export async function getUserFounders(userId: number, limit?: number): Promise<AmFounder[]> {
+export async function getUserFounders(userId: string, limit?: number): Promise<AmFounder[]> {
   try {
     return await db
       .select()

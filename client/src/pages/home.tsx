@@ -11,8 +11,9 @@ import {
   Moon, Heart, Compass, Sparkles, Notebook, MessageSquare, Brain, Music,
   BookOpen, Users, Mic, Coffee, Lightbulb, Zap, ArrowRight, User, Settings,
   Bell, LogOut, Loader2, Send, Flame, ChevronRight, Headphones, Stars,
-  Play, Pause, Hash, Activity, Library, Plus, ScanLine
+  Play, Pause, Hash, Activity, Library, Plus, ScanLine, Lock, Radio, Globe
 } from "lucide-react";
+import type { WhisperMood } from "@shared/schema";
 import "@/styles/home.css";
 import { ScannerLens } from "@/components/read-card/ScannerLens";
 import { MoonPhaseHeader } from "@/components/home/MoonPhaseHeader";
@@ -48,7 +49,7 @@ interface Diary {
   id: number;
   content: string;
   isPublic: boolean;
-  authorId?: number;
+  authorId?: string;
   createdAt?: string;
 }
 
@@ -64,6 +65,15 @@ interface NightlyPrompt {
   id: number;
   content: string;
 }
+
+const MOOD_PILLS: { key: WhisperMood; label: string; icon: string; bg: string; border: string; text: string }[] = [
+  { key: "lonely", label: "Lonely", icon: "🌙", bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-400" },
+  { key: "restless", label: "Restless", icon: "⚡", bg: "bg-amber-500/10", border: "border-amber-500/30", text: "text-amber-400" },
+  { key: "nostalgic", label: "Nostalgic", icon: "📼", bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-400" },
+  { key: "inspired", label: "Inspired", icon: "💡", bg: "bg-emerald-500/10", border: "border-emerald-500/30", text: "text-emerald-400" },
+  { key: "anxious", label: "Anxious", icon: "🍃", bg: "bg-rose-500/10", border: "border-rose-500/30", text: "text-rose-400" },
+  { key: "grateful", label: "Grateful", icon: "✨", bg: "bg-cyan-500/10", border: "border-cyan-500/30", text: "text-cyan-400" },
+];
 
 // Services shown on the home feed
 const SERVICES = [
@@ -131,6 +141,15 @@ const SERVICES = [
     emoji: "🧩",
   },
   {
+    title: "Nightcap Studio",
+    icon: Headphones,
+    route: "/nightcap-studio",
+    description: "AI affirmation · binaural beats",
+    accent: "#c084fc",
+    accentRgb: "192,132,252",
+    emoji: "🎛️",
+  },
+  {
     title: "Library",
     icon: BookOpen,
     route: "/library",
@@ -161,6 +180,11 @@ export default function Home() {
   const [isPrivateDiary, setIsPrivateDiary] = useState(false);
   const [anonymousWhisperText, setAnonymousWhisperText] = useState("");
   const [likedIds, setLikedIds] = useState<Set<number>>(() => getLikedIds());
+
+  // Unified Single Source of Truth for Mood
+  const [selectedMood, setSelectedMood] = useState<WhisperMood>("lonely");
+  const [homeWhisperText, setHomeWhisperText] = useState("");
+  const [homeWhisperVisibility, setHomeWhisperVisibility] = useState<"public" | "private" | "resonance">("public");
 
   // Soothing Night widget state
   const [activeMoodQuery, setActiveMoodQuery] = useState("lofi,chill");
@@ -251,6 +275,47 @@ export default function Home() {
     }
   });
 
+  // Post Whisper mutation connected to /api/whispers
+  const postHomeWhisperMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/whispers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: homeWhisperText.trim(),
+          mood: selectedMood,
+          visibility: homeWhisperVisibility,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to whisper");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/whispers/feed"] });
+      setHomeWhisperText("");
+      toast({
+        title: "Whisper Drifted into the Night",
+        description:
+          homeWhisperVisibility === "private"
+            ? "Saved to your private Sanctuary."
+            : homeWhisperVisibility === "resonance"
+            ? "Your whisper is now tuned into the 1:1 matching frequency."
+            : "Shared with night wanderers until 6:00 AM.",
+      });
+      if (homeWhisperVisibility === "resonance") {
+        setLocation("/resonance");
+      }
+    },
+    onError: (err: any) => {
+      toast({
+        variant: "destructive",
+        title: "Could Not Whisper",
+        description: err.message || "The night remains quiet. Please try again.",
+      });
+    },
+  });
+
   const resonateWhisperMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiRequest("POST", `/api/v1/whispers/${id}/interaction`, { type: "resonate" });
@@ -263,7 +328,7 @@ export default function Home() {
 
   // Reflections to Diary mutation
   const createDiaryMutation = useMutation({
-    mutationFn: async (payload: { content: string; isPublic: boolean; mood: string; authorId?: number }) => {
+    mutationFn: async (payload: { content: string; isPublic: boolean; mood: string; authorId?: string }) => {
       const res = await apiRequest("POST", "/api/v1/diaries", payload);
       return res.json();
     },
@@ -368,7 +433,192 @@ export default function Home() {
         <div className="nc-feed-layout">
           {/* Main Feed stream */}
           <div className="nc-feed-stream">
+            {/* ── Prominent First-Class Resonance Feature ── */}
+            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-950/40 via-[#0d0d16] to-indigo-950/40 border border-violet-500/30 p-6 sm:p-7 mb-6 shadow-2xl backdrop-blur-xl group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/10 rounded-full blur-3xl pointer-events-none group-hover:bg-violet-600/15 transition-all duration-700" />
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="max-w-xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-900/40 border border-violet-500/30 text-violet-300 text-[10px] font-semibold tracking-wider uppercase mb-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                    1:1 Anonymous Resonance
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-light text-white tracking-tight mb-2">
+                    Find someone who <span className="italic text-violet-300">resonates with you</span>.
+                  </h2>
+                  <p className="text-sm text-zinc-400 leading-relaxed">
+                    You don't need the perfect words. Choose a feeling, explore a thought, and find someone to share it with.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 mt-4 text-[11px] text-zinc-500">
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-violet-400">✦</span> Anonymous by default
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-violet-400">✦</span> Guided feeling & spark
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-violet-400">✦</span> Real human presence
+                    </span>
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLocation("/resonance")}
+                    className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-violet-900/40 hover:shadow-violet-900/60 flex items-center justify-center gap-2 group-hover:scale-[1.02]"
+                  >
+                    <Radio className="w-4 h-4 text-violet-200 animate-pulse" />
+                    Find My Resonance
+                  </button>
+                  <p className="text-[10px] text-zinc-500 text-center">
+                    Zero pressure · 45s harmonic scan
+                  </p>
+                </div>
+              </div>
+            </section>
+
             <MoonPhaseHeader />
+
+            {/* ── Unified Midnight Check-in & Whisper Composer ── */}
+            <section className="p-5 sm:p-6 rounded-2xl bg-[#0d0d12] border border-white/[0.08] mb-6 shadow-2xl backdrop-blur-xl">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                  <span className="text-xs uppercase tracking-wider font-semibold text-zinc-300">
+                    Midnight Check-in & Whisper
+                  </span>
+                </div>
+                <span className="text-xs text-zinc-500 font-mono">
+                  {homeWhisperText.length}/300
+                </span>
+              </div>
+
+              {/* Single Source of Truth Mood Pills */}
+              <div className="mb-4">
+                <p className="text-xs text-zinc-400 mb-2">How does tonight feel for you?</p>
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-nowrap pb-1">
+                  {MOOD_PILLS.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setSelectedMood(m.key)}
+                      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border flex items-center gap-1.5 transition-all ${
+                        selectedMood === m.key
+                          ? `${m.bg} ${m.border} ${m.text} ring-1 ring-white/20 shadow-md scale-105`
+                          : "bg-white/[0.02] border-white/5 text-zinc-400 hover:border-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span>{m.icon}</span>
+                      <span>{m.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Whisper Input */}
+              <div className="mb-3">
+                <textarea
+                  value={homeWhisperText}
+                  onChange={(e) => setHomeWhisperText(e.target.value)}
+                  placeholder={`What is on your mind under this ${selectedMood} sky?`}
+                  maxLength={300}
+                  rows={3}
+                  className="w-full rounded-xl bg-black/50 border border-white/10 p-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 resize-none"
+                />
+              </div>
+
+              {/* Visibility Controls */}
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="text-xs text-zinc-500 mr-1">Visibility:</span>
+                <button
+                  type="button"
+                  onClick={() => setHomeWhisperVisibility("public")}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                    homeWhisperVisibility === "public"
+                      ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
+                      : "bg-white/[0.02] border-white/5 text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <Globe className="w-3 h-3" />
+                  Public Feed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHomeWhisperVisibility("private")}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                    homeWhisperVisibility === "private"
+                      ? "bg-purple-500/20 border-purple-500/40 text-purple-300"
+                      : "bg-white/[0.02] border-white/5 text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <Lock className="w-3 h-3" />
+                  Private Sanctuary
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHomeWhisperVisibility("resonance")}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                    homeWhisperVisibility === "resonance"
+                      ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300"
+                      : "bg-white/[0.02] border-white/5 text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <Radio className="w-3 h-3" />
+                  Resonance Match
+                </button>
+              </div>
+
+              {/* Dynamic Visibility Indicator (Strict Task 2 Requirement) */}
+              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 mb-4 flex items-center justify-between text-xs">
+                <span className="text-zinc-400 flex items-center gap-1.5">
+                  {homeWhisperVisibility === "private" ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-purple-300 font-medium">Will be saved to your private Sanctuary.</span>
+                    </>
+                  ) : homeWhisperVisibility === "resonance" ? (
+                    <>
+                      <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                      <span className="text-cyan-300 font-medium">Will enter the live 1:1 emotional frequency matcher.</span>
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                      <span className="text-indigo-300 font-medium">Will be shared with night wanderers until 6:00 AM.</span>
+                    </>
+                  )}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={!homeWhisperText.trim() || postHomeWhisperMutation.isPending}
+                  onClick={() => postHomeWhisperMutation.mutate()}
+                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium text-xs flex items-center gap-1.5 disabled:opacity-40 transition-all"
+                >
+                  {postHomeWhisperMutation.isPending ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Send className="w-3 h-3" />
+                  )}
+                  Whisper
+                </button>
+              </div>
+
+              {/* Synced Resonance Matcher Quick Link */}
+              <div className="pt-3 border-t border-white/[0.04] flex items-center justify-between text-xs">
+                <span className="text-zinc-400 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  Frequency synced: <span className="capitalize text-white font-medium">{selectedMood}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLocation("/resonance")}
+                  className="text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
+                >
+                  Seek 1:1 Resonance →
+                </button>
+              </div>
+            </section>
 
             {/* ── Services Discover Row ─────────────── */}
             <section className="nc-services-section">

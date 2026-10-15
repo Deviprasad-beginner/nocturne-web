@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { SEO } from "@/components/SEO";
 import { MusicProvider } from "@/context/MusicContext";
+import { AudioRoomProvider } from "@/context/AudioRoomContext";
 import { MusicPlayer } from "@/components/music/MusicPlayer";
 import { Background } from "@/components/layout/Background";
 import { SectionLoader } from "@/components/ui/loaders";
@@ -36,6 +37,13 @@ const ReadTonight = lazy(() => import("@/pages/read-tonight"));
 const Library = lazy(() => import("@/pages/library"));
 const BookHub = lazy(() => import("@/pages/book-hub"));
 const EbookReader = lazy(() => import("@/pages/ebook-reader"));
+const MidnightCafe = lazy(() => import("@/pages/midnight-cafe"));
+const NightcapStudio = lazy(() => import("@/pages/nightcap-studio"));
+const ResonanceDeck = lazy(() => import("@/pages/resonance-filter"));
+const ResonanceChatRoom = lazy(() => import("@/pages/resonance-chat"));
+const Feed = lazy(() => import("@/pages/feed"));
+const Sanctuary = lazy(() => import("@/pages/sanctuary"));
+const Resonance = lazy(() => import("@/pages/resonance"));
 
 // Static Pages
 const AboutPage = lazy(() => import("@/pages/static-pages").then(m => ({ default: m.AboutPage })));
@@ -106,8 +114,11 @@ function Router() {
         <Route path="/mindful-spaces" component={MindfulSpaces} />
         <Route path="/starlit-speaker" component={StarlitSpeaker} />
         <Route path="/moon-messenger" component={MoonMessenger} />
-        <Route path="/night-thoughts" component={NightThoughts} />
-        <Route path="/whispers" component={NightThoughts} />
+        {/* Core Consolidated Nocturne Routes */}
+        <Route path="/feed" component={Feed} />
+        <Route path="/sanctuary" component={Sanctuary} />
+        <Route path="/resonance" component={Resonance} />
+        <Route path="/whispers" component={Feed} />
         <Route path="/diaries" component={NightThoughts} />
         <Route path="/read-card" component={ReadCard} />
         <Route path="/read-alone" component={ReadAlone} />
@@ -116,6 +127,11 @@ function Router() {
         <Route path="/library" component={Library} />
         <Route path="/book/:id" component={BookHub} />
         <Route path="/ebook-reader/:id" component={EbookReader} />
+        <Route path="/midnight-cafe" component={MidnightCafe} />
+        <Route path="/midnight-cafe/:id" component={MidnightCafe} />
+        <Route path="/nightcap-studio" component={NightcapStudio} />
+        <Route path="/resonance-filter" component={ResonanceDeck} />
+        <Route path="/resonance-chat/:chatId" component={ResonanceChatRoom} />
 
         {/* Protected / User Specific */}
         <Route path="/settings" component={Settings} />
@@ -287,8 +303,9 @@ function App() {
   // This makes the app work regardless of auth status
   return (
     <SettingsProvider>
-      <MusicProvider>
-        <div className="min-h-screen bg-transparent flex flex-col">
+      <AudioRoomProvider>
+        <MusicProvider>
+          <div className="min-h-screen bg-transparent flex flex-col">
           <Background />
           <Header />
           <div className="flex-1">
@@ -296,7 +313,8 @@ function App() {
           </div>
         </div>
         <MusicPlayer />
-      </MusicProvider>
+        </MusicProvider>
+      </AudioRoomProvider>
     </SettingsProvider>
   );
 }

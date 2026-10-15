@@ -25,6 +25,7 @@ if (process.env.DATABASE_URL) {
   const connectionString = new URL(process.env.DATABASE_URL);
   connectionString.searchParams.delete('sslmode');
   connectionString.searchParams.delete('ssl');
+  connectionString.searchParams.delete('channel_binding');
 
   // Log connection details for debugging (masking password)
   const safeUrl = new URL(process.env.DATABASE_URL);
@@ -41,9 +42,11 @@ if (process.env.DATABASE_URL) {
     max: 20,
     // Release idle connections after 30 s to avoid Neon's idle-timeout drops.
     idleTimeoutMillis: 30_000,
-    // Neon free tier can take up to 8 s to wake from sleep (cold start).
-    // 10 s gives it enough headroom without hanging forever.
-    connectionTimeoutMillis: 10_000,
+    // Neon free tier can take up to 8-15 s to wake from sleep (cold start).
+    // 30 s gives it ample headroom to wake without dropping connections.
+    connectionTimeoutMillis: 30_000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
     // ── SSL (required for Neon) ─────────────────────────────────────────────
     ssl: {
       rejectUnauthorized: false,

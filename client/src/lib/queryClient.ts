@@ -47,7 +47,7 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
-  timeoutMs: number = 15000,  // 15s default — covers Render cold starts
+  timeoutMs: number = 30000,  // 30s default — covers Render and Neon cold starts
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

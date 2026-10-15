@@ -59,9 +59,20 @@
   }
 
   body {
-    @apply antialiased bg-background text-foreground;
+    @apply antialiased text-foreground;
+    background-color: #0A0A0C !important;
+    color: #f8fafc;
     font-family: var(--font-family) !important;
   }
+}
+
+/* OLED dark and utility classes */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* ─── UI Ecosystem Customizations ─────────────────────────────────────────── */

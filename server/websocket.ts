@@ -15,7 +15,7 @@ interface WebSocketMessage {
 interface Room {
   id: string;
   participants: Set<WebSocket>;
-  type: 'random' | 'voice' | 'circle';
+  type: 'random' | 'voice' | 'circle' | 'resonance';
   maxParticipants?: number;
 }
 
@@ -25,6 +25,7 @@ interface UserConnection {
   roomId?: string;
   circleAlias?: string;
   circleId?: number;
+  resonanceChatId?: number;
   isSearching?: boolean;
 }
 
@@ -175,6 +176,19 @@ export class WebSocketManager {
         break;
       case 'CIRCLE_MESSAGE':
         this.handleCircleMessage(ws, message.circleId, message.alias, message.content, message.emotion);
+        break;
+      // Resonance 1:1 chat events
+      case 'RESONANCE_JOIN':
+        this.handleResonanceJoin(ws, message.chatId, message.userId);
+        break;
+      case 'RESONANCE_MESSAGE':
+        this.handleResonanceMessage(ws, message.chatId, message.content, message.messageId, message.createdAt);
+        break;
+      case 'RESONANCE_TYPING':
+        this.handleResonanceTyping(ws, message.chatId);
+        break;
+      case 'RESONANCE_LEAVE':
+        this.handleResonanceLeave(ws, message.chatId);
         break;
     }
   }
@@ -400,6 +414,74 @@ export class WebSocketManager {
       alias,
       memberCount: room.participants.size,
     } as any);
+  }
+
+  // ── Resonance 1:1 Chat Handlers ──────────────────────────────────────────
+
+  private handleResonanceJoin(ws: WebSocket, chatId: number, userId: string) {
+    const roomId = `resonance_${chatId}`;
+    let room = this.rooms.get(roomId);
+
+    if (!room) {
+      room = { id: roomId, participants: new Set(), type: 'resonance', maxParticipants: 2 };
+      this.rooms.set(roomId, room);
+    }
+
+    // Only allow 2 participants
+    if (room.participants.size >= 2 && !room.participants.has(ws)) {
+      this.sendToSocket(ws, { type: 'RESONANCE_FULL', chatId });
+      return;
+    }
+
+    room.participants.add(ws);
+
+    const conn = this.connections.get(ws) ?? { ws, username: userId };
+    conn.roomId = roomId;
+    conn.resonanceChatId = chatId;
+    this.connections.set(ws, conn);
+
+    // Notify peer that their partner is online
+    this.broadcastToRoom(roomId, { type: 'RESONANCE_PEER_ONLINE', chatId, memberCount: room.participants.size }, ws);
+
+    // Confirm join to the joining socket
+    this.sendToSocket(ws, { type: 'RESONANCE_JOINED', chatId, memberCount: room.participants.size });
+
+    logger.info(`[Resonance] User ${userId} joined resonance room resonance_${chatId} (${room.participants.size}/2)`);
+  }
+
+  private handleResonanceMessage(ws: WebSocket, chatId: number, content: string, messageId: number, createdAt: string) {
+    const roomId = `resonance_${chatId}`;
+    // Broadcast to peer only
+    this.broadcastToRoom(roomId, {
+      type: 'RESONANCE_NEW_MESSAGE',
+      chatId,
+      content,
+      messageId,
+      createdAt,
+    }, ws);
+  }
+
+  private handleResonanceTyping(ws: WebSocket, chatId: number) {
+    const roomId = `resonance_${chatId}`;
+    this.broadcastToRoom(roomId, { type: 'RESONANCE_TYPING', chatId }, ws);
+  }
+
+  private handleResonanceLeave(ws: WebSocket, chatId: number) {
+    const roomId = `resonance_${chatId}`;
+    const room = this.rooms.get(roomId);
+    if (!room) return;
+
+    room.participants.delete(ws);
+    const conn = this.connections.get(ws);
+    if (conn) conn.resonanceChatId = undefined;
+
+    this.broadcastToRoom(roomId, { type: 'RESONANCE_PEER_LEFT', chatId }, ws);
+
+    if (room.participants.size === 0) {
+      this.rooms.delete(roomId);
+    }
+
+    logger.info(`[Resonance] User left resonance room resonance_${chatId}`);
   }
 
   private handleCircleMessage(ws: WebSocket, circleId: number, alias: string, content: string, emotion?: string) {

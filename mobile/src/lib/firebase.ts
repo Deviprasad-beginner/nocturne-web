@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-// @ts-ignore - Metro bundler resolves this via react-native export condition but tsc does not
-import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
+import { Platform } from 'react-native';
+import { getAuth, initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -17,10 +17,17 @@ const firebaseConfig = {
 // Initialize Firebase App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Auth with React Native Persistence (AsyncStorage)
-export const auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-});
+// Initialize Auth conditionally
+let auth: any;
+if (Platform.OS === 'web') {
+    auth = getAuth(app);
+} else {
+    const { getReactNativePersistence } = require("firebase/auth");
+    auth = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage),
+    });
+}
+export { auth };
 
 // Initialize Firestore
 export const db = getFirestore(app);

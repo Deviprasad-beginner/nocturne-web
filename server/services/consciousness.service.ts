@@ -28,7 +28,7 @@ export class ConsciousnessService {
         // Calculate new metrics
         // For now, simple aggregation
         const recentWhispers = await db.select({
-            emotion: whispers.detectedEmotion
+            emotion: whispers.mood
         }).from(whispers).limit(100);
 
         const emotionCounts: Record<string, number> = {};

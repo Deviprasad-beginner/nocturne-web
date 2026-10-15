@@ -32,9 +32,10 @@ export function Footer() {
                 <div>
                     <h3 className="text-white font-semibold mb-4 text-sm tracking-wider uppercase">Platform</h3>
                     <ul className="space-y-2 text-sm">
-                        <li><Link href="/about"><a className="hover:text-indigo-300 transition-colors">About Us</a></Link></li>
-                        <li><Link href="/about"><a className="hover:text-indigo-300 transition-colors">Our Vision</a></Link></li>
-                        <li><Link href="/contact"><a className="hover:text-indigo-300 transition-colors">Contact</a></Link></li>
+                        <li><Link href="/resonance" className="hover:text-indigo-300 transition-colors">Resonance 1:1</Link></li>
+                        <li><Link href="/about" className="hover:text-indigo-300 transition-colors">About Us</Link></li>
+                        <li><Link href="/about" className="hover:text-indigo-300 transition-colors">Our Vision</Link></li>
+                        <li><Link href="/contact" className="hover:text-indigo-300 transition-colors">Contact</Link></li>
                     </ul>
                 </div>
 
@@ -42,9 +43,9 @@ export function Footer() {
                 <div>
                     <h3 className="text-white font-semibold mb-4 text-sm tracking-wider uppercase">Legal</h3>
                     <ul className="space-y-2 text-sm">
-                        <li><Link href="/privacy-policy"><a className="hover:text-indigo-300 transition-colors">Privacy Policy</a></Link></li>
-                        <li><Link href="/terms"><a className="hover:text-indigo-300 transition-colors">Terms of Service</a></Link></li>
-                        <li><Link href="/privacy-policy"><a className="hover:text-indigo-300 transition-colors">Cookie Policy</a></Link></li>
+                        <li><Link href="/privacy-policy" className="hover:text-indigo-300 transition-colors">Privacy Policy</Link></li>
+                        <li><Link href="/terms" className="hover:text-indigo-300 transition-colors">Terms of Service</Link></li>
+                        <li><Link href="/privacy-policy" className="hover:text-indigo-300 transition-colors">Cookie Policy</Link></li>
                     </ul>
                 </div>
 
@@ -52,8 +53,8 @@ export function Footer() {
                 <div>
                     <h3 className="text-white font-semibold mb-4 text-sm tracking-wider uppercase">Community</h3>
                     <ul className="space-y-2 text-sm">
-                        <li><Link href="/guidelines"><a className="hover:text-indigo-300 transition-colors">Guidelines</a></Link></li>
-                        <li><Link href="/help"><a className="hover:text-indigo-300 transition-colors">Help Center</a></Link></li>
+                        <li><Link href="/guidelines" className="hover:text-indigo-300 transition-colors">Guidelines</Link></li>
+                        <li><Link href="/help" className="hover:text-indigo-300 transition-colors">Help Center</Link></li>
                     </ul>
                 </div>
             </div>

@@ -23,7 +23,11 @@ export default function ThoughtsScreen() {
     });
 
     const postMutation = useMutation({
-        mutationFn: (content: string) => api.post('/thoughts', { content, isAnonymous: true }),
+        mutationFn: (content: string) => api.post('/thoughts', { 
+            content, 
+            thoughtType: 'text', 
+            isPrivate: false 
+        }),
         onSuccess: () => {
             haptics.success();
             setThought('');
@@ -46,8 +50,8 @@ export default function ThoughtsScreen() {
             <View style={styles.compose}>
                 <TextInput
                     style={styles.input}
-                    placeholder="What's on your mind tonight?"
-                    placeholderTextColor="#374151"
+                    placeholder="Write something you wouldn't say during the day..."
+                    placeholderTextColor="#4b4b5f"
                     value={thought}
                     onChangeText={setThought}
                     multiline
@@ -61,13 +65,13 @@ export default function ThoughtsScreen() {
                     }}
                     activeOpacity={0.8}
                 >
-                    <Feather name="zap" size={16} color="#fb7185" />
+                    <Text style={styles.postBtnText}>Whisper →</Text>
                 </TouchableOpacity>
             </View>
 
             {/* Feed */}
             {isLoading ? (
-                <ActivityIndicator color="#818cf8" style={{ marginTop: 40 }} />
+                <ActivityIndicator color="#8b6aff" style={{ marginTop: 40 }} />
             ) : (
                 <FlatList
                     data={thoughts}
@@ -78,7 +82,7 @@ export default function ThoughtsScreen() {
                         <RefreshControl
                             refreshing={isLoading}
                             onRefresh={() => { haptics.light(); refetch(); }}
-                            tintColor="#818cf8"
+                            tintColor="#8b6aff"
                         />
                     }
                     renderItem={({ item }: any) => (
@@ -93,7 +97,7 @@ export default function ThoughtsScreen() {
                                     onPress={() => heartMutation.mutate(item.id)}
                                     activeOpacity={0.7}
                                 >
-                                    <Feather name="heart" size={13} color="#fb7185" />
+                                    <Feather name="heart" size={13} color="#8b6aff" />
                                     <Text style={styles.hearts}>{item.hearts || 0}</Text>
                                 </TouchableOpacity>
                             </View>
@@ -110,34 +114,39 @@ export default function ThoughtsScreen() {
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: '#000000' },
+    safe: { flex: 1, backgroundColor: '#07070a' },
     compose: {
-        flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12,
+        paddingHorizontal: 16, paddingVertical: 16,
         borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)',
+        gap: 12,
     },
     input: {
-        flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
-        borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-        color: '#e2e8f0', fontSize: 14, maxHeight: 80,
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+        color: '#f0f0f5', fontSize: 15, minHeight: 80,
     },
     postBtn: {
-        width: 44, height: 44, borderRadius: 12,
-        backgroundColor: 'rgba(251,113,133,0.1)',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 20, paddingVertical: 10,
+        borderRadius: 20,
+        backgroundColor: '#8b6aff',
         alignItems: 'center', justifyContent: 'center',
     },
-    list: { paddingHorizontal: 16, paddingTop: 8 },
-    card: {
-        backgroundColor: '#0a0a0a',
-        borderRadius: 14, borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
-        padding: 14, marginBottom: 10,
+    postBtnText: {
+        color: '#fff', fontSize: 14, fontWeight: '600'
     },
-    content: { color: '#d1d5db', fontSize: 14, lineHeight: 22 },
-    footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-    time: { color: '#4b5563', fontSize: 10 },
-    heartRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    hearts: { color: '#fb7185', fontSize: 12 },
-    empty: { color: '#374151', textAlign: 'center', marginTop: 60, fontSize: 14, fontStyle: 'italic' },
+    list: { paddingHorizontal: 16, paddingTop: 16 },
+    card: {
+        backgroundColor: 'rgba(18, 18, 25, 0.7)',
+        borderRadius: 16, borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+        padding: 16, marginBottom: 12,
+    },
+    content: { color: '#f0f0f5', fontSize: 15, lineHeight: 24, fontFamily: 'DM Sans' },
+    footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
+    time: { color: '#6b6b7f', fontSize: 11 },
+    heartRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    hearts: { color: '#8b6aff', fontSize: 12 },
+    empty: { color: '#6b6b7f', textAlign: 'center', marginTop: 60, fontSize: 14, fontStyle: 'italic' },
 });

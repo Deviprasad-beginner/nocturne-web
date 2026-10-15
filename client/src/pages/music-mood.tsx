@@ -2,8 +2,21 @@ import { Link } from "wouter";
 import {
     Moon, Search, Heart, User, BookOpen, Layers, Camera,
     Wind, Brain, Headphones, Activity, Droplets, X, RefreshCw,
-    ListPlus, Plus, Trash2, Music2, ExternalLink, Clock
+    ListPlus, Plus, Trash2, Music2, ExternalLink, Clock, ArrowLeft
 } from "lucide-react";
+import { FeaturedCard } from "@/components/music/FeaturedCard";
+import { CategoryCard } from "@/components/music/CategoryCard";
+import { MusicCard } from "@/components/music/MusicCard";
+import { NightTones } from "@/components/music/NightTones";
+import { SEO } from "@/components/SEO";
+import { useMusic } from "@/context/MusicContext";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Track } from "@/lib/audioPlayer";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 
 // Instrument inspiration tiles
 const INSTRUMENTS = [
@@ -40,19 +53,6 @@ const INSTRUMENTS = [
         searchQuery: "flute beginner lessons meditation music",
     },
 ];
-import { FeaturedCard } from "@/components/music/FeaturedCard";
-import { CategoryCard } from "@/components/music/CategoryCard";
-import { MusicCard } from "@/components/music/MusicCard";
-import { NightTones } from "@/components/music/NightTones";
-import { SEO } from "@/components/SEO";
-import { useMusic } from "@/context/MusicContext";
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Track } from "@/lib/audioPlayer";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { cn } from "@/lib/utils";
 
 // Category definitions — each uses a SINGLE valid Jamendo tag (comma-separated breaks the API)
 const CATEGORIES = [
@@ -179,6 +179,13 @@ export default function MusicMood() {
 
     // Playlists-related states
     const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
+
+    // Fetch user's favorite tracks
+    const { data: favoritesResponse, isLoading: isFavoritesLoading } = useQuery<{ success: boolean; data: any[] }>({
+        queryKey: ["/api/v1/music/favorites/tracks"],
+        enabled: !!user,
+    });
+    const favoriteTracks = favoritesResponse?.data ?? [];
 
     // Fetch user's playlists
     const { data: playlistsResponse, isLoading: playlistsLoading } = useQuery<{ success: boolean; data: any[] }>({
@@ -344,8 +351,12 @@ export default function MusicMood() {
         }
     };
 
+    const isFavorites = selectedId === "favorites";
     const isPlaylist = selectedId?.startsWith("playlist-");
-    const displayTracks: Track[] = isPlaylist
+    
+    const displayTracks: Track[] = isFavorites
+        ? favoriteTracks
+        : isPlaylist
         ? (playlistTracksResponse?.data ?? []).map((t: any) => ({
             id: String(t.trackId),
             title: t.trackTitle,
@@ -356,7 +367,7 @@ export default function MusicMood() {
         }))
         : dynamicTracks;
 
-    const isTracksLoading = isPlaylist ? isPlaylistTracksLoading : isLoading;
+    const isTracksLoading = isFavorites ? isFavoritesLoading : isPlaylist ? isPlaylistTracksLoading : isLoading;
     const isTracksError = isPlaylist ? isPlaylistTracksError : isError;
     const handleTracksRetry = isPlaylist ? refetchPlaylistTracks : refetch;
 
@@ -467,7 +478,10 @@ export default function MusicMood() {
             {/* ── Main Content ──────────────────────────────── */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12 space-y-10 sm:space-y-16">
 
-                <NightTones />
+                {/* ── Dashboard View ── */}
+                {!selectedId ? (
+                    <>
+                        <NightTones />
 
                 {/* Featured Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -531,10 +545,10 @@ export default function MusicMood() {
                     </div>
                 </div>
 
-                {/* My Playlists */}
+                {/* My Playlists & Favorites */}
                 <div>
                     <h2 className="text-xl font-medium mb-6 tracking-wide flex items-center justify-between">
-                        <span>My Playlists</span>
+                        <span>My Playlists & Favorites</span>
                         {user && (
                             <button
                                 onClick={() => {
@@ -572,6 +586,34 @@ export default function MusicMood() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {/* Favorite Songs Card */}
+                            <div
+                                onClick={() => {
+                                    setSelectedId("favorites");
+                                    setActiveQuery(null);
+                                    setActivePlaylistId(null);
+                                    setActiveLabel("Favorite Songs");
+                                    setMood("relax");
+                                    setIsSearchOpen(false);
+                                }}
+                                className={cn(
+                                    "group relative rounded-2xl p-5 cursor-pointer transition-all duration-300",
+                                    "border flex flex-col justify-between h-28",
+                                    selectedId === "favorites"
+                                        ? "bg-rose-500/10 border-rose-500/30 shadow-[0_0_30px_rgba(244,63,94,0.1)]"
+                                        : "bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10"
+                                )}
+                            >
+                                <div>
+                                    <h3 className="font-medium text-sm text-white group-hover:text-white/90 transition-colors truncate flex items-center gap-2">
+                                        <Heart className={cn("w-4 h-4", selectedId === "favorites" ? "text-rose-400 fill-rose-400" : "text-rose-400/50 group-hover:text-rose-400")} /> 
+                                        Favorite Songs
+                                    </h3>
+                                    <p className="text-xs text-white/40 mt-1">Your saved tracks</p>
+                                </div>
+                            </div>
+                            
+                            {/* Playlists */}
                             {playlists.map((pl: any) => {
                                 const isActive = selectedId === `playlist-${pl.id}`;
                                 return (
@@ -616,72 +658,8 @@ export default function MusicMood() {
                     )}
                 </div>
 
-                {/* ── Dynamic Track Section ─────────────────── */}
-                {selectedId ? (
-                    <div className="pt-8 border-t border-white/5">
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h2 className="text-2xl font-medium tracking-wide">{activeLabel}</h2>
-                                <p className="text-sm text-white/40 mt-1">
-                                    {isTracksLoading ? "Fetching live tracks…" : `${displayTracks.length} tracks — tap to play`}
-                                </p>
-                            </div>
-                            <button
-                                onClick={handleClear}
-                                className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors px-3 py-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-white/10"
-                            >
-                                <X className="w-3.5 h-3.5" />
-                                Clear
-                            </button>
-                        </div>
-
-                        {/* Track Grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {isTracksLoading ? (
-                                Array.from({ length: 10 }).map((_, i) => (
-                                    <div key={i} className="animate-pulse rounded-2xl bg-white/5 border border-white/5 overflow-hidden">
-                                        <div className="aspect-square bg-white/10" />
-                                        <div className="px-4 py-3.5 space-y-2">
-                                            <div className="h-4 bg-white/10 rounded w-3/4" />
-                                            <div className="h-3 bg-white/10 rounded w-1/2" />
-                                        </div>
-                                    </div>
-                                ))
-                            ) : isTracksError ? (
-                                <div className="col-span-full py-12 text-center">
-                                    <p className="text-white/40 mb-4">Couldn't load tracks. Please try again.</p>
-                                    <button
-                                        onClick={() => handleTracksRetry()}
-                                        className="flex items-center gap-2 mx-auto text-xs text-white/60 hover:text-white border border-white/10 hover:border-white/20 px-4 py-2 rounded-full transition-all"
-                                    >
-                                        <RefreshCw className="w-3.5 h-3.5" /> Retry
-                                    </button>
-                                </div>
-                            ) : displayTracks.length > 0 ? (
-                                displayTracks.map((track, i) => (
-                                    <MusicCard
-                                        key={track.id}
-                                        track={track}
-                                        queue={displayTracks.slice(i + 1)}
-                                        onRemoveFromPlaylist={isPlaylist ? handleRemoveTrack : undefined}
-                                    />
-                                ))
-                            ) : (
-                                <div className="col-span-full py-12 text-center">
-                                    <p className="text-white/40 mb-4">No tracks found. Try another category.</p>
-                                    <button
-                                        onClick={() => handleTracksRetry()}
-                                        className="flex items-center gap-2 mx-auto text-xs text-white/60 hover:text-white border border-white/10 hover:border-white/20 px-4 py-2 rounded-full transition-all"
-                                    >
-                                        <RefreshCw className="w-3.5 h-3.5" /> Try again
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    /* ── Default: Discover Section ──────────── */
+                {/* ── Default: Discover Section ──────────── */}
+                {!selectedId && (
                     <div className="pt-8 border-t border-white/5">
                         <h2 className="text-xl font-medium mb-6 tracking-wide">Discover Tonight</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -705,6 +683,89 @@ export default function MusicMood() {
                         </div>
                     </div>
                 )}
+                    </>
+                ) : (
+                    /* ── Category / Dynamic Track View ── */
+                    <div className="pt-2 sm:pt-4">
+                        {/* Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4 bg-[#12121f]/50 p-6 sm:p-8 rounded-3xl border border-white/5 relative overflow-hidden">
+                            {/* Decorative background glow based on category? Optional, can just use generic glow */}
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/10 rounded-full blur-[100px] pointer-events-none" />
+                            
+                            <div className="relative z-10 flex flex-col gap-4">
+                                <button
+                                    onClick={handleClear}
+                                    className="self-start flex items-center gap-1.5 text-xs font-semibold text-white/50 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full border border-white/5 transition-all w-max"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                    Back to Home
+                                </button>
+                                
+                                <div>
+                                    <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white mb-2">{activeLabel}</h2>
+                                    <p className="text-sm text-white/40">
+                                        {isTracksLoading ? "Fetching live tracks…" : `${displayTracks.length} tracks curated for this mood`}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Track Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {isTracksLoading ? (
+                                Array.from({ length: 10 }).map((_, i) => (
+                                    <div 
+                                        key={i} 
+                                        className="relative rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden flex flex-col"
+                                        style={{ animation: `pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite`, animationDelay: `${i * 100}ms` }}
+                                    >
+                                        <div className="aspect-square bg-gradient-to-br from-white/[0.05] to-transparent relative">
+                                            <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-xl" />
+                                            {/* Centered music icon as placeholder */}
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <Music2 className="w-8 h-8 text-white/10" />
+                                            </div>
+                                        </div>
+                                        <div className="px-4 py-4 space-y-3 relative z-10">
+                                            <div className="h-3 bg-white/[0.08] rounded-full w-2/3" />
+                                            <div className="h-2 bg-white/[0.04] rounded-full w-1/3" />
+                                        </div>
+                                    </div>
+                                ))
+                            ) : isTracksError ? (
+                                <div className="col-span-full py-20 text-center bg-white/[0.02] rounded-3xl border border-white/5">
+                                    <p className="text-white/40 mb-4">Couldn't load tracks. Please try again.</p>
+                                    <button
+                                        onClick={() => handleTracksRetry()}
+                                        className="flex items-center gap-2 mx-auto text-xs text-white hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 px-5 py-2.5 rounded-full transition-all"
+                                    >
+                                        <RefreshCw className="w-3.5 h-3.5" /> Retry
+                                    </button>
+                                </div>
+                            ) : displayTracks.length > 0 ? (
+                                displayTracks.map((track, i) => (
+                                    <MusicCard
+                                        key={track.id}
+                                        track={track}
+                                        queue={displayTracks.slice(i + 1)}
+                                        onRemoveFromPlaylist={isPlaylist ? handleRemoveTrack : undefined}
+                                    />
+                                ))
+                            ) : (
+                                <div className="col-span-full py-20 text-center bg-white/[0.02] rounded-3xl border border-white/5">
+                                    <p className="text-white/40 mb-4">No tracks found. Try another category.</p>
+                                    <button
+                                        onClick={handleClear}
+                                        className="flex items-center gap-2 mx-auto text-xs text-white hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 px-5 py-2.5 rounded-full transition-all"
+                                    >
+                                        <ArrowLeft className="w-3.5 h-3.5" /> Go Back
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
 
                 {/* Footer */}
                 <div className="flex justify-end mt-12 gap-6 text-[11px] text-white/40 uppercase tracking-wider">

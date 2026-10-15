@@ -155,13 +155,23 @@ app.use("/", sitemapRouter);
   const httpServer = createServer(app);
 
   // Test database connection
+  console.log("=== ABOUT TO TEST DATABASE CONNECTION ===");
   logger.info("Testing database connection...");
-  await testDatabaseConnection();
+  
+  try {
+    const isConnected = await testDatabaseConnection();
+    console.log("=== DATABASE CONNECTION TEST RETURNED: " + isConnected + " ===");
+  } catch (err) {
+    console.log("=== DATABASE CONNECTION TEST THREW ERROR ===");
+    console.error(err);
+  }
 
   // Setup authentication
+  console.log("=== SETUP AUTH ===");
   await import("./auth").then(({ setupAuth }) => setupAuth(app));
 
   // Mount legacy routes (will be gradually migrated)
+  console.log("=== REGISTER ROUTES ===");
   const server = await registerRoutes(app, httpServer);
 
   // Prevent Edge caching on API routes to avoid serving cached 401s
@@ -213,6 +223,11 @@ app.use("/", sitemapRouter);
       
       // Delete any Night Thoughts that have expired
       await db.execute(sql`DELETE FROM night_thoughts WHERE expires_at < NOW()`);
+      
+      // End any Night Circles that have expired
+      const { nightCirclesService } = await import("./services/night-circles.service");
+      await nightCirclesService.cleanupExpired();
+      
       logger.info("Ephemerality Job completed successfully.");
     } catch (err) {
       logger.error("Ephemerality Job failed:", err);
@@ -220,3 +235,4 @@ app.use("/", sitemapRouter);
   }, 60 * 60 * 1000);
 
 })();
+

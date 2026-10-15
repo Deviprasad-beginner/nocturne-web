@@ -11,12 +11,21 @@ import { asyncHandler } from "../../../middleware/error.middleware";
 import { storage } from "../../../storage";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { generateMidnightAlias } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
 const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
+
+// ⚠️ Startup guard: refuse to run in production without a real secret
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  throw new Error(
+    "FATAL: JWT_SECRET environment variable must be set in production. " +
+    "The hardcoded fallback is not safe for production use."
+  );
+}
 const JWT_EXPIRES_IN = "30d"; // 30 days — long-lived for mobile
 
 async function hashPassword(password: string): Promise<string> {
@@ -37,8 +46,8 @@ async function verifyPassword(supplied: string, stored: string): Promise<boolean
     return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-function signToken(userId: number, username: string): string {
-    return jwt.sign({ sub: userId, username }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+function signToken(userId: string | number, username: string | null): string {
+    return jwt.sign({ sub: String(userId), username: username || "" }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
 /**
@@ -110,11 +119,82 @@ router.post("/register", asyncHandler(async (req: Request, res: Response) => {
         password: hashed,
         email: email || null,
         displayName: displayName || username,
+        anonymousHandle: generateMidnightAlias(),
     });
 
     const token = signToken(user.id, user.username);
 
     return res.status(201).json({
+        success: true,
+        data: {
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                displayName: user.displayName,
+                email: user.email,
+            },
+        },
+    });
+}));
+
+/**
+ * POST /api/v1/auth/google
+ * Body: { idToken } — Google ID token from expo-auth-session
+ * Returns: { token, user } — Nocturne JWT
+ */
+router.post("/google", asyncHandler(async (req: Request, res: Response) => {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+        return res.status(400).json({ success: false, message: "Google ID token is required" });
+    }
+
+    // Verify token with Google's tokeninfo endpoint
+    let googlePayload: any;
+    try {
+        const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+        if (!verifyRes.ok) {
+            return res.status(401).json({ success: false, message: "Invalid Google token" });
+        }
+        googlePayload = await verifyRes.json();
+    } catch {
+        return res.status(500).json({ success: false, message: "Failed to verify Google token" });
+    }
+
+    if (!googlePayload.email || !googlePayload.email_verified) {
+        return res.status(401).json({ success: false, message: "Google account email not verified" });
+    }
+
+    const email: string = googlePayload.email.toLowerCase();
+    const displayName: string = googlePayload.name || googlePayload.email.split('@')[0];
+    // Derive a username: use the local part of the email, strip special chars
+    const baseUsername = email.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+
+    // Find existing user by email, or create one
+    let user = await storage.getUserByEmail(email);
+
+    if (!user) {
+        // Check if derived username is already taken; append suffix if so
+        let username = baseUsername;
+        let attempt = 0;
+        while (await storage.getUserByUsername(username)) {
+            attempt++;
+            username = `${baseUsername}_${attempt}`;
+        }
+
+        user = await storage.createUser({
+            username,
+            password: randomBytes(32).toString('hex'), // random unguessable password — Google auth only
+            email,
+            displayName,
+            anonymousHandle: generateMidnightAlias(),
+        });
+    }
+
+    const token = signToken(user.id, user.username);
+
+    return res.json({
         success: true,
         data: {
             token,

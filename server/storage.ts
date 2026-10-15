@@ -66,26 +66,26 @@ const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   sessionStore: session.Store;
-  getUser(id: number): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
-  updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
-  updateUserOnboarding(userId: number, completed: boolean): Promise<void>;
-  deleteUser(id: number): Promise<void>;
+  updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
+  updateUserOnboarding(userId: string, completed: boolean): Promise<void>;
+  deleteUser(id: string): Promise<void>;
 
   // Diary operations
   createDiary(diary: InsertDiary): Promise<Diary>;
-  getDiaries(viewerId?: number, limit?: number): Promise<Diary[]>;
+  getDiaries(viewerId?: string, limit?: number): Promise<Diary[]>;
   getDiary(id: number): Promise<Diary | undefined>;
   deleteDiary(id: number): Promise<boolean>;
 
   // Whisper operations
   createWhisper(whisper: InsertWhisper): Promise<Whisper>;
   getWhispers(limit?: number): Promise<Whisper[]>;
-  incrementWhisperHearts(id: number): Promise<void>;
+  incrementWhisperHearts(id: string): Promise<void>;
 
   // Mind Maze operations
   createMindMaze(mindMaze: InsertMindMaze): Promise<MindMaze>;
@@ -130,34 +130,34 @@ export interface IStorage {
   getActiveSessions(): Promise<string[]>;
 
   // Saved Stations
-  toggleSavedStation(userId: number, stationId: string): Promise<boolean>; // Returns true if saved, false if removed
-  getSavedStations(userId: number): Promise<string[]>;
+  toggleSavedStation(userId: string, stationId: string): Promise<boolean>; // Returns true if saved, false if removed
+  getSavedStations(userId: string): Promise<string[]>;
 
   // User specific getters
-  getUserWhispers(userId: number, limit?: number): Promise<Whisper[]>;
-  getUserCafePosts(userId: number, limit?: number): Promise<MidnightCafe[]>;
-  getUserDiaries(userId: number, limit?: number): Promise<Diary[]>;
-  getUserFounders(userId: number, limit?: number): Promise<AmFounder[]>;
+  getUserWhispers(userId: string, limit?: number): Promise<Whisper[]>;
+  getUserCafePosts(userId: string, limit?: number): Promise<MidnightCafe[]>;
+  getUserDiaries(userId: string, limit?: number): Promise<Diary[]>;
+  getUserFounders(userId: string, limit?: number): Promise<AmFounder[]>;
 
   // Nightly Reflection operations
   createNightlyPrompt(prompt: InsertNightlyPrompt): Promise<NightlyPrompt>;
   getActivePrompt(type?: 'diary' | 'inspection'): Promise<NightlyPrompt | undefined>; // Get non-expired prompt
   getNightlyPrompt(id: number): Promise<NightlyPrompt | undefined>;
   createUserReflection(reflection: InsertUserReflection, aiEvaluation: any): Promise<UserReflection>;
-  getUserReflections(userId: number, limit?: number): Promise<UserReflection[]>;
+  getUserReflections(userId: string, limit?: number): Promise<UserReflection[]>;
   createPersonalReflection(reflection: InsertPersonalReflection, aiReflection: string): Promise<PersonalReflection>;
-  getPersonalReflections(userId: number, limit?: number): Promise<PersonalReflection[]>;
+  getPersonalReflections(userId: string, limit?: number): Promise<PersonalReflection[]>;
 
   // Custom platform metrics and analytics
-  getUserProfileStats(userId: number): Promise<any>;
-  getUserAchievements(userId: number): Promise<any[]>;
+  getUserProfileStats(userId: string): Promise<any>;
+  getUserAchievements(userId: string): Promise<any[]>;
   getTrendingTopics(): Promise<any[]>;
   getRecentActivity(limit: number): Promise<any[]>;
   getActivityStats(): Promise<any>;
 
   // Playlist operations
-  createPlaylist(userId: number, name: string): Promise<Playlist>;
-  getUserPlaylists(userId: number): Promise<Playlist[]>;
+  createPlaylist(userId: string, name: string): Promise<Playlist>;
+  getUserPlaylists(userId: string): Promise<Playlist[]>;
   getPlaylist(playlistId: number): Promise<Playlist | undefined>;
   addTrackToPlaylist(playlistId: number, track: Omit<InsertPlaylistTrack, "playlistId">): Promise<PlaylistTrack>;
   removeTrackFromPlaylist(playlistId: number, trackId: string): Promise<void>;
@@ -202,8 +202,8 @@ export class MemoryStorage implements IStorage {
     this.playlistTracks = [];
   }
 
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.find(u => u.id === id);
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.find(u => String(u.id) === String(id));
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -219,10 +219,13 @@ export class MemoryStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.nextId++;
+    const id = (insertUser as any).id || `usr-${this.nextId++}`;
     const user: User = {
       ...insertUser,
       id,
+      username: insertUser.username || null,
+      firebaseUid: insertUser.firebaseUid || null,
+      anonymousHandle: insertUser.anonymousHandle || `Nocturne-${this.nextId}`,
       password: insertUser.password || null,
       googleId: insertUser.googleId || null,
       displayName: insertUser.displayName || null,
@@ -253,8 +256,8 @@ export class MemoryStorage implements IStorage {
     throw new Error("Upsert not implemented for MemoryStorage");
   }
 
-  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
-    const index = this.users.findIndex(u => u.id === id);
+  async updateUser(id: string, data: Partial<User>): Promise<User | undefined> {
+    const index = this.users.findIndex(u => String(u.id) === String(id));
     if (index !== -1) {
       this.users[index] = { ...this.users[index], ...data };
       return this.users[index];
@@ -262,15 +265,15 @@ export class MemoryStorage implements IStorage {
     return undefined;
   }
 
-  async updateUserOnboarding(userId: number, completed: boolean): Promise<void> {
-    const user = this.users.find(u => u.id === userId);
+  async updateUserOnboarding(userId: string, completed: boolean): Promise<void> {
+    const user = this.users.find(u => String(u.id) === String(userId));
     if (user) {
       user.hasSeenOnboarding = completed;
     }
   }
 
-  async deleteUser(id: number): Promise<void> {
-    const index = this.users.findIndex(u => u.id === id);
+  async deleteUser(id: string): Promise<void> {
+    const index = this.users.findIndex(u => String(u.id) === String(id));
     if (index !== -1) {
       this.users.splice(index, 1);
     }
@@ -293,7 +296,7 @@ export class MemoryStorage implements IStorage {
 
     // Update streak (Memory)
     if (diary.authorId) {
-      const user = this.users.find(u => u.id === diary.authorId);
+      const user = this.users.find(u => String(u.id) === String(diary.authorId));
       if (user) {
         const now = new Date();
         const lastEntry = user.lastEntryDate ? new Date(user.lastEntryDate) : null;
@@ -319,7 +322,7 @@ export class MemoryStorage implements IStorage {
     return newDiary;
   }
 
-  async getDiaries(viewerId?: number, limit?: number): Promise<Diary[]> {
+  async getDiaries(viewerId?: string, limit?: number): Promise<Diary[]> {
     const diaries = Array.from(this.diaries.values())
       .filter((diary) => diary.isPublic || (viewerId && diary.authorId === viewerId))
       .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
@@ -341,26 +344,13 @@ export class MemoryStorage implements IStorage {
   // Whisper operations
   async createWhisper(whisper: InsertWhisper): Promise<Whisper> {
     const newWhisper: Whisper = {
-      id: this.nextId++,
+      id: `whisper-${this.nextId++}`,
       content: whisper.content,
-      hearts: 0,
-      authorId: whisper.authorId || null,
-      detectedEmotion: whisper.detectedEmotion || null,
-      sentimentScore: whisper.sentimentScore || null,
-      reflectionDepth: whisper.reflectionDepth || null,
+      mood: whisper.mood,
+      visibility: (whisper.visibility as any) || 'public',
+      authorId: whisper.authorId || `usr-${this.nextId}`,
       createdAt: new Date(),
-      decayStage: whisper.decayStage || 'fresh',
-      decayProgress: whisper.decayProgress || 0,
-      visibilityOpacity: whisper.visibilityOpacity || 100,
-      audioFrequency: whisper.audioFrequency || 444,
-      resonanceScore: 0,
-      // @ts-ignore
-      interactionCount: whisper.interactionCount || 0,
-      // @ts-ignore
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      type: null,
-      embedding: null,
-      isAnonymous: whisper.isAnonymous ?? false
+      expiresAt: whisper.expiresAt || new Date(Date.now() + 12 * 60 * 60 * 1000),
     };
     this.whispers.push(newWhisper);
     return newWhisper;
@@ -371,11 +361,8 @@ export class MemoryStorage implements IStorage {
     return limit ? whispers.slice(0, limit) : whispers;
   }
 
-  async incrementWhisperHearts(id: number): Promise<void> {
-    const whisper = this.whispers.find(w => w.id === id);
-    if (whisper && whisper.hearts !== null) {
-      whisper.hearts++;
-    }
+  async incrementWhisperHearts(id: string): Promise<void> {
+    // Legacy no-op
   }
 
   // Mind Maze operations
@@ -651,7 +638,7 @@ export class MemoryStorage implements IStorage {
   }
 
   // Saved Stations
-  async toggleSavedStation(userId: number, stationId: string): Promise<boolean> {
+  async toggleSavedStation(userId: string, stationId: string): Promise<boolean> {
     const existingIndex = this.savedStations.findIndex(s => s.userId === userId && s.stationId === stationId);
     if (existingIndex >= 0) {
       this.savedStations.splice(existingIndex, 1);
@@ -667,25 +654,29 @@ export class MemoryStorage implements IStorage {
     }
   }
 
-  async getSavedStations(userId: number): Promise<string[]> {
+  async getSavedStations(userId: string): Promise<string[]> {
     return this.savedStations
       .filter(s => s.userId === userId)
       .map(s => s.stationId);
   }
 
-  async getUserWhispers(userId: number, limit?: number): Promise<Whisper[]> {
-    return this.whispers.filter(w => w.authorId === userId).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  async getUserWhispers(userId: string, limit?: number): Promise<Whisper[]> {
+    const safeLimit = limit ?? 20;
+    return this.whispers
+      .filter(w => String(w.authorId) === String(userId))
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
+      .slice(0, safeLimit);
   }
 
-  async getUserCafePosts(userId: number, limit?: number): Promise<MidnightCafe[]> {
+  async getUserCafePosts(userId: string, limit?: number): Promise<MidnightCafe[]> {
     return this.midnightCafes.filter(c => c.authorId === userId).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
-  async getUserDiaries(userId: number, limit?: number): Promise<Diary[]> {
+  async getUserDiaries(userId: string, limit?: number): Promise<Diary[]> {
     return this.diaries.filter(diary => diary.authorId === userId).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
-  async getUserFounders(userId: number, limit?: number): Promise<AmFounder[]> {
+  async getUserFounders(userId: string, limit?: number): Promise<AmFounder[]> {
     return this.amFounders.filter(f => f.authorId === userId).sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
@@ -737,7 +728,7 @@ export class MemoryStorage implements IStorage {
     return newReflection;
   }
 
-  async getUserReflections(userId: number, limit = 20): Promise<UserReflection[]> {
+  async getUserReflections(userId: string, limit = 20): Promise<UserReflection[]> {
     // In memory storage doesn't persist reflections
     return [];
   }
@@ -752,16 +743,16 @@ export class MemoryStorage implements IStorage {
     return newReflection;
   }
 
-  async getPersonalReflections(userId: number, limit = 20): Promise<PersonalReflection[]> {
+  async getPersonalReflections(userId: string, limit = 20): Promise<PersonalReflection[]> {
     // In memory storage doesn't persist personal reflections
     return [];
   }
 
-  async getUserProfileStats(userId: number): Promise<any> {
+  async getUserProfileStats(userId: string): Promise<any> {
     const diary_posts = this.diaries.filter(d => d.authorId === userId).length;
-    const whisper_posts = this.whispers.filter(w => w.authorId === userId).length;
+    const whisper_posts = this.whispers.filter(w => String(w.authorId) === String(userId)).length;
     const cafe_posts = this.midnightCafes.filter(c => c.authorId === userId).length;
-    const total_hearts = this.whispers.filter(w => w.authorId === userId).reduce((sum, w) => sum + (w.hearts || 0), 0);
+    const total_hearts = 0;
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const activeDaysSet = new Set<string>();
@@ -771,11 +762,11 @@ export class MemoryStorage implements IStorage {
       }
     };
     this.diaries.filter(d => d.authorId === userId).forEach(d => addActiveDay(d.createdAt));
-    this.whispers.filter(w => w.authorId === userId).forEach(w => addActiveDay(w.createdAt));
+    this.whispers.filter(w => String(w.authorId) === String(userId)).forEach(w => addActiveDay(w.createdAt));
     this.midnightCafes.filter(c => c.authorId === userId).forEach(c => addActiveDay(c.createdAt));
     const activeDaysLastWeek = activeDaysSet.size;
 
-    const user = this.users.find(u => u.id === userId);
+    const user = this.users.find(u => String(u.id) === String(userId));
     const createdAt = user?.createdAt ? new Date(user.createdAt) : new Date();
     const accountAgeDays = Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
 
@@ -800,12 +791,12 @@ export class MemoryStorage implements IStorage {
     };
   }
 
-  async getUserAchievements(userId: number): Promise<any[]> {
+  async getUserAchievements(userId: string): Promise<any[]> {
     const diary_posts = this.diaries.filter(d => d.authorId === userId).length;
-    const whisper_posts = this.whispers.filter(w => w.authorId === userId).length;
+    const whisper_posts = this.whispers.filter(w => String(w.authorId) === String(userId)).length;
     const cafe_posts = this.midnightCafes.filter(c => c.authorId === userId).length;
-    const total_hearts = this.whispers.filter(w => w.authorId === userId).reduce((sum, w) => sum + (w.hearts || 0), 0);
-    const has_first_heart = this.whispers.some(w => w.authorId === userId && (w.hearts || 0) > 0);
+    const total_hearts = 0;
+    const has_first_heart = false;
 
     const achievements = [];
     if (diary_posts >= 1) {
@@ -998,7 +989,7 @@ export class MemoryStorage implements IStorage {
   }
 
   // Playlist operations
-  async createPlaylist(userId: number, name: string): Promise<Playlist> {
+  async createPlaylist(userId: string, name: string): Promise<Playlist> {
     const playlist: Playlist = {
       id: this.nextId++,
       userId,
@@ -1009,7 +1000,7 @@ export class MemoryStorage implements IStorage {
     return playlist;
   }
 
-  async getUserPlaylists(userId: number): Promise<Playlist[]> {
+  async getUserPlaylists(userId: string): Promise<Playlist[]> {
     return this.playlists.filter(p => p.userId === userId);
   }
 
@@ -1177,7 +1168,7 @@ export class DatabaseStorage implements IStorage {
   createPersonalReflection = ReflectionRepo.createPersonalReflection;
   getPersonalReflections = ReflectionRepo.getPersonalReflections;
 
-  async getUserProfileStats(userId: number): Promise<any> {
+  async getUserProfileStats(userId: string): Promise<any> {
     const stats = await db.execute(sql`
         SELECT 
             COALESCE((SELECT COUNT(*) FROM ${diaries} WHERE author_id = ${userId}), 0) as diary_posts,
@@ -1227,7 +1218,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getUserAchievements(userId: number): Promise<any[]> {
+  async getUserAchievements(userId: string): Promise<any[]> {
     const achievementChecks = await db.execute(sql`
         SELECT 
             EXISTS(SELECT 1 FROM ${diaries} WHERE author_id = ${userId} LIMIT 1) as has_first_diary,

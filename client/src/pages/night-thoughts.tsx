@@ -878,7 +878,7 @@ export default function NightThoughtsPage() {
 
 interface CommentPanelProps {
     endpoint: string;
-    user: { id: number; username: string } | null;
+    user: any;
     replyInput: string;
     onReplyChange: (val: string) => void;
     onSubmit: () => void;

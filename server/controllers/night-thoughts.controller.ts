@@ -16,10 +16,10 @@ export class NightThoughtsController {
 
             if (thoughtType) filters.thoughtType = thoughtType as string;
             if (isPrivate !== undefined) filters.isPrivate = isPrivate === 'true';
-            if (authorId) filters.authorId = parseInt(authorId as string);
+            if (authorId) filters.authorId = authorId as string;
 
             // Only show public thoughts unless requesting own thoughts
-            if (!authorId || (req.user && parseInt(authorId as string) !== req.user.id)) {
+            if (!authorId || (req.user && (authorId as string) !== req.user.id)) {
                 filters.isPrivate = false;
             }
 
@@ -27,6 +27,20 @@ export class NightThoughtsController {
             res.json(thoughts);
         } catch (error) {
             logger.error('Error fetching thoughts:', error);
+            next(error);
+        }
+    };
+
+    /**
+     * GET /api/v1/thoughts/trending
+     * Get trending topics based on recent whispers
+     */
+    getTrending = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const trending = await nightThoughtsService.getTrending();
+            res.json(trending);
+        } catch (error) {
+            logger.error('Error fetching trending topics:', error);
             next(error);
         }
     };
@@ -222,10 +236,10 @@ export class NightThoughtsController {
     getRecommendations = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { text, mood } = req.body;
-            if (!text) {
-                return res.status(400).json({ error: 'Text is required for recommendations' });
+            if (!text && !mood) {
+                return res.status(400).json({ error: 'Text or mood is required for recommendations' });
             }
-            const recommendations = await nightThoughtsService.getRecommendations(text, mood);
+            const recommendations = await nightThoughtsService.getRecommendations(text || '', mood);
             res.json(recommendations);
         } catch (error) {
             logger.error('Error getting recommendations:', error);

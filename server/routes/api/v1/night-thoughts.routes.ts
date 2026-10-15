@@ -6,11 +6,16 @@ const router = Router();
 // GET /api/v1/thoughts - Get all night thoughts with optional filters
 router.get("/", nightThoughtsController.getAll);
 
-// GET /api/v1/thoughts/:id - Get a single thought by ID
-router.get("/:id", nightThoughtsController.getById);
+// GET /api/v1/thoughts/trending - Get trending topics
+// ⚠️ MUST be before /:id — otherwise Express captures "trending" as an ID param
+router.get("/trending", nightThoughtsController.getTrending);
 
 // POST /api/v1/thoughts/resonate - Get recommendations for a whisper
+// ⚠️ MUST be before /:id — otherwise "resonate" is captured as an ID
 router.post("/resonate", nightThoughtsController.getRecommendations);
+
+// GET /api/v1/thoughts/:id - Get a single thought by ID
+router.get("/:id", nightThoughtsController.getById);
 
 // POST /api/v1/thoughts - Create a new night thought
 router.post("/", nightThoughtsController.create);

@@ -58,16 +58,20 @@ export default function WhispersScreen() {
 
     const MAX_CHARS = 200;
 
-    // Fetch whispers
+    // Fetch whispers — server: GET /api/v1/whispers/feed
     const { data: whispers = [], isLoading } = useQuery<Whisper[]>({
         queryKey: ['whispers'],
-        queryFn: () => api.get('/whispers').then(r => r.data ?? []),
+        queryFn: () => api.get('/whispers/feed').then(r => r.data?.whispers ?? r.data ?? []),
     });
 
-    // Create whisper
+    // Create whisper — server: POST /api/v1/whispers
     const createMutation = useMutation({
         mutationFn: (data: { content: string; mood?: string | null }) =>
-            api.post('/whispers', data).then(r => r.data),
+            api.post('/whispers', {
+                content: data.content,
+                mood: data.mood || 'inspired', // mood is required by server schema
+                visibility: 'public',           // default to public feed
+            }).then(r => r.data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['whispers'] });
             setNewWhisper('');
@@ -77,7 +81,7 @@ export default function WhispersScreen() {
         },
     });
 
-    // React to whisper
+    // React to whisper — server: POST /api/v1/whispers/:id/react
     const reactMutation = useMutation({
         mutationFn: (data: { id: number; type: ReactionType }) =>
             api.post(`/whispers/${data.id}/react`, { type: data.type }).then(r => r.data),

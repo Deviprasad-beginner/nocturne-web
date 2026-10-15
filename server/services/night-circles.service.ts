@@ -99,7 +99,7 @@ export class NightCirclesService {
 
     // ── Quick Join: match engine ───────────────────────────────────────────────
     async quickJoin(
-        userId: number | undefined,
+        userId: string | undefined,
         mood?: string,
         preferredMode: "silent" | "listener" | "speaker" = "listener",
         preferredEmotion?: string,
@@ -174,7 +174,7 @@ export class NightCirclesService {
     // ── Join a circle: assign alias, record membership, update lifecycle ───────
     async joinCircle(
         circleId: number,
-        userId: number | undefined,
+        userId: string | undefined,
         mode: "silent" | "listener" | "speaker" = "listener"
     ): Promise<CircleMember> {
         return await db.transaction(async (tx) => {
@@ -215,7 +215,7 @@ export class NightCirclesService {
     }
 
     // ── Leave a circle: decrement member count, update lifecycle ──────────────
-    async leaveCircle(circleId: number, userId: number): Promise<void> {
+    async leaveCircle(circleId: number, userId: string): Promise<void> {
         await db.transaction(async (tx) => {
             const [member] = await tx
                 .select()
@@ -260,7 +260,7 @@ export class NightCirclesService {
         content: string,
         imageUrl?: string
     ): Promise<CircleMessage> {
-        const emotion = analyzeEmotion(content || "image");
+        const emotion = await analyzeEmotion(content || "image");
 
         const [message] = await db.insert(circleMessages).values({
             circleId,

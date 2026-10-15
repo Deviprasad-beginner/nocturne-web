@@ -19,22 +19,38 @@ router.get("/", async (req, res) => {
     }
 });
 
-// POST /api/v1/circles - Create a new circle manually
-router.post("/", requireAuth, async (req, res) => {
+// POST /api/v1/circles - Create a new circle
+// Auth is optional — anonymous users can create circles. The author's userId is attached if authenticated.
+router.post("/", async (req, res) => {
     try {
         const { name, description, maxMembers, topic, category } = req.body;
-        if (!name?.trim()) return res.status(400).json({ success: false, error: "Name is required" });
+
+        if (!name?.trim()) {
+            return res.status(400).json({ success: false, error: "Name is required" });
+        }
+        if (name.trim().length > 100) {
+            return res.status(400).json({ success: false, error: "Name must be 100 characters or fewer" });
+        }
+        if (description && description.length > 500) {
+            return res.status(400).json({ success: false, error: "Description must be 500 characters or fewer" });
+        }
+
+        const parsedMax = maxMembers ? parseInt(maxMembers) : 10;
+        if (isNaN(parsedMax) || parsedMax < 2 || parsedMax > 50) {
+            return res.status(400).json({ success: false, error: "maxMembers must be between 2 and 50" });
+        }
 
         const circle = await nightCirclesService.createCircle({
-            name,
-            description,
-            maxMembers,
-            topic,
-            category,
-            roomType: "custom"
+            name: name.trim(),
+            description: description?.trim() || null,
+            maxMembers: parsedMax,
+            topic: topic?.trim() || null,
+            category: category?.trim() || null,
+            roomType: "custom",
         });
         res.status(201).json({ success: true, data: circle });
     } catch (err) {
+        console.error("Error creating circle:", err);
         res.status(500).json({ success: false, error: "Failed to create circle" });
     }
 });

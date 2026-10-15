@@ -10,13 +10,18 @@ import { storage } from "../storage";
 
 const JWT_SECRET = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
 
+// Warn loudly in development if JWT_SECRET is not set
+if (!process.env.JWT_SECRET) {
+    console.warn("[auth.middleware] JWT_SECRET is not set — using insecure fallback. Set JWT_SECRET in your .env file.");
+}
+
 /** Attach JWT user to req if a valid Bearer token is present */
 async function attachJwtUser(req: Request): Promise<boolean> {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) return false;
     try {
         const token = authHeader.slice(7);
-        const payload = jwt.verify(token, JWT_SECRET) as unknown as { sub: number };
+        const payload = jwt.verify(token, JWT_SECRET) as unknown as { sub: string };
         const user = await storage.getUser(payload.sub);
         if (!user) return false;
         (req as any).user = user;

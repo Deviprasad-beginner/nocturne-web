@@ -68,7 +68,7 @@ export async function createUserReflection(
     // Update streak logic
     if (reflection.userId) {
       try {
-        const [user] = await db.select().from(users).where(eq(users.id, reflection.userId));
+        const [user] = await db.select().from(users).where(eq(users.id, String(reflection.userId)));
         if (user) {
           const now = new Date();
           const lastEntry = user.lastEntryDate ? new Date(user.lastEntryDate) : null;
@@ -87,7 +87,7 @@ export async function createUserReflection(
           if (!lastEntry || newStreak !== user.currentStreak || now.getDate() !== lastEntry.getDate()) {
             await db.update(users)
               .set({ currentStreak: newStreak, lastEntryDate: now })
-              .where(eq(users.id, reflection.userId));
+              .where(eq(users.id, String(reflection.userId)));
           }
         }
       } catch (error) {
@@ -102,7 +102,7 @@ export async function createUserReflection(
   }
 }
 
-export async function getUserReflections(userId: number, limit = 20): Promise<UserReflection[]> {
+export async function getUserReflections(userId: string, limit = 20): Promise<UserReflection[]> {
   try {
     return await db
       .select()
@@ -142,7 +142,7 @@ export async function createPersonalReflection(
   }
 }
 
-export async function getPersonalReflections(userId: number, limit = 20): Promise<PersonalReflection[]> {
+export async function getPersonalReflections(userId: string, limit = 20): Promise<PersonalReflection[]> {
   try {
     const reflections = await db
       .select()

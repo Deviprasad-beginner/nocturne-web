@@ -73,10 +73,10 @@ export default function NightCirclesScreen() {
     const [selectedMode, setSelectedMode] = useState<JoinMode>('listener');
     const [refreshing, setRefreshing] = useState(false);
 
-    // Fetch circles
+    // Fetch circles — server: GET /api/v1/circles
     const { data: circles = [], isLoading } = useQuery<NightCircle[]>({
         queryKey: ['night-circles'],
-        queryFn: () => api.get('/night-circles').then(r => r.data ?? []),
+        queryFn: () => api.get('/circles').then(r => r.data ?? []),
     });
 
     // Quick join

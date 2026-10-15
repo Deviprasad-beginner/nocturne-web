@@ -10,7 +10,7 @@ export class UserService {
     /**
      * Get user's whispers
      */
-    async getUserWhispers(userId: number): Promise<Whisper[]> {
+    async getUserWhispers(userId: string): Promise<Whisper[]> {
         logger.debug(`Fetching whispers for user: ${userId}`);
         return await storage.getUserWhispers(userId);
     }
@@ -18,7 +18,7 @@ export class UserService {
     /**
      * Get user's cafe posts
      */
-    async getUserCafePosts(userId: number): Promise<MidnightCafe[]> {
+    async getUserCafePosts(userId: string): Promise<MidnightCafe[]> {
         logger.debug(`Fetching cafe posts for user: ${userId}`);
         return await storage.getUserCafePosts(userId);
     }
@@ -26,7 +26,7 @@ export class UserService {
     /**
      * Get user's favorite music stations
      */
-    async getUserFavoriteStations(userId: number): Promise<any[]> {
+    async getUserFavoriteStations(userId: string): Promise<any[]> {
         logger.debug(`Fetching favorite stations for user: ${userId}`);
         return await storage.getSavedStations(userId);
     }
@@ -34,7 +34,7 @@ export class UserService {
     /**
      * Update user settings
      */
-    async updateUserSettings(userId: number, data: any): Promise<any> {
+    async updateUserSettings(userId: string, data: any): Promise<any> {
         logger.debug(`Updating settings for user: ${userId}`);
         
         // Extract top-level fields
@@ -68,7 +68,7 @@ export class UserService {
     /**
      * Check in the user for the Moon Phase streak
      */
-    async checkInUser(userId: number): Promise<any> {
+    async checkInUser(userId: string, timezoneOffset: number = 0): Promise<any> {
         logger.debug(`Checking in user: ${userId}`);
         const user = await storage.getUser(userId);
         if (!user) throw new Error("User not found");
@@ -85,9 +85,13 @@ export class UserService {
             newPhase = 1; // From 0 (New Moon) to 1
             shouldUpdate = true;
         } else {
-            // Compare UTC dates
-            const lastDate = new Date(Date.UTC(lastCheckIn.getUTCFullYear(), lastCheckIn.getUTCMonth(), lastCheckIn.getUTCDate()));
-            const currDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            // Apply timezone offset (in minutes) to shift UTC time to pseudo-local time
+            const offsetMs = timezoneOffset * 60 * 1000;
+            const localNow = new Date(now.getTime() - offsetMs);
+            const localLast = new Date(lastCheckIn.getTime() - offsetMs);
+
+            const lastDate = new Date(Date.UTC(localLast.getUTCFullYear(), localLast.getUTCMonth(), localLast.getUTCDate()));
+            const currDate = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate()));
             
             const diffTime = currDate.getTime() - lastDate.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -129,7 +133,7 @@ export class UserService {
     /**
      * Delete user account (and all cascaded data)
      */
-    async deleteAccount(userId: number): Promise<void> {
+    async deleteAccount(userId: string): Promise<void> {
         logger.info(`Deleting account for user: ${userId}`);
         await storage.deleteUser(userId);
     }

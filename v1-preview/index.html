@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Nocturne — A quieter kind of social</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+    <div class="stars"></div>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <div id="toast"></div>
+
+    <!-- APP -->
+
+    <div class="app">
+
+        <!-- SIDEBAR -->
+
+        <aside class="sidebar">
+
+            <div class="brand" data-view="home">
+                <div class="brand-moon">☾</div>
+
+                <div>
+                    <div class="brand-name">NOCTURNE</div>
+                    <div class="brand-sub">A quieter kind of social.</div>
+                </div>
+            </div>
+
+            <div class="night-status">
+                <span class="live-dot"></span>
+                Night mode active
+            </div>
+
+
+            <nav class="main-nav">
+
+                <button class="nav-link active" data-view="home">
+                    <span>⌂</span>
+                    <label>Home</label>
+                </button>
+
+                <button class="nav-link" data-view="whispers">
+                    <span>☾</span>
+                    <label>Whispers</label>
+                </button>
+
+                <button class="nav-link" data-view="resonance">
+                    <span>◎</span>
+                    <label>Resonance</label>
+                </button>
+
+                <button class="nav-link" data-view="rooms">
+                    <span>◌</span>
+                    <label>Rooms</label>
+                </button>
+
+                <button class="nav-link" data-view="topics">
+                    <span>✦</span>
+                    <label>Topics</label>
+                </button>
+
+                <button class="nav-link" data-view="profile">
+                    <span>○</span>
+                    <label>My Space</label>
+                </button>
+
+            </nav>
+
+
+            <div class="sidebar-bottom">
+
+                <button class="sidebar-action" data-view="night-tools">
+                    <span>✧</span>
+                    Night Tools
+                </button>
+
+                <button class="sidebar-action" id="notificationsButton">
+                    <span>♧</span>
+                    Notifications
+                    <b class="notification-badge">4</b>
+                </button>
+
+            </div>
+
+        </aside>
+
+
+        <!-- MAIN -->
+
+        <main class="main">
+
+            <!-- TOPBAR -->
+
+            <header class="topbar">
+
+                <div class="mobile-brand">
+                    <span>☾</span>
+                    NOCTURNE
+                </div>
+
+                <div class="time">
+                    <span id="currentTime">01:48</span>
+                    <small>AM</small>
+                </div>
+
+                <div class="topbar-actions">
+
+                    <button class="top-icon" id="topNotification">
+                        ♧
+                        <i></i>
+                    </button>
+
+                    <button class="profile-mini" data-view="profile">
+                        D
+                    </button>
+
+                </div>
+
+            </header>
+
+
+            <!-- VIEW CONTAINER -->
+
+            <div id="viewContainer"></div>
+
+        </main>
+
+    </div>
+
+
+
+    <!-- MOBILE NAV -->
+
+    <nav class="mobile-nav">
+
+        <button data-view="home" class="mobile-nav-item active">
+            <span>⌂</span>
+            Home
+        </button>
+
+        <button data-view="whispers" class="mobile-nav-item">
+            <span>☾</span>
+            Whispers
+        </button>
+
+        <button id="mobileCreate">
+            +
+        </button>
+
+        <button data-view="resonance" class="mobile-nav-item">
+            <span>◎</span>
+            Match
+        </button>
+
+        <button data-view="profile" class="mobile-nav-item">
+            <span>○</span>
+            You
+        </button>
+
+    </nav>
+
+
+
+    <!-- NOTIFICATION PANEL -->
+
+    <div id="notificationPanel" class="notification-panel">
+
+        <div class="panel-title">
+            <div>
+                <span class="section-label">YOUR NIGHT</span>
+                <h3>Notifications</h3>
+            </div>
+
+            <button id="closeNotifications">×</button>
+        </div>
+
+        <div class="notification-list">
+
+            <div class="notification">
+                <div class="notification-symbol resonance-symbol">✦</div>
+                <div>
+                    <strong>Your Whisper found a resonance</strong>
+                    <small>12 people are thinking similarly · 2m</small>
+                </div>
+            </div>
+
+            <div class="notification">
+                <div class="notification-symbol room-symbol">◌</div>
+                <div>
+                    <strong>A new room was created</strong>
+                    <small>“Are We Doing Enough?” · 8m</small>
+                </div>
+            </div>
+
+            <div class="notification">
+                <div class="notification-symbol heart-symbol">♡</div>
+                <div>
+                    <strong>Someone resonated with you</strong>
+                    <small>Your Whisper reached 7 people · 14m</small>
+                </div>
+            </div>
+
+            <div class="notification">
+                <div class="notification-symbol profile-symbol">○</div>
+                <div>
+                    <strong>Mira joined your room</strong>
+                    <small>“Late Night Thinkers” · 22m</small>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>

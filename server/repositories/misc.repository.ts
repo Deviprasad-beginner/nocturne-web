@@ -197,7 +197,7 @@ export async function getActiveSessions(): Promise<string[]> {
 
 // ── SavedStations ────────────────────────────────────────────────────────────
 
-export async function toggleSavedStation(userId: number, stationId: string): Promise<boolean> {
+export async function toggleSavedStation(userId: string, stationId: string): Promise<boolean> {
   try {
     const [existing] = await db
       .select()
@@ -216,7 +216,7 @@ export async function toggleSavedStation(userId: number, stationId: string): Pro
   }
 }
 
-export async function getSavedStations(userId: number): Promise<string[]> {
+export async function getSavedStations(userId: string): Promise<string[]> {
   try {
     const stations = await db.select().from(savedStations).where(eq(savedStations.userId, userId));
     return stations.map(s => s.stationId);

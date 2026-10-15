@@ -86,7 +86,7 @@ export async function deleteCafeReply(id: number): Promise<void> {
   await db.delete(cafeReplies).where(eq(cafeReplies.id, id));
 }
 
-export async function getUserCafePosts(userId: number, limit?: number): Promise<MidnightCafe[]> {
+export async function getUserCafePosts(userId: string, limit?: number): Promise<MidnightCafe[]> {
   try {
     return await db
       .select()

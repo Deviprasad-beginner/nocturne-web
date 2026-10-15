@@ -25,7 +25,7 @@ async function migrateContent() {
             allow_replies BOOLEAN DEFAULT true,
             hearts INTEGER DEFAULT 0,
             replies INTEGER DEFAULT 0,
-            author_id INTEGER REFERENCES users(id),
+            author_id TEXT REFERENCES users(id),
             mood VARCHAR(100),
             created_at TIMESTAMP DEFAULT NOW(),
             expires_at TIMESTAMP
@@ -42,8 +42,8 @@ async function migrateContent() {
             await db.insert(nightThoughts).values({
                 content: w.content,
                 thoughtType: 'whisper',
-                authorId: w.authorId,
-                hearts: w.hearts || 0,
+                authorId: w.authorId ? String(w.authorId) : null,
+                hearts: 0,
                 createdAt: w.createdAt,
                 isPrivate: false,
                 allowReplies: false,

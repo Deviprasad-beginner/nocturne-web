@@ -7,27 +7,27 @@
 
 export const Colors = {
     /** Pure black background — OLED friendly */
-    bg: '#000000',
+    bg: '#07070a',
     /** Elevated surface (cards, modals) */
-    surface: '#0a0a0a',
+    surface: 'rgba(18, 18, 25, 0.7)',
     /** Second-level surface (inputs, nested cards) */
-    surface2: '#111111',
+    surface2: 'rgba(25, 25, 35, 0.8)',
     /** Subtle separator lines */
-    border: 'rgba(255, 255, 255, 0.06)',
+    border: 'rgba(255, 255, 255, 0.05)',
     /** Slightly stronger border for focused/active states */
-    borderActive: 'rgba(255, 255, 255, 0.12)',
+    borderActive: 'rgba(255, 255, 255, 0.1)',
 
     /** Primary text — headings, important labels */
-    text: '#F5F5F7',
+    text: '#f0f0f5',
     /** Secondary text — descriptions, subtitles */
-    textSecondary: '#8E8E93',
+    textSecondary: '#8b8b9f',
     /** Tertiary text — timestamps, footnotes */
-    textTertiary: '#48484A',
+    textTertiary: '#6b6b7f',
     /** Placeholder text in inputs */
-    placeholder: '#3A3A3C',
+    placeholder: '#4b4b5f',
 
     /** Brand indigo — primary accent */
-    indigo: '#818CF8',
+    indigo: '#8b6aff',
     /** Purple accent */
     purple: '#A78BFA',
     /** Pink accent */

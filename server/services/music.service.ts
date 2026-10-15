@@ -119,14 +119,40 @@ export class MusicService {
         }
     }
 
-    async toggleFavorite(userId: number, stationId: string) {
+    async toggleFavorite(userId: string, stationId: string) {
         logger.info(`Toggling favorite station for user: ${userId}`, { stationId });
         return await storage.toggleSavedStation(userId, stationId);
     }
 
-    async getFavorites(userId: number) {
+    async getFavorites(userId: string) {
         logger.debug(`Fetching favorite stations for user: ${userId}`);
         return await storage.getSavedStations(userId);
+    }
+
+    async getFavoriteTracks(userId: string) {
+        logger.debug(`Fetching favorite tracks details for user: ${userId}`);
+        const ids = await storage.getSavedStations(userId);
+        if (!ids || ids.length === 0) return [];
+
+        const clientId = process.env.JAMENDO_CLIENT_ID || '0d325310';
+        const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${clientId}&format=json&limit=50&id=${ids.join(',')}`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            const tracks = data.results || [];
+
+            return tracks.map((track: any) => ({
+                id: track.id,
+                title: track.name,
+                artist: track.artist_name || "Unknown Artist",
+                url: track.audio,
+                coverArt: track.album_image || track.image || null,
+                mood: 'favorite'
+            }));
+        } catch (error) {
+            logger.error(`Failed to fetch favorite tracks from Jamendo: ${error}`);
+            return [];
+        }
     }
 }
 

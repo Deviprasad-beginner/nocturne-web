@@ -6,6 +6,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-await registerApiRoutes(app);
+registerApiRoutes(app);
 
 export default serverless(app);

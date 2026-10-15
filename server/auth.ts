@@ -6,7 +6,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, generateMidnightAlias } from "@shared/schema";
 import { logger } from "./utils/logger";
 import { z } from "zod";
 
@@ -128,8 +128,16 @@ export function setupAuth(app: Express) {
                         } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
                             admin.initializeApp({ credential: admin.credential.applicationDefault() });
                             logger.info("Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS file path");
+                        } else if (process.env.client_email && process.env.private_key) {
+                            const serviceAccount = {
+                                projectId: process.env.project_id || "nocturne-web1",
+                                clientEmail: process.env.client_email,
+                                privateKey: process.env.private_key.replace(/\\n/g, '\n'),
+                            };
+                            admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+                            logger.info("Firebase Admin initialized via individual env vars in .env");
                         } else {
-                            logger.warn("No Firebase Admin credentials found (FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS). Token verification skipped — trusting client UID.");
+                            logger.warn("No Firebase Admin credentials found (FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS / client_email). Token verification skipped — trusting client UID.");
                         }
                     }
                     adminInitialised = admin.apps.length > 0;
@@ -172,11 +180,12 @@ export function setupAuth(app: Express) {
             if (!user && verifiedEmail) {
                 user = await storage.getUserByEmail(verifiedEmail);
 
-                // If found by email but no googleId (or different one?), ensure googleId is set later if needed.
-                // For now, if we match by email, we log them in.
-                if (user && !user.googleId) {
-                    // Ideally update the user to link googleId here.
-                    // storage.updateUser(user.id, { googleId: verifiedUid }); 
+                // If found by email, ensure googleId and firebaseUid are linked to this user
+                if (user && (!user.googleId || !user.firebaseUid)) {
+                    await storage.updateUser(user.id, {
+                        googleId: user.googleId || verifiedUid,
+                        firebaseUid: user.firebaseUid || verifiedUid
+                    });
                 }
             }
 
@@ -198,9 +207,11 @@ export function setupAuth(app: Express) {
                         username: safeUsername,
                         password: randomPwd,
                         googleId: verifiedUid,
+                        firebaseUid: verifiedUid,
                         displayName: displayName || "Nocturne User",
                         email: verifiedEmail, // Use the verified, lowercased email
-                        profileImageUrl: photoURL
+                        profileImageUrl: photoURL,
+                        anonymousHandle: generateMidnightAlias()
                     });
                 } catch (createError: any) {
                     // Handle potential race condition where user was created between lookup and insert
@@ -263,7 +274,7 @@ export function setupAuth(app: Express) {
     passport.serializeUser((user, done) => done(null, user.id));
     passport.deserializeUser(async (id: number, done) => {
         try {
-            const user = await storage.getUser(id);
+            const user = await storage.getUser(String(id));
             done(null, user || false);
         } catch (error) {
             done(error);

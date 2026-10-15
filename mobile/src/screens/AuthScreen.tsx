@@ -74,8 +74,8 @@ export default function AuthScreen() {
                 {/* Brand */}
                 <View style={styles.brand}>
                     <Text style={styles.moonGlyph}>🌙</Text>
-                    <Text style={styles.brandName}>Nocturne</Text>
-                    <Text style={styles.brandTagline}>Tonight is unwritten.</Text>
+                    <Text style={styles.brandName}>Whisper Connect</Text>
+                    <Text style={styles.brandTagline}>A quieter kind of social.</Text>
                 </View>
 
                 {/* Card */}
@@ -176,7 +176,7 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#050508',
+        backgroundColor: '#07070a',
     },
     scroll: {
         flexGrow: 1,
@@ -195,8 +195,9 @@ const styles = StyleSheet.create({
     brandName: {
         fontSize: 32,
         fontWeight: '700',
-        color: '#e2e8f0',
+        color: '#f0f0f5',
         letterSpacing: 1,
+        fontFamily: 'Cormorant Garamond',
     },
     brandTagline: {
         marginTop: 4,
@@ -205,12 +206,12 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     card: {
-        backgroundColor: '#0d0d14',
+        backgroundColor: 'rgba(18, 18, 25, 0.7)',
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'rgba(255,255,255,0.05)',
         padding: 24,
-        shadowColor: '#818cf8',
+        shadowColor: '#8b6aff',
         shadowOpacity: 0.1,
         shadowRadius: 30,
         elevation: 8,
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     tabActive: {
-        backgroundColor: 'rgba(129,140,248,0.15)',
+        backgroundColor: 'rgba(139,106,255,0.15)',
     },
     tabText: {
         color: '#4b5563',
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     tabTextActive: {
-        color: '#818cf8',
+        color: '#8b6aff',
     },
     fields: {
         gap: 12,
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 14,
-        color: '#e2e8f0',
+        color: '#f0f0f5',
         fontSize: 15,
         marginBottom: 4,
     },
@@ -262,11 +263,11 @@ const styles = StyleSheet.create({
     },
     submitBtn: {
         marginTop: 16,
-        backgroundColor: '#4f46e5',
+        backgroundColor: '#8b6aff',
         borderRadius: 14,
         paddingVertical: 16,
         alignItems: 'center',
-        shadowColor: '#818cf8',
+        shadowColor: '#8b6aff',
         shadowOpacity: 0.3,
         shadowRadius: 12,
         elevation: 6,

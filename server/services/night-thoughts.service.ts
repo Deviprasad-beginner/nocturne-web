@@ -8,50 +8,59 @@ import {
     type InsertNightThoughtReply,
 } from '@shared/schema';
 import { eq, desc, and, or, sql } from 'drizzle-orm';
-import { analyzeEmotion } from './emotion-analyzer';
-import { getEmbedding, cosineSimilarity } from '../utils/embeddings';
+import { aiAnalyzer, embeddingProvider } from './ai';
+import { resonanceEngine } from './resonance-engine';
+import { roomFormationPolicy } from './room-formation';
 import { nightCircles, ephemeralCircles, ephemeralCircleMembers } from '@shared/schema';
+import { logger } from '../utils/logger';
 
 export class NightThoughtsService {
     /**
      * Smart categorization logic - auto-detect thought type based on content
      */
     private detectThoughtType(content: string, topic?: string | null): string {
-        // Explicit topic = discussion
-        if (topic) {
-            return 'discussion';
-        }
-
-        // Short content = whisper
-        if (content.length <= 280) {
-            return 'whisper';
-        }
-
-        // Long form = diary
+        if (topic) return 'discussion';
+        if (content.length <= 280) return 'whisper';
         return 'diary';
     }
 
     /**
-     * Create a new night thought with smart categorization
+     * Create a new night thought with AI Analysis and Resonance Pipeline
      */
-    async create(thought: InsertNightThought): Promise<NightThought & { serendipityMatch?: any }> {
-        // Auto-detect thought type if not provided
+    async create(thought: InsertNightThought): Promise<NightThought & { serendipityMatch?: any, aiAnalysis?: any }> {
         const thoughtType = thought.thoughtType || this.detectThoughtType(thought.content, thought.topic);
+        const expiresAt = thoughtType === 'whisper' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null;
 
-        // Set expiration for whisper-type thoughts (24 hours)
-        const expiresAt = thoughtType === 'whisper'
-            ? new Date(Date.now() + 24 * 60 * 60 * 1000)
-            : null;
-
-        // Analyze emotion for mood
-        const analysis = analyzeEmotion(thought.content || "");
-        const mood = thought.mood || analysis.detectedEmotion;
-
+        let analysis = null;
         let embedding: number[] | null = null;
+        let mood = thought.mood || null;
+
+        // 1. Parallel AI Processing (Phase 13 requirement)
         if (thoughtType === 'whisper') {
-            embedding = await getEmbedding(thought.content || "");
+            try {
+                const results = await Promise.allSettled([
+                    aiAnalyzer.analyzeWhisper(thought.content),
+                    embeddingProvider.embed(thought.content)
+                ]);
+
+                if (results[0].status === 'fulfilled') {
+                    analysis = results[0].value;
+                    if (!thought.mood) mood = analysis.tone[0] || 'reflective';
+                } else {
+                    logger.error("AI Analysis failed", results[0].reason);
+                }
+
+                if (results[1].status === 'fulfilled') {
+                    embedding = results[1].value;
+                } else {
+                    logger.error("Embedding generation failed", results[1].reason);
+                }
+            } catch (err) {
+                logger.error("AI processing threw exception", err);
+            }
         }
 
+        // 2. Persist Whisper safely regardless of AI success
         const [newThought] = await db
             .insert(nightThoughts)
             .values({
@@ -59,72 +68,61 @@ export class NightThoughtsService {
                 thoughtType,
                 expiresAt,
                 mood,
-                embedding: embedding && embedding.length > 0 ? embedding : null
+                embedding: embedding && embedding.length > 0 ? embedding : null,
+                aiMetadata: analysis
             })
             .returning();
 
         let serendipityMatch = null;
 
-        // Serendipity Matching Logic
-        if (thoughtType === 'whisper' && newThought.embedding && newThought.authorId) {
-            // Find similar whispers in the last 3 hours
-            const recentMatches = await db.execute(sql`
-                SELECT id, author_id, 1 - (embedding <=> ${JSON.stringify(newThought.embedding)}::vector) as similarity
-                FROM night_thoughts
-                WHERE created_at > NOW() - INTERVAL '3 hours'
-                  AND id != ${newThought.id}
-                  AND author_id != ${newThought.authorId}
-                  AND 1 - (embedding <=> ${JSON.stringify(newThought.embedding)}::vector) > 0.80
-                ORDER BY similarity DESC
-                LIMIT 5
-            `);
+        // 3. Resonance and Room Policy Evaluation
+        if (thoughtType === 'whisper' && newThought.embedding && analysis) {
+            try {
+                const candidates = await resonanceEngine.findResonance(
+                    newThought.embedding, 
+                    analysis, 
+                    newThought.authorId
+                );
 
-            if (recentMatches.rows && recentMatches.rows.length > 0) {
-                // We have matches. Check if any matched user is currently in an ephemeral circle with < 7 members
-                const matchedUserIds = recentMatches.rows.map(r => r.author_id).filter(id => id !== null) as number[];
-                
-                if (matchedUserIds.length > 0) {
-                    // Check for existing active ephemeral circles these users are in
-                    const existingCircles = await db.execute(sql`
-                        SELECT c.id, c.member_count 
-                        FROM ephemeral_circles c
-                        JOIN ephemeral_circle_members m ON c.id = m.circle_id
-                        WHERE c.expires_at > NOW()
-                          AND c.member_count < 7
-                          AND m.user_id = ANY(${matchedUserIds}::int[])
-                        ORDER BY c.member_count DESC
-                        LIMIT 1
-                    `);
+                if (candidates.length > 0) {
+                    const roomResult = await roomFormationPolicy.evaluateAndCreate(
+                        newThought, 
+                        analysis, 
+                        candidates
+                    );
 
-                    if (existingCircles.rows && existingCircles.rows.length > 0) {
-                        const circle = existingCircles.rows[0];
-                        serendipityMatch = {
-                            type: 'invite',
-                            circleId: circle.id,
-                            message: `${circle.member_count} other people are feeling this exact way right now. Form a Night Circle?`,
-                            matchedUsersCount: circle.member_count
-                        };
-                    } else if (matchedUserIds.length >= 2) {
-                        // No existing circle, but we found 2+ matches! Suggest creating a new one
+                    if (roomResult.created && roomResult.circleId) {
                         serendipityMatch = {
                             type: 'create',
-                            suggestedUserIds: matchedUserIds.slice(0, 7), // Up to 7
-                            message: `${matchedUserIds.length} other people are feeling this exact way right now. Form a Night Circle?`,
-                            themeSummary: analysis.detectedEmotion || 'a shared feeling'
+                            circleId: roomResult.circleId,
+                            message: roomResult.message,
+                            matchedUsersCount: roomResult.matchedUsersCount,
+                            themeSummary: analysis.themes?.[0] || 'a shared feeling'
+                        };
+                    } else {
+                        // Just returning resonance context
+                        serendipityMatch = {
+                            type: 'resonance',
+                            message: "Your Whisper is resonating.",
+                            score: candidates[0].resonanceScore,
+                            reasons: candidates[0].reasons,
+                            matchedCount: candidates.length
                         };
                     }
                 }
+            } catch (err) {
+                logger.error("Resonance engine failed", err);
             }
         }
 
-        return { ...newThought, serendipityMatch };
+        return { ...newThought, serendipityMatch, aiAnalysis: analysis };
     }
 
     /**
      * Get all thoughts (with optional filters)
      */
     async getAll(filters?: {
-        authorId?: number;
+        authorId?: string;
         thoughtType?: string;
         isPrivate?: boolean;
         includeExpired?: boolean;
@@ -242,55 +240,194 @@ export class NightThoughtsService {
     }
 
     async cleanupExpired(): Promise<number> {
-        // For now, just return 0 - we can implement a proper cleanup later
-        return 0;
+        const result = await db
+            .delete(nightThoughts)
+            .where(
+                and(
+                    sql`${nightThoughts.expiresAt} IS NOT NULL`,
+                    sql`${nightThoughts.expiresAt} < NOW()`
+                )
+            )
+            .returning({ id: nightThoughts.id });
+        return result.length;
     }
 
     /**
      * Get semantic recommendations based on a whisper's text and mood
      */
     async getRecommendations(text: string, mood?: string) {
-        if (!text || text.trim().length < 5) return [];
+        const queryText = (text && text.trim().length >= 3)
+            ? text.trim()
+            : (mood ? `Feeling ${mood} in the quiet night hours. Looking for presence and shared thoughts.` : 'Late night contemplation');
 
-        const embedText = `${mood ? `Feeling ${mood}. ` : ''}${text}`;
-        const targetEmbedding = await getEmbedding(embedText);
-        
-        if (targetEmbedding.length === 0) return [];
+        const embedText = `${mood ? `Feeling ${mood}. ` : ''}${queryText}`;
+        let targetEmbedding: number[] = [];
+        try {
+            targetEmbedding = await embeddingProvider.embed(embedText);
+        } catch (e) {
+            logger.warn('Failed embedding query in getRecommendations:', e);
+        }
 
-        // Fetch active circles
-        const circles = await db.select().from(nightCircles)
-            .where(eq(nightCircles.isActive, true))
-            .limit(10);
-        
-        // Fetch recent discussions
-        const discussions = await db.select().from(nightThoughts)
-            .where(eq(nightThoughts.thoughtType, 'discussion'))
-            .orderBy(desc(nightThoughts.createdAt))
-            .limit(10);
+        const recommendations: Array<{ type: 'circle' | 'discussion' | 'whisper', item: any, score: number }> = [];
 
-        const recommendations: Array<{ type: 'circle' | 'discussion', item: any, score: number }> = [];
+        // 1. Fetch public whispers matching the vibe
+        try {
+            const publicWhispers = await db.select().from(nightThoughts)
+                .where(
+                    and(
+                        eq(nightThoughts.isPrivate, false),
+                        eq(nightThoughts.thoughtType, 'whisper')
+                    )
+                )
+                .orderBy(desc(nightThoughts.createdAt))
+                .limit(20);
 
-        // Compute similarity for circles
-        await Promise.all(circles.map(async (circle) => {
-            const cText = `${circle.name} ${circle.description || ''} ${circle.topic || ''}`;
-            const emb = await getEmbedding(cText);
-            const score = cosineSimilarity(targetEmbedding, emb);
-            recommendations.push({ type: 'circle', item: circle, score });
-        }));
+            for (const whisper of publicWhispers) {
+                let score = 0.70;
+                if (whisper.mood && mood && whisper.mood.toLowerCase() === mood.toLowerCase()) {
+                    score += 0.18;
+                }
+                if (targetEmbedding.length > 0 && whisper.embedding && Array.isArray(whisper.embedding)) {
+                    const sim = this.cosineSimilarity(targetEmbedding, whisper.embedding as number[]);
+                    score = Math.max(score, sim);
+                } else if (whisper.content && queryText) {
+                    const wWords = new Set(whisper.content.toLowerCase().split(/\s+/));
+                    const qWords = queryText.toLowerCase().split(/\s+/);
+                    const overlap = qWords.filter(w => wWords.has(w)).length;
+                    if (overlap > 0) score += Math.min(0.15, overlap * 0.05);
+                }
+                const normalizedScore = Math.min(0.98, Math.max(0.62, Math.round(score * 100) / 100));
+                recommendations.push({
+                    type: 'whisper',
+                    item: {
+                        ...whisper,
+                        mood: whisper.mood || mood || 'contemplative'
+                    },
+                    score: normalizedScore
+                });
+            }
+        } catch (err) {
+            logger.warn('Error fetching whispers for recommendations:', err);
+        }
 
-        // Compute similarity for discussions
-        await Promise.all(discussions.map(async (disc) => {
-            const dText = `${disc.topic || ''} ${disc.content}`;
-            const emb = await getEmbedding(dText);
-            const score = cosineSimilarity(targetEmbedding, emb);
-            recommendations.push({ type: 'discussion', item: disc, score });
-        }));
+        // 2. Fetch active circles
+        try {
+            const circles = await db.select().from(nightCircles)
+                .where(eq(nightCircles.isActive, true))
+                .limit(10);
 
-        // Sort by similarity score descending
+            for (const circle of circles) {
+                const cText = `${circle.name} ${circle.description || ''} ${circle.topic || ''}`;
+                let score = 0.75;
+                if (targetEmbedding.length > 0) {
+                    const emb = await embeddingProvider.embed(cText);
+                    score = this.cosineSimilarity(targetEmbedding, emb);
+                }
+                recommendations.push({
+                    type: 'circle',
+                    item: circle,
+                    score: Math.min(0.98, Math.max(0.65, Math.round(score * 100) / 100))
+                });
+            }
+        } catch (err) {
+            logger.warn('Error fetching circles for recommendations:', err);
+        }
+
+        // 3. Fallback nocturnal circles if none in DB yet
+        if (recommendations.filter(r => r.type === 'circle').length === 0) {
+            const defaultCircles = [
+                {
+                    id: 901,
+                    name: '3 AM Solitude & Deep Thoughts',
+                    topic: 'Midnight Reflections',
+                    description: 'A quiet circle for insomniacs, night owls, and contemplative minds.',
+                    mood: mood || 'lonely',
+                    isActive: true,
+                    memberCount: 14
+                },
+                {
+                    id: 902,
+                    name: 'Lo-Fi Echoes & Soft Static',
+                    topic: 'Ambient Soundscape',
+                    description: 'Sharing warm acoustic melodies and midnight ambient thoughts.',
+                    mood: mood || 'nostalgic',
+                    isActive: true,
+                    memberCount: 22
+                },
+                {
+                    id: 903,
+                    name: 'Quiet Restless Souls',
+                    topic: 'Nighttime Overthinking',
+                    description: 'When the mind refuses to sleep, share your wandering whispers here.',
+                    mood: mood || 'restless',
+                    isActive: true,
+                    memberCount: 9
+                }
+            ];
+
+            defaultCircles.forEach((c, idx) => {
+                recommendations.push({
+                    type: 'circle',
+                    item: c,
+                    score: 0.88 - idx * 0.05
+                });
+            });
+        }
+
+        // 4. Sort by similarity score descending and return top 6
         recommendations.sort((a, b) => b.score - a.score);
-        
-        // Return top 3 recommendations
-        return recommendations.slice(0, 3);
+        return recommendations.slice(0, 6);
+    }
+
+    /**
+     * Get trending topics based on recent whispers' AI metadata
+     */
+    async getTrending() {
+        const recentThoughts = await db.execute(sql`
+            SELECT ai_metadata->>'vibeTags' as tags
+            FROM night_thoughts
+            WHERE created_at > NOW() - INTERVAL '24 hours'
+              AND ai_metadata IS NOT NULL
+        `);
+
+        // Aggregate tags manually since jsonb array elements can be tricky in raw SQL based on version
+        const tagCounts: Record<string, number> = {};
+        for (const row of recentThoughts.rows) {
+            try {
+                const tagsStr = row.tags as string;
+                if (!tagsStr) continue;
+                const tags = JSON.parse(tagsStr);
+                if (Array.isArray(tags)) {
+                    for (const t of tags) {
+                        const tag = String(t).toLowerCase();
+                        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                    }
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+        }
+
+        const sortedTags = Object.entries(tagCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 12);
+
+        return sortedTags.map(([topic, count]) => ({
+            topic,
+            count
+        }));
+    }
+    private cosineSimilarity(vecA: number[], vecB: number[]): number {
+        let dotProduct = 0;
+        let normA = 0;
+        let normB = 0;
+        for (let i = 0; i < vecA.length; i++) {
+            dotProduct += vecA[i] * vecB[i];
+            normA += vecA[i] * vecA[i];
+            normB += vecB[i] * vecB[i];
+        }
+        if (normA === 0 || normB === 0) return 0;
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 }
 

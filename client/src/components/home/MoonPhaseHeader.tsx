@@ -21,24 +21,6 @@ const MOON_NAMES = [
 export function MoonPhaseHeader() {
   const { user } = useAuth();
   
-  const checkInMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/v1/users/check-in");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-    },
-  });
-
-  // Automatically check in when the component mounts (Zero-Click Awareness)
-  useEffect(() => {
-    if (user && user.id) {
-      checkInMutation.mutate();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
-
   if (!user) return null;
 
   const phaseLevel = Math.min(Math.max(user.moonPhaseLevel || 0, 0), 7);

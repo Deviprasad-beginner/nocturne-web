@@ -19,4 +19,7 @@ router.post("/favorites/:stationId", requireAuth, validate(z.object({ stationId:
 // GET /api/v1/music/favorites - Get favorites
 router.get("/favorites", requireAuth, musicController.getFavorites);
 
+// GET /api/v1/music/favorites/tracks - Get favorite tracks
+router.get("/favorites/tracks", requireAuth, musicController.getFavoriteTracks);
+
 export default router;

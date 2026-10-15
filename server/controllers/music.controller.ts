@@ -36,6 +36,14 @@ export class MusicController {
         const stations = await musicService.getFavorites(req.user!.id);
         res.json(successResponse(stations));
     });
+
+    /**
+     * GET /api/v1/music/favorites/tracks
+     */
+    getFavoriteTracks = asyncHandler(async (req: Request, res: Response) => {
+        const tracks = await musicService.getFavoriteTracks(req.user!.id);
+        res.json(successResponse(tracks));
+    });
 }
 
 export const musicController = new MusicController();

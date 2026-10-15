@@ -54,11 +54,11 @@ export default function HomeScreen({ navigation }: any) {
 
   const { data: whispers = [], isLoading: loadingWhispers, refetch: refetchWhispers } = useQuery<any[]>({
     queryKey: ['whispers'],
-    queryFn: () => api.get('/whispers').then(r => r.data ?? []),
+    queryFn: () => api.get('/thoughts').then(r => r.data ?? []),
   });
 
   const whisperMutation = useMutation({
-    mutationFn: (content: string) => api.post('/whispers', { content }),
+    mutationFn: (content: string) => api.post('/thoughts', { content, thoughtType: 'text', isPrivate: false }),
     onSuccess: () => {
       haptics.success();
       qc.invalidateQueries({ queryKey: ['whispers'] });
@@ -68,7 +68,7 @@ export default function HomeScreen({ navigation }: any) {
   });
 
   const likeMutation = useMutation({
-    mutationFn: (id: number) => api.post(`/whispers/${id}/like`),
+    mutationFn: (id: number) => api.post(`/thoughts/${id}/heart`),
     onSuccess: () => {
       haptics.light();
       qc.invalidateQueries({ queryKey: ['whispers'] });
@@ -109,7 +109,7 @@ export default function HomeScreen({ navigation }: any) {
                 {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
               <Text style={styles.headline}>
-                Tonight is <Text style={styles.accent}>unwritten</Text>.
+                Welcome to <Text style={styles.accent}>Whisper Connect</Text>.
               </Text>
               {user && (
                 <Text style={styles.greeting}>
@@ -131,7 +131,7 @@ export default function HomeScreen({ navigation }: any) {
 
         {/* ── Services Carousel ──────────────────── */}
         <FadeInView delay={100} style={styles.section}>
-          <Text style={styles.sectionLabel}>✦ Explore Nocturne</Text>
+          <Text style={styles.sectionLabel}>✦ Explore Whisper Connect</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}

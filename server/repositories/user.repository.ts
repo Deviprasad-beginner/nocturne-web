@@ -8,13 +8,20 @@ import {
 import { eq } from "drizzle-orm";
 import { logger } from "../utils/logger";
 
-export async function getUser(id: number): Promise<User | undefined> {
-  try {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
-  } catch (error) {
-    logger.error("Error getting user:", error);
-    throw error; // Propagate error so passport.deserializeUser doesn't silently log out the user
+export async function getUser(id: string | number): Promise<User | undefined> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, String(id)));
+      return user || undefined;
+    } catch (error: any) {
+      if (attempt === 1 && (error?.message?.includes("timeout") || error?.message?.includes("Connection terminated") || error?.code === "57P01")) {
+        logger.warn(`getUser retry attempt 2 after DB connection timeout for id: ${id}`);
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+      logger.error("Error getting user:", error);
+      throw error; // Propagate error so passport.deserializeUser doesn't silently log out the user
+    }
   }
 }
 
@@ -57,19 +64,19 @@ export async function upsertUser(_user: UpsertUser): Promise<User> {
   throw new Error("Upsert not implemented for standard auth");
 }
 
-export async function updateUserOnboarding(userId: number, completed: boolean): Promise<void> {
+export async function updateUserOnboarding(userId: string, completed: boolean): Promise<void> {
   await db
     .update(users)
     .set({ hasSeenOnboarding: completed })
-    .where(eq(users.id, userId));
+    .where(eq(users.id, String(userId)));
 }
 
-export async function updateUser(userId: number, data: Partial<User>): Promise<User | undefined> {
+export async function updateUser(userId: string, data: Partial<User>): Promise<User | undefined> {
   try {
     const [updatedUser] = await db
       .update(users)
       .set(data)
-      .where(eq(users.id, userId))
+      .where(eq(users.id, String(userId)))
       .returning();
     return updatedUser || undefined;
   } catch (error) {
@@ -78,9 +85,9 @@ export async function updateUser(userId: number, data: Partial<User>): Promise<U
   }
 }
 
-export async function deleteUser(userId: number): Promise<void> {
+export async function deleteUser(userId: string): Promise<void> {
   try {
-    await db.delete(users).where(eq(users.id, userId));
+    await db.delete(users).where(eq(users.id, String(userId)));
   } catch (error) {
     logger.error('Error deleting user:', error);
     throw error;

@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { whispers, users } from "@shared/schema";
 import { type Whisper, type InsertWhisper } from "@shared/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { logger } from "../utils/logger";
 
 const MAX_LIMIT = 100;
@@ -27,22 +27,16 @@ export async function getWhispers(limit?: number): Promise<Whisper[]> {
   }
 }
 
-export async function incrementWhisperHearts(id: number): Promise<void> {
-  try {
-    await db.update(whispers)
-      .set({ hearts: sql`${whispers.hearts} + 1` })
-      .where(eq(whispers.id, id));
-  } catch (error) {
-    logger.error("Error incrementing whisper hearts:", error);
-  }
+export async function incrementWhisperHearts(_id: string | number): Promise<void> {
+  // Production whispers table does not use plain hearts counter (reactions tracked separately)
 }
 
-export async function getUserWhispers(userId: number, limit?: number): Promise<Whisper[]> {
+export async function getUserWhispers(userId: string, limit?: number): Promise<Whisper[]> {
   try {
     return await db
       .select()
       .from(whispers)
-      .where(eq(whispers.authorId, userId))
+      .where(eq(whispers.authorId, String(userId)))
       .orderBy(desc(whispers.createdAt))
       .limit(Math.min(limit ?? 20, MAX_LIMIT));
   } catch (error) {

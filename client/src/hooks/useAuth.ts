@@ -94,90 +94,98 @@ export function useAuth() {
         }
       } else {
         // User is logged out of Firebase.
-        // Clear the query cache if not already cleared
-        const currentBackendUser = queryClient.getQueryData(["/api/user"]);
-        if (currentBackendUser) {
-          queryClient.setQueryData(["/api/user"], null);
-        }
-
+        // Do nothing! They might be logged in via a local backend session (email/password).
+        // Clearing the cache here causes a bug where local sessions are instantly wiped.
       }
     });
 
     return () => unsubscribe();
   }, [refetch, toast]);
 
+  // Global Check-in Logic (Zero-Click Awareness)
+  const hasCheckedIn = useRef(false);
+  useEffect(() => {
+    if (user?.id && !hasCheckedIn.current) {
+      hasCheckedIn.current = true;
+      const timezoneOffset = new Date().getTimezoneOffset();
+      apiRequest("POST", "/api/v1/users/check-in", { timezoneOffset })
+        .then(() => queryClient.invalidateQueries({ queryKey: ["/api/user"] }))
+        .catch(err => console.error("Check-in failed:", err));
+    }
+  }, [user?.id]);
+
   const loginMutation = useMutation({
     mutationFn: async () => {
-      // Fallback to mock login for development/preview
-      const mockUser = {
-        uid: "mock-user-123",
-        email: "guest@nocturne.social",
-        displayName: "Nocturne Guest",
-        photoURL: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=40&h=40"
-      };
-
       try {
-        // Try Firebase with a timeout
-        const firebasePromise = signInWithPopup(auth, googleProvider);
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Firebase timeout')), 5000) // Increased timeout
-        );
+        // Sign in with Google Popup — no arbitrary 5s timeout cutting off users
+        const result = await signInWithPopup(auth, googleProvider);
+        const currentUser = result.user;
+        const idToken = await currentUser.getIdToken();
 
-        const result = await Promise.race([firebasePromise, timeoutPromise]) as any;
-        return result.user;
+        // Directly sync session with backend (45s timeout accommodates cold starts)
+        const res = await apiRequest("POST", "/api/auth/firebase", {
+          idToken,
+          uid: currentUser.uid,
+          email: currentUser.email,
+          displayName: currentUser.displayName,
+          photoURL: currentUser.photoURL,
+        }, 45000);
+
+        return await res.json();
       } catch (firebaseError: any) {
-        // Detailed error logging
+        if (
+          firebaseError.code === "auth/popup-closed-by-user" ||
+          firebaseError.code === "auth/cancelled-popup-request"
+        ) {
+          throw new Error("Sign-in cancelled");
+        }
+
+        if (firebaseError.code === "auth/popup-blocked") {
+          throw new Error("Popup was blocked by your browser. Please allow popups for this site.");
+        }
+
         console.error("Firebase auth error details:", {
           code: firebaseError.code,
           message: firebaseError.message,
-          name: firebaseError.name
         });
 
-        if (firebaseError.message === 'Firebase timeout') {
-          console.warn("Auth timed out - user might have closed popup or network is slow.");
-          // Optional: You could choose to throw here to show "Login Timed Out" instead of guest fallback
-          // throw new Error("Login timed out. Please try again.");
+        // In development only: fallback if Firebase network/project is unreachable
+        if (import.meta.env.DEV && (firebaseError.code === "auth/network-request-failed" || firebaseError.code === "auth/internal-error")) {
+          console.warn("Dev mode: falling back to mock login...");
+          const mockUser = {
+            uid: "mock-user-123",
+            email: "guest@nocturne.social",
+            displayName: "Nocturne Guest",
+            photoURL: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=40&h=40"
+          };
+          const res = await apiRequest("POST", "/api/auth/firebase", mockUser, 30000);
+          return await res.json();
         }
 
-        console.warn("Firebase auth failed, attempting mock fallback...", firebaseError);
-
-        // Manually trigger the sync endpoint
-        try {
-          await apiRequest("POST", "/api/auth/firebase", mockUser);
-          return mockUser;
-        } catch (syncError) {
-          console.error("Mock sync failed:", syncError);
-          throw syncError;
-        }
+        throw firebaseError;
       }
     },
-    onSuccess: async () => {
-      // Wait for sync to complete
-      let attempts = 0;
-      const maxAttempts = 20; // 10 seconds max
-
-      while (isSyncing && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
-      }
-
-      // Invalidate and refetch the user query to update UI
-      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      await refetch();
+    onSuccess: (loggedInUser: User) => {
+      queryClient.setQueryData(["/api/user"], loggedInUser);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
 
       toast({
         title: "Signed In",
-        description: "Welcome to Nocturne!",
+        description: `Welcome to Nocturne, ${loggedInUser.displayName || loggedInUser.username || "traveler"}!`,
       });
 
-      // Navigate to home after successful login
       setLocation("/");
     },
     onError: (error: any) => {
+      if (error?.message === "Sign-in cancelled") return;
+
       console.error("Login failed:", error);
+      const isTimeout = error?.status === 408 || error?.message?.includes("timed out");
       toast({
-        title: "Login Failed",
-        description: "Could not sign in. Please try again.",
+        title: isTimeout ? "Server starting up" : "Sign-in Failed",
+        description: isTimeout
+          ? "The server took too long to respond. Please try again in a moment."
+          : (error?.message || "Could not sign in with Google. Please try again."),
         variant: "destructive"
       });
     }
@@ -224,7 +232,7 @@ export function useAuth() {
 
   const loginLocalMutation = useMutation({
     mutationFn: async (credentials: any) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
+      const res = await apiRequest("POST", "/api/login", credentials, 45000);
       return await res.json();
     },
     onSuccess: (user: User) => {
@@ -249,7 +257,7 @@ export function useAuth() {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: any) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
+      const res = await apiRequest("POST", "/api/register", credentials, 45000);
       return await res.json();
     },
     onSuccess: (user: User) => {

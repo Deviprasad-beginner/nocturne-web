@@ -8,12 +8,12 @@ import {
 import { eq, and } from "drizzle-orm";
 import { logger } from "../utils/logger";
 
-export async function createPlaylist(userId: number, name: string): Promise<Playlist> {
+export async function createPlaylist(userId: string, name: string): Promise<Playlist> {
   const [newPlaylist] = await db.insert(playlists).values({ userId, name }).returning();
   return newPlaylist;
 }
 
-export async function getUserPlaylists(userId: number): Promise<Playlist[]> {
+export async function getUserPlaylists(userId: string): Promise<Playlist[]> {
   try {
     return await db.select().from(playlists).where(eq(playlists.userId, userId));
   } catch (error) {

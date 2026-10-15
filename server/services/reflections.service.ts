@@ -20,7 +20,7 @@ export class ReflectionsService {
      * deeper prompt generation and response evaluation.
      */
     async analyzeSentiment(text: string): Promise<{ sentiment: string }> {
-        const { detectedEmotion } = analyzeEmotion(text);
+        const { detectedEmotion } = await analyzeEmotion(text);
         return { sentiment: detectedEmotion };
     }
 
@@ -80,7 +80,7 @@ export class ReflectionsService {
     /**
      * Submit a user's response to a prompt and get AI evaluation
      */
-    async submitResponse(userId: number, promptId: number, responseContent: string): Promise<UserReflection> {
+    async submitResponse(userId: string, promptId: number, responseContent: string): Promise<UserReflection> {
         // Get the prompt to provide context to AI
         const prompt = await this.storage.getNightlyPrompt(promptId);
 
@@ -93,7 +93,7 @@ export class ReflectionsService {
         const aiEvaluation = await aiService.evaluateUserResponse(prompt.content, responseContent);
 
         const reflectionData: InsertUserReflection = {
-            userId,
+            userId: userId,
             promptId,
             responseContent
         };
@@ -104,19 +104,19 @@ export class ReflectionsService {
     /**
      * Get a user's reflection history
      */
-    async getUserReflectionHistory(userId: number, limit = 20): Promise<UserReflection[]> {
+    async getUserReflectionHistory(userId: string, limit = 20): Promise<UserReflection[]> {
         return await this.storage.getUserReflections(userId, limit);
     }
 
     /**
      * Request a personal AI reflection
      */
-    async requestPersonalReflection(userId: number, userQuery: string): Promise<PersonalReflection> {
+    async requestPersonalReflection(userId: string, userQuery: string): Promise<PersonalReflection> {
         const aiService = getAIService();
         const aiReflection = await aiService.generatePersonalReflection(userQuery);
 
         return await this.storage.createPersonalReflection({
-            userId,
+            userId: userId,
             userQuery
         }, aiReflection);
     }
@@ -124,7 +124,7 @@ export class ReflectionsService {
     /**
      * Get a user's personal reflections
      */
-    async getPersonalReflections(userId: number, limit = 20): Promise<PersonalReflection[]> {
+    async getPersonalReflections(userId: string, limit = 20): Promise<PersonalReflection[]> {
         return await this.storage.getPersonalReflections(userId, limit);
     }
 }
