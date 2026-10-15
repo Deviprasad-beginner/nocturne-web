@@ -17,16 +17,7 @@ const scryptAsync = promisify(scrypt);
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
-
-// ⚠️ Startup guard: refuse to run in production without a real secret
-if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
-  throw new Error(
-    "FATAL: JWT_SECRET environment variable must be set in production. " +
-    "The hardcoded fallback is not safe for production use."
-  );
-}
-const JWT_EXPIRES_IN = "30d"; // 30 days — long-lived for mobile
+import { JWT_SECRET, JWT_EXPIRES_IN } from "../../../config/jwt";
 
 async function hashPassword(password: string): Promise<string> {
     const salt = randomBytes(16).toString("hex");

@@ -7,13 +7,7 @@ import { Request, Response, NextFunction } from "express";
 import { UnauthorizedError, ForbiddenError } from "../utils/errors";
 import jwt from "jsonwebtoken";
 import { storage } from "../storage";
-
-const JWT_SECRET = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
-
-// Warn loudly in development if JWT_SECRET is not set
-if (!process.env.JWT_SECRET) {
-    console.warn("[auth.middleware] JWT_SECRET is not set — using insecure fallback. Set JWT_SECRET in your .env file.");
-}
+import { JWT_SECRET } from "../config/jwt";
 
 /** Attach JWT user to req if a valid Bearer token is present */
 async function attachJwtUser(req: Request): Promise<boolean> {

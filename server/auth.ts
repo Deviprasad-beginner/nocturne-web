@@ -51,11 +51,19 @@ export function setupAuth(app: Express) {
     const isProduction = app.get("env") === "production" || process.env.NODE_ENV === "production";
 
     // Validate required secrets at startup
-    if (!process.env.SESSION_SECRET) {
+    let sessionSecret = process.env.SESSION_SECRET;
+    if (!sessionSecret) {
         if (isProduction) {
-            throw new Error("FATAL: SESSION_SECRET environment variable is required in production");
+            logger.warn(
+                "⚠️ [SECURITY WARNING]: SESSION_SECRET environment variable is not set in production. " +
+                "Generated an ephemeral cryptographically secure secret for this session. " +
+                "To persist user login sessions across restarts/deploys, set SESSION_SECRET in your environment dashboard (e.g. Render Dashboard -> Environment)."
+            );
+            sessionSecret = randomBytes(32).toString("hex");
+        } else {
+            logger.warn("SESSION_SECRET not set — using insecure default. Set it in .env for production.");
+            sessionSecret = "dev_only_insecure_secret_do_not_use_in_prod";
         }
-        logger.warn("SESSION_SECRET not set — using insecure default. Set it in .env for production.");
     }
 
     // Trust proxy for Render, Heroku, and other cloud platforms
@@ -64,7 +72,7 @@ export function setupAuth(app: Express) {
     }
 
     const sessionSettings: session.SessionOptions = {
-        secret: process.env.SESSION_SECRET || "dev_only_insecure_secret_do_not_use_in_prod",
+        secret: sessionSecret,
         resave: false,
         saveUninitialized: false,
         store: storage.sessionStore,

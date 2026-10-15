@@ -20,8 +20,7 @@ import { evaluateContentSafety } from "./services/content-safety.service";
 import { resonanceQueueService } from "./services/resonance-queue.service";
 import { logger } from "./utils/logger";
 import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
+import { JWT_SECRET } from "./config/jwt";
 
 // Rate limit store: in-memory sliding window (max 5 whispers per 10 minutes per user/IP)
 const whisperRateLimits = new Map<string, number[]>();

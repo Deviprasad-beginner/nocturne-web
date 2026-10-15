@@ -3399,11 +3399,11 @@ __export(auth_exports, {
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import session2 from "express-session";
-import { scrypt as scrypt2, randomBytes as randomBytes2, timingSafeEqual as timingSafeEqual2 } from "crypto";
+import { scrypt as scrypt2, randomBytes as randomBytes3, timingSafeEqual as timingSafeEqual2 } from "crypto";
 import { promisify as promisify2 } from "util";
 import { z as z11 } from "zod";
 async function hashPassword2(password) {
-  const salt = randomBytes2(16).toString("hex");
+  const salt = randomBytes3(16).toString("hex");
   const buf = await scryptAsync2(password, salt, 64);
   return `${buf.toString("hex")}.${salt}`;
 }
@@ -3419,17 +3419,23 @@ async function comparePasswords(supplied, stored) {
 }
 function setupAuth(app2) {
   const isProduction2 = app2.get("env") === "production" || process.env.NODE_ENV === "production";
-  if (!process.env.SESSION_SECRET) {
+  let sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret) {
     if (isProduction2) {
-      throw new Error("FATAL: SESSION_SECRET environment variable is required in production");
+      logger.warn(
+        "\u26A0\uFE0F [SECURITY WARNING]: SESSION_SECRET environment variable is not set in production. Generated an ephemeral cryptographically secure secret for this session. To persist user login sessions across restarts/deploys, set SESSION_SECRET in your environment dashboard (e.g. Render Dashboard -> Environment)."
+      );
+      sessionSecret = randomBytes3(32).toString("hex");
+    } else {
+      logger.warn("SESSION_SECRET not set \u2014 using insecure default. Set it in .env for production.");
+      sessionSecret = "dev_only_insecure_secret_do_not_use_in_prod";
     }
-    logger.warn("SESSION_SECRET not set \u2014 using insecure default. Set it in .env for production.");
   }
   if (isProduction2) {
     app2.set("trust proxy", 1);
   }
   const sessionSettings = {
-    secret: process.env.SESSION_SECRET || "dev_only_insecure_secret_do_not_use_in_prod",
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
@@ -3523,9 +3529,9 @@ function setupAuth(app2) {
       }
       if (!user) {
         const baseUsername = (verifiedEmail ? verifiedEmail.split("@")[0] : uid).toLowerCase().replace(/[^a-z0-9]/g, "");
-        const randomSuffix = randomBytes2(4).toString("hex");
+        const randomSuffix = randomBytes3(4).toString("hex");
         const safeUsername = `${baseUsername}_${randomSuffix}`;
-        const randomPwd = await hashPassword2(randomBytes2(16).toString("hex"));
+        const randomPwd = await hashPassword2(randomBytes3(16).toString("hex"));
         try {
           user = await storage.createUser({
             username: safeUsername,
@@ -3883,7 +3889,24 @@ var resonanceQueueService = new ResonanceQueueService();
 // server/routes.ts
 init_logger();
 import jwt from "jsonwebtoken";
-var JWT_SECRET = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
+
+// server/config/jwt.ts
+import { randomBytes } from "crypto";
+var jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) {
+  if (process.env.NODE_ENV === "production") {
+    console.warn(
+      "\u26A0\uFE0F [SECURITY WARNING]: JWT_SECRET is not set in production environment variables! Generated an ephemeral cryptographically secure 256-bit secret for this instance. To persist mobile login tokens across server deploys and restarts, set JWT_SECRET in your dashboard (e.g. Render Dashboard -> Environment)."
+    );
+    jwtSecret = randomBytes(32).toString("hex");
+  } else {
+    jwtSecret = "nocturne-mobile-secret-change-in-prod";
+  }
+}
+var JWT_SECRET = jwtSecret;
+var JWT_EXPIRES_IN = "30d";
+
+// server/routes.ts
 var whisperRateLimits = /* @__PURE__ */ new Map();
 var RATE_LIMIT_WINDOW_MS = 10 * 60 * 1e3;
 var RATE_LIMIT_MAX_WHISPERS = 5;
@@ -4827,16 +4850,12 @@ import { Router as Router2 } from "express";
 init_errors();
 init_storage();
 import jwt2 from "jsonwebtoken";
-var JWT_SECRET2 = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
-if (!process.env.JWT_SECRET) {
-  console.warn("[auth.middleware] JWT_SECRET is not set \u2014 using insecure fallback. Set JWT_SECRET in your .env file.");
-}
 async function attachJwtUser(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) return false;
   try {
     const token = authHeader.slice(7);
-    const payload = jwt2.verify(token, JWT_SECRET2);
+    const payload = jwt2.verify(token, JWT_SECRET);
     const user = await storage.getUser(payload.sub);
     if (!user) return false;
     req.user = user;
@@ -7909,19 +7928,12 @@ import { Router as Router18 } from "express";
 import jwt3 from "jsonwebtoken";
 init_storage();
 init_schema();
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { scrypt, randomBytes as randomBytes2, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 var scryptAsync = promisify(scrypt);
 var router18 = Router18();
-var JWT_SECRET3 = process.env.JWT_SECRET || "nocturne-mobile-secret-change-in-prod";
-if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
-  throw new Error(
-    "FATAL: JWT_SECRET environment variable must be set in production. The hardcoded fallback is not safe for production use."
-  );
-}
-var JWT_EXPIRES_IN = "30d";
 async function hashPassword(password) {
-  const salt = randomBytes(16).toString("hex");
+  const salt = randomBytes2(16).toString("hex");
   const buf = await scryptAsync(password, salt, 64);
   return `${buf.toString("hex")}.${salt}`;
 }
@@ -7936,7 +7948,7 @@ async function verifyPassword(supplied, stored) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 function signToken(userId, username) {
-  return jwt3.sign({ sub: String(userId), username: username || "" }, JWT_SECRET3, { expiresIn: JWT_EXPIRES_IN });
+  return jwt3.sign({ sub: String(userId), username: username || "" }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 router18.post("/token", asyncHandler(async (req, res) => {
   const { username, password } = req.body;
@@ -8033,7 +8045,7 @@ router18.post("/google", asyncHandler(async (req, res) => {
     }
     user = await storage.createUser({
       username,
-      password: randomBytes(32).toString("hex"),
+      password: randomBytes2(32).toString("hex"),
       // random unguessable password — Google auth only
       email,
       displayName,
@@ -8061,7 +8073,7 @@ router18.post("/refresh", asyncHandler(async (req, res) => {
   }
   try {
     const token = authHeader.slice(7);
-    const payload = jwt3.verify(token, JWT_SECRET3);
+    const payload = jwt3.verify(token, JWT_SECRET);
     const newToken = signToken(payload.sub, payload.username);
     return res.json({ success: true, data: { token: newToken } });
   } catch {
