@@ -120,6 +120,9 @@ function Router() {
         <Route path="/resonance" component={Resonance} />
         <Route path="/whispers" component={Feed} />
         <Route path="/diaries" component={NightThoughts} />
+        <Route path="/night-thoughts" component={NightThoughts} />
+        <Route path="/explore" component={Feed} />
+        <Route path="/featured" component={MusicMood} />
         <Route path="/read-card" component={ReadCard} />
         <Route path="/read-alone" component={ReadAlone} />
         <Route path="/reader/:id" component={Reader} />
