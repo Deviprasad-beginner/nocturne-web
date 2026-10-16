@@ -284,26 +284,8 @@ function LoadingScreen({ message = "Loading..." }: { message?: string }) {
 
 
 function App() {
-  const { isLoading } = useAuth();
-  // Safety valve: if auth check hasn't resolved after 4s (backend down /
-  // cold start), stop showing the spinner and render in guest mode.
-  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading) {
-      setLoadingTimedOut(false);
-      return;
-    }
-    const id = setTimeout(() => setLoadingTimedOut(true), 4000);
-    return () => clearTimeout(id);
-  }, [isLoading]);
-
-  if (isLoading && !loadingTimedOut) {
-    return <LoadingScreen message="Entering the night" />;
-  }
-
-  // Allow access without authentication (guest mode)
-  // This makes the app work regardless of auth status
+  // Allow immediate access without blocking on authentication (guest mode)
+  // This ensures the application loads instantly without ever getting stuck on a loading screen.
   return (
     <SettingsProvider>
       <AudioRoomProvider>

@@ -119,11 +119,8 @@ export const getQueryFn: <T>(options: {
           signal,
         });
 
-        if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-          // Return null — TanStack Query forbids returning undefined from query functions.
-          // Components that destructure with `= []` defaults handle null fine via the
-          // `select` option or explicit null checks.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (unauthorizedBehavior === "returnNull" && (res.status === 401 || res.status === 403 || res.status >= 500)) {
+          // Return null for unauthenticated/unreachable backend — treat user as guest
           return null as any;
         }
 
@@ -143,6 +140,11 @@ export const getQueryFn: <T>(options: {
       } catch (error) {
         // Don't log AbortErrors — QueryCache.onError handles real errors below
         if (isAbortError(error)) throw error;
+
+        // If query permits guest fallback on failure (e.g. /api/user), return null immediately
+        if (unauthorizedBehavior === "returnNull") {
+          return null as any;
+        }
 
         // Network failure (ERR_CONNECTION_REFUSED, offline, etc.) — treat as
         // unauthenticated rather than spinning through retry loops.
