@@ -9,8 +9,13 @@ import sitemap from "vite-plugin-sitemap";
 // ⚠️  Do NOT include: google verification files, /auth, user-only routes
 const publicRoutes = [
   "/",
-  "/diaries",
+  "/feed",
   "/whispers",
+  "/diaries",
+  "/night-thoughts",
+  "/sanctuary",
+  "/resonance",
+  "/explore",
   "/mind-maze",
   "/night-circles",
   "/midnight-cafe",
@@ -19,15 +24,20 @@ const publicRoutes = [
   "/night-conversations",
   "/digital-journals",
   "/mindful-spaces",
-  "/3am-founder",
   "/starlit-speaker",
   "/moon-messenger",
-  "/night-thoughts",
+  "/library",
   "/read-card",
   "/read-alone",
   "/read-tonight",
-  "/privacy",
+  "/nightcap-studio",
+  "/about",
+  "/guidelines",
   "/help",
+  "/privacy",
+  "/privacy-policy",
+  "/terms",
+  "/contact",
 ];
 
 export default defineConfig({

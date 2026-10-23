@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, MessageSquare, Users, Heart, Reply } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
+import { SEO } from "@/components/SEO";
 
 interface Conversation {
   id: number;
@@ -109,6 +110,12 @@ export default function NightConversations() {
 
   return (
     <div className="min-h-screen text-white p-3 sm:p-6 bg-transparent">
+      <SEO
+        title="Night Conversations & Insomniac Discussions | Nocturne"
+        description="Connect with fellow insomniacs, deep thinkers, and nocturnal wanderers worldwide in honest midnight conversations."
+        path="/night-conversations"
+        keywords="night conversations, insomniac chat, midnight discussions, late night connection, nocturne"
+      />
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">

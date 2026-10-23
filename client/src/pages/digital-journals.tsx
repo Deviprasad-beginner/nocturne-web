@@ -12,6 +12,7 @@ import { ArrowLeft, BookOpen, Star, Calendar, Palette, Lock, Globe } from "lucid
 import { queryClient } from "@/lib/queryClient";
 import { useSentimentTracker } from "@/hooks/useSentimentTracker";
 import { useMusic } from "@/context/MusicContext";
+import { SEO } from "@/components/SEO";
 interface JournalEntry {
   id: number;
   title: string;
@@ -141,6 +142,12 @@ export default function DigitalJournals() {
 
   return (
     <div className="min-h-screen text-white p-3 sm:p-6 bg-transparent">
+      <SEO
+        title="Digital Journals & Midnight Chronicles | Nocturne"
+        description="Chronicle your midnight thoughts in private, encrypted digital journals with mood tracking and ambient accompaniment."
+        path="/digital-journals"
+        keywords="digital journals, midnight journaling, mood tracking, private diary, encrypted journal, nocturne"
+      />
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">

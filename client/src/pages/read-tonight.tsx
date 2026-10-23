@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { BookOpen, Clock, Users, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { SEO } from "@/components/SEO";
 import type { Read } from "@shared/schema";
 
 export default function ReadTonight() {
@@ -44,6 +45,12 @@ export default function ReadTonight() {
 
     return (
         <div className="min-h-screen text-white p-6 bg-transparent">
+            <SEO
+                title="Tonight's Curated Reads | Nocturne"
+                description="Curated nocturnal texts and stories shared anonymously by fellow night readers to learn, feel, think, and drift to sleep."
+                path="/read-tonight"
+                keywords="tonights reads, curated night reading, anonymous stories, bedtime reading, nocturne"
+            />
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-12">

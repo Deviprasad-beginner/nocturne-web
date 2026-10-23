@@ -6,6 +6,7 @@ import { BookOpen, Plus, Trash2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ReadUpload } from "@/components/read-card/ReadUpload";
+import { SEO } from "@/components/SEO";
 import type { Read } from "@shared/schema";
 
 export default function ReadAlone() {
@@ -76,6 +77,12 @@ export default function ReadAlone() {
 
     return (
         <div className="min-h-screen text-white p-6 bg-transparent">
+            <SEO
+                title="Personal Bookshelf & Solitary Reading | Nocturne"
+                description="Your private late-night bookshelf on Nocturne. Read in quiet solitude away from daytime distractions."
+                path="/read-alone"
+                keywords="solitary reading, quiet reading, private bookshelf, nocturne"
+            />
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">

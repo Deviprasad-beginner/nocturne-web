@@ -1,8 +1,48 @@
 # robots.txt for Nocturne — https://nocturnesocial.in
-# Allow all search engine crawlers to index the site.
-
 User-agent: *
 Allow: /
 
-# Point crawlers to the sitemap so they can discover all pages efficiently.
+# Public feature pages
+Allow: /feed
+Allow: /whispers
+Allow: /diaries
+Allow: /night-thoughts
+Allow: /sanctuary
+Allow: /resonance
+Allow: /explore
+Allow: /mind-maze
+Allow: /night-circles
+Allow: /midnight-cafe
+Allow: /music-mood
+Allow: /nightly-reflection
+Allow: /night-conversations
+Allow: /digital-journals
+Allow: /mindful-spaces
+Allow: /starlit-speaker
+Allow: /moon-messenger
+Allow: /library
+Allow: /read-card
+Allow: /read-alone
+Allow: /read-tonight
+Allow: /nightcap-studio
+Allow: /about
+Allow: /guidelines
+Allow: /help
+Allow: /privacy
+Allow: /privacy-policy
+Allow: /terms
+Allow: /contact
+
+# Private / user-specific routes — no indexing
+Disallow: /settings
+Disallow: /profile
+Disallow: /notifications
+Disallow: /first-night
+Disallow: /auth
+Disallow: /login
+
+# API and backend routes
+Disallow: /api/
+
+# Sitemap location
 Sitemap: https://nocturnesocial.in/sitemap.xml

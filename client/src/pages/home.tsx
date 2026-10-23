@@ -410,7 +410,12 @@ export default function Home() {
 
   return (
     <div className="nc-shell">
-      <SEO title="Nocturne – Immersive Midnight Feed" />
+      <SEO
+        title="Nocturne | The Night-Time Social Platform for Night Owls"
+        description="Step into Nocturne, the late-night social platform where night owls gather to share whispers, explore midnight diaries, and connect when the world goes quiet."
+        path="/"
+        keywords="nocturne, nocturne night social platform, night social platform, anonymous social platform, late night social network, night owls, midnight feed, whispers, night diaries"
+      />
 
 
 

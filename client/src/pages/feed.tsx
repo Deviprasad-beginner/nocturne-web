@@ -153,8 +153,10 @@ export default function FeedPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0C] text-zinc-100 pb-24 pt-6 px-4 sm:px-6">
       <SEO
-        title="Public Feed | Nocturne Midnight Whispers"
-        description="Anonymous public whispers from night wanderers worldwide. Ephemeral, candid, and expiring at dawn."
+        title="Midnight Whispers & Public Feed | Nocturne"
+        description="Explore anonymous public whispers from night wanderers worldwide. Candid, unfiltered, and deeply human thoughts shared under the moonlight."
+        path="/whispers"
+        keywords="whispers, anonymous whispers, night thoughts, nocturnal confessions, nocturne feed, anonymous social platform"
       />
 
       <div className="max-w-3xl mx-auto">

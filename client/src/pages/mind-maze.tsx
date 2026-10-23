@@ -10,6 +10,7 @@ import {
   ArrowLeft, Brain, Sparkles, ChevronRight,
   FlaskConical, Feather, Heart, X, ChevronDown
 } from "lucide-react";
+import { SEO } from "@/components/SEO";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Domain definitions — add new ones here only
@@ -436,6 +437,12 @@ export default function MindMazePage() {
 
   return (
     <>
+      <SEO
+        title="Mind Maze — Late-Night Philosophical Paradoxes | Nocturne"
+        description="Explore deep philosophical questions, late-night paradoxes, and brain teasers. Ponder existence, emotion, time, and consciousness with fellow night thinkers."
+        path="/mind-maze"
+        keywords="mind maze, late night philosophy, paradoxes, midnight questions, deep thoughts, nocturne"
+      />
       <AnimatePresence>
         {activeMaze && (
           <MazeDetail maze={activeMaze} onClose={() => setActiveMaze(null)} />

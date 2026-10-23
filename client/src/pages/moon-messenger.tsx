@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Moon, MessageCircle, Send, Users, Clock, Shuffle, ArrowRight } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { SEO } from "@/components/SEO";
 import type { MoonMessenger, InsertMoonMessenger } from "@shared/schema";
 
 export default function MoonMessengerPage() {
@@ -124,6 +125,12 @@ export default function MoonMessengerPage() {
 
   return (
     <div className="min-h-screen text-white p-4 bg-transparent">
+      <SEO
+        title="Moon Messenger — Anonymous Night Pairing | Nocturne"
+        description="Random anonymous pairing and text conversations for night owls. Connect with thoughtful strangers in the quiet hours."
+        path="/moon-messenger"
+        keywords="moon messenger, anonymous pairing, night chat, random anonymous chat, nocturne"
+      />
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">

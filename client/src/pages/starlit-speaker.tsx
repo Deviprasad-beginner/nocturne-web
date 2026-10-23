@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Mic, MicOff, Square, Timer, Users, Trophy, Star, Clock, Sparkles, AlertCircle, Play, ChevronLeft } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { SEO } from "@/components/SEO";
 import type { StarlitSpeaker, InsertStarlitSpeaker } from "@shared/schema";
 
 // ─── Topic options ─────────────────────────────────────────────────────────────
@@ -216,6 +217,12 @@ export default function StarlitSpeakerPage() {
 
     return (
         <div style={{ minHeight: "100vh", background: "#05050a", color: "#e2e8f0", fontFamily: "Inter, system-ui, sans-serif" }}>
+            <SEO
+                title="Starlit Speaker — Late-Night Voice Rooms | Nocturne"
+                description="Live audio voice rooms and speaking practice for people who think better out loud under the digital stars."
+                path="/starlit-speaker"
+                keywords="starlit speaker, voice rooms, audio rooms, nocturnal speaking, night voice chat, nocturne"
+            />
             <style>{CSS}</style>
 
             {/* Back button */}

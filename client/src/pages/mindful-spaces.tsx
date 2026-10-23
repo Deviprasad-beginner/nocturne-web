@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ArrowLeft, Brain, Sparkles, Clock, Play, Pause, Volume2 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
+import { SEO } from "@/components/SEO";
 
 interface MindfulSession {
   id: number;
@@ -156,6 +157,12 @@ export default function MindfulSpaces() {
 
   return (
     <div className="min-h-screen text-white p-3 sm:p-6 bg-transparent">
+      <SEO
+        title="Mindful Spaces & Late-Night Meditation | Nocturne"
+        description="Find peace in guided nocturnal meditations, breathing exercises, and ambient quiet wellness spaces."
+        path="/mindful-spaces"
+        keywords="mindful spaces, night meditation, nocturnal breathing, late night mindfulness, relaxation, nocturne"
+      />
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">

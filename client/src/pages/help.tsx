@@ -27,6 +27,7 @@ import {
   Bug
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { SEO } from "@/components/SEO";
 
 interface FAQItem {
   question: string;
@@ -187,6 +188,12 @@ export default function Help() {
 
   return (
     <div className="min-h-screen bg-transparent">
+      <SEO
+        title="Help Center & FAQ | Nocturne"
+        description="Frequently asked questions, guides, and support for Nocturne, the late-night anonymous social platform."
+        path="/help"
+        keywords="nocturne help, nocturne support, nocturne faq, night social help"
+      />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8 text-center">

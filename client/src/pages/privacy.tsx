@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, Eye, EyeOff, AlertTriangle, Ban, Flag, Lock, Globe, Users, UserX, MessageSquareOff, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { SEO } from "@/components/SEO";
 
 interface BlockedUser {
   id: string;
@@ -82,6 +83,12 @@ export default function Privacy() {
 
   return (
     <div className="min-h-screen bg-transparent">
+      <SEO
+        title="Privacy & Security Controls | Nocturne"
+        description="Manage your privacy, anonymous profile visibility, zero-knowledge vault settings, and security controls on Nocturne."
+        path="/privacy"
+        keywords="nocturne privacy, anonymous privacy settings, zero knowledge security, privacy controls"
+      />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">

@@ -7,6 +7,7 @@ import { useAudioRoom } from "@/context/AudioRoomContext";
 import { formatDistanceToNow } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { SEO } from "@/components/SEO";
 
 // -- MAIN COMPONENT --
 export default function MidnightCafe() {
@@ -55,6 +56,12 @@ function CafeList() {
 
     return (
         <div className="min-h-screen pb-24 text-gray-200 bg-[#030308]">
+            <SEO
+                title="Midnight Cafe — Nocturnal Conversations & Hangout | Nocturne"
+                description="Step into the Midnight Cafe. A casual late-night hangout space to talk with fellow night owls, share coffee thoughts, and connect in the quiet hours."
+                path="/midnight-cafe"
+                keywords="midnight cafe, late night hangout, night conversations, night owl community, nocturne cafe"
+            />
             <div className="max-w-3xl mx-auto pt-10 px-4">
                 <div className="flex items-center justify-between mb-8">
                     <Link href="/">

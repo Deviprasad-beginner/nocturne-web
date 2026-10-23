@@ -9,6 +9,7 @@ import { ArrowLeft, Moon, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
+import { SEO } from "@/components/SEO";
 
 interface NightlyPrompt {
     id: number;
@@ -135,6 +136,12 @@ export default function InspectionCard() {
 
     return (
         <div className="min-h-screen text-white p-4 sm:p-8 flex justify-center bg-transparent">
+            <SEO
+                title="Nightly Reflection & Guided Introspection | Nocturne"
+                description="Reflect on your night with guided introspective prompts, AI insight evaluation, and deep mindfulness on Nocturne."
+                path="/nightly-reflection"
+                keywords="nightly reflection, midnight introspection, night mindfulness, guided prompts, nocturne"
+            />
             <div className="w-full max-w-[720px] space-y-8">
 
                 {/* Header */}

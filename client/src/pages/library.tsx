@@ -313,8 +313,10 @@ export default function Library() {
   return (
     <div className="min-h-screen text-white pb-32 bg-transparent">
       <SEO
-        title="Nocturne Library — Midnight Readings"
-        description="Explore 70,000+ free public domain books from Project Gutenberg. Read in Nocturne's immersive dark reader."
+        title="Midnight Library & Dark Reader | Nocturne"
+        description="Explore 70,000+ free public domain books from Project Gutenberg. Read classic literature in Nocturne's immersive nocturnal reader."
+        path="/library"
+        keywords="midnight library, dark reader, late night reading, gutenberg books, nocturne books"
       />
 
       {/* ── Hero ──────────────────────────────────────────── */}

@@ -24,9 +24,13 @@ interface SitemapEntry {
 
 const routes: SitemapEntry[] = [
   { path: "/",                    changefreq: "daily",   priority: 1.0 },
-  { path: "/diaries",             changefreq: "daily",   priority: 0.9 },
+  { path: "/feed",                changefreq: "daily",   priority: 0.9 },
   { path: "/whispers",            changefreq: "daily",   priority: 0.9 },
+  { path: "/diaries",             changefreq: "daily",   priority: 0.9 },
   { path: "/night-thoughts",      changefreq: "daily",   priority: 0.8 },
+  { path: "/sanctuary",           changefreq: "daily",   priority: 0.8 },
+  { path: "/resonance",           changefreq: "daily",   priority: 0.8 },
+  { path: "/explore",             changefreq: "daily",   priority: 0.8 },
   { path: "/mind-maze",           changefreq: "weekly",  priority: 0.8 },
   { path: "/night-circles",       changefreq: "weekly",  priority: 0.8 },
   { path: "/midnight-cafe",       changefreq: "weekly",  priority: 0.8 },
@@ -35,14 +39,20 @@ const routes: SitemapEntry[] = [
   { path: "/night-conversations", changefreq: "weekly",  priority: 0.8 },
   { path: "/digital-journals",    changefreq: "weekly",  priority: 0.8 },
   { path: "/mindful-spaces",      changefreq: "weekly",  priority: 0.8 },
-  { path: "/3am-founder",         changefreq: "weekly",  priority: 0.7 },
-  { path: "/starlit-speaker",     changefreq: "weekly",  priority: 0.7 },
-  { path: "/moon-messenger",      changefreq: "weekly",  priority: 0.7 },
+  { path: "/starlit-speaker",     changefreq: "weekly",  priority: 0.8 },
+  { path: "/moon-messenger",      changefreq: "weekly",  priority: 0.8 },
+  { path: "/library",             changefreq: "weekly",  priority: 0.7 },
   { path: "/read-card",           changefreq: "weekly",  priority: 0.7 },
   { path: "/read-alone",          changefreq: "weekly",  priority: 0.7 },
   { path: "/read-tonight",        changefreq: "weekly",  priority: 0.7 },
-  { path: "/privacy",             changefreq: "monthly", priority: 0.4 },
+  { path: "/nightcap-studio",     changefreq: "weekly",  priority: 0.7 },
+  { path: "/about",               changefreq: "monthly", priority: 0.6 },
+  { path: "/guidelines",          changefreq: "monthly", priority: 0.5 },
   { path: "/help",                changefreq: "monthly", priority: 0.5 },
+  { path: "/privacy",             changefreq: "monthly", priority: 0.4 },
+  { path: "/privacy-policy",      changefreq: "monthly", priority: 0.4 },
+  { path: "/terms",               changefreq: "monthly", priority: 0.4 },
+  { path: "/contact",             changefreq: "monthly", priority: 0.5 },
 ];
 
 // ── /sitemap.xml ─────────────────────────────────────────────────────────────
@@ -54,7 +64,7 @@ function buildSitemapXml(): string {
     .map(
       ({ path, changefreq, priority }) => `
   <url>
-    <loc>${BASE_URL}${path}</loc>
+    <loc>${BASE_URL}${path === "/" ? "/" : path}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority.toFixed(1)}</priority>
@@ -85,25 +95,35 @@ const ROBOTS_TXT = `User-agent: *
 Allow: /
 
 # Public feature pages — allow all crawlers
-Allow: /diaries
+Allow: /feed
 Allow: /whispers
+Allow: /diaries
 Allow: /night-thoughts
+Allow: /sanctuary
+Allow: /resonance
+Allow: /explore
 Allow: /mind-maze
 Allow: /night-circles
 Allow: /midnight-cafe
 Allow: /music-mood
 Allow: /nightly-reflection
-Allow: /3am-founder
-Allow: /starlit-speaker
-Allow: /moon-messenger
 Allow: /night-conversations
 Allow: /digital-journals
 Allow: /mindful-spaces
+Allow: /starlit-speaker
+Allow: /moon-messenger
+Allow: /library
 Allow: /read-card
 Allow: /read-alone
 Allow: /read-tonight
-Allow: /privacy
+Allow: /nightcap-studio
+Allow: /about
+Allow: /guidelines
 Allow: /help
+Allow: /privacy
+Allow: /privacy-policy
+Allow: /terms
+Allow: /contact
 
 # Private / user-specific routes — no indexing
 Disallow: /settings

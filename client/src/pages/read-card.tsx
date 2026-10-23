@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SEO } from "@/components/SEO";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import type { ReadingMode } from "@/lib/reading-modes";
@@ -278,6 +279,12 @@ export default function ReadCard() {
 
     return (
         <div className="rc-shell">
+            <SEO
+                title="Story Vault & Read Card | Nocturne"
+                description="Immersive late-night reading cards, PDF text extraction, mood analysis, and atmospheric typography on Nocturne."
+                path="/read-card"
+                keywords="read card, late night reader, story vault, atmospheric reading, mood analysis, nocturne"
+            />
             <style>{RC_STYLES}</style>
 
             {/* ── Background orbs ─────────────────────────────────── */}

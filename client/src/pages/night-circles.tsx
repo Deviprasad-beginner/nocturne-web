@@ -12,6 +12,7 @@ import {
   Circle, Activity, MessageCircle, Plus, Hash,
   Info, Lock, Tag, Image as ImageIcon,
 } from "lucide-react";
+import { SEO } from "@/components/SEO";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -612,6 +613,12 @@ export default function NightCircles() {
 
   return (
     <div className="min-h-screen text-white bg-transparent">
+      <SEO
+        title="Night Circles — Intimate Late-Night Group Rooms | Nocturne"
+        description="Join intimate group discussions with night owls. Choose your vibe, connect in real-time or listen in silence, and share late-night perspectives."
+        path="/night-circles"
+        keywords="night circles, late night rooms, group discussions, night owls community, audio circles, nocturne"
+      />
       {/* Join flow overlay */}
       <AnimatePresence>
         {view === "join-flow" && (

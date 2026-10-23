@@ -1,11 +1,25 @@
 import { Footer } from "@/components/footer";
 import { Link } from "wouter";
 import { ArrowLeft, Shield, BookOpen, MessageCircle, HeartHandshake, Eye } from "lucide-react";
+import { SEO } from "@/components/SEO";
 
 // Common Layout for Static Pages
-function StaticLayout({ title, icon: Icon, children }: { title: string, icon: React.ElementType, children: React.ReactNode }) {
+function StaticLayout({
+    title,
+    description,
+    path,
+    icon: Icon,
+    children
+}: {
+    title: string;
+    description?: string;
+    path?: string;
+    icon: React.ElementType;
+    children: React.ReactNode;
+}) {
     return (
         <div className="min-h-screen relative flex flex-col bg-transparent text-gray-300">
+            <SEO title={title} description={description} path={path} />
             {/* Background Image */}
             <div
                 className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
@@ -56,7 +70,12 @@ function StaticLayout({ title, icon: Icon, children }: { title: string, icon: Re
 
 export function AboutPage() {
     return (
-        <StaticLayout title="About Nocturne" icon={BookOpen}>
+        <StaticLayout
+            title="About Nocturne — The Late-Night Sanctuary"
+            description="Learn about Nocturne, an anonymous late-night platform and sanctuary designed for night owls, dreamers, and deep thinkers."
+            path="/about"
+            icon={BookOpen}
+        >
             <p className="text-lg text-gray-300">
                 The night is unwritten. Welcome to Nocturne, a sanctuary built for the sleepless, the dreamers, and the thinkers.
             </p>
@@ -77,7 +96,12 @@ export function AboutPage() {
 
 export function PrivacyPolicyPage() {
     return (
-        <StaticLayout title="Privacy Policy" icon={Shield}>
+        <StaticLayout
+            title="Privacy Policy & Zero-Knowledge Vault"
+            description="Nocturne's privacy policy and zero-knowledge encryption principles for protecting midnight diaries, whispers, and user anonymity."
+            path="/privacy-policy"
+            icon={Shield}
+        >
             <p className="text-gray-300 italic mb-4">Last updated: September 13, 2026</p>
             
             <h2 className="text-white text-lg font-semibold mt-6 mb-3">1. The Encrypted Vault (Zero-Knowledge)</h2>
@@ -105,7 +129,12 @@ export function PrivacyPolicyPage() {
 
 export function TermsPage() {
     return (
-        <StaticLayout title="Terms of Service" icon={Eye}>
+        <StaticLayout
+            title="Terms of Service"
+            description="Terms of service and user conduct guidelines for using Nocturne nocturnal social platform."
+            path="/terms"
+            icon={Eye}
+        >
             <p className="text-gray-300 italic mb-4">Last updated: September 13, 2026</p>
             
             <h2 className="text-white text-lg font-semibold mt-6 mb-3">Acceptance of Terms</h2>
@@ -134,7 +163,12 @@ export function TermsPage() {
 
 export function GuidelinesPage() {
     return (
-        <StaticLayout title="Community Guidelines" icon={HeartHandshake}>
+        <StaticLayout
+            title="Community Guidelines"
+            description="Community guidelines for maintaining peace, respect, and safety in Nocturne's late-night spaces."
+            path="/guidelines"
+            icon={HeartHandshake}
+        >
             <p className="text-lg text-gray-300 mb-6">
                 Nocturne is a unique ecosystem. To maintain the vibe of a late-night sanctuary, we ask all members to observe the following unwritten rules:
             </p>
@@ -165,7 +199,12 @@ export function GuidelinesPage() {
 
 export function ContactPage() {
     return (
-        <StaticLayout title="Get in Touch" icon={MessageCircle}>
+        <StaticLayout
+            title="Get in Touch & Support"
+            description="Reach out to the Nocturne team for support, inquiries, or feedback."
+            path="/contact"
+            icon={MessageCircle}
+        >
             <p className="text-lg text-gray-300 mb-6">
                 Have a question, concern, or just want to share a midnight thought?
             </p>

@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SEO } from "@/components/SEO";
 import { CharacterCounter } from "@/components/common/CharacterCounter";
 import {
     ArrowLeft, Moon, Heart, MessageCircle, Lock, Globe,
@@ -566,6 +567,12 @@ export default function NightThoughtsPage() {
 
     return (
         <div className={`min-h-screen ${currentTheme.bg} text-white p-3 sm:p-6 overflow-hidden relative transition-all duration-1000 ease-in-out`}>
+            <SEO
+                title="Midnight Diaries & Night Thoughts | Nocturne"
+                description="Write and discover midnight diaries and reflections. A private and public nocturnal sanctuary for thoughts when the world is quiet."
+                path="/diaries"
+                keywords="night diaries, midnight thoughts, nocturnal musings, late night journaling, nocturne"
+            />
             {/* Ambient Background Elements */}
             <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none" />

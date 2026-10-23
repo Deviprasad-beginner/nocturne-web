@@ -374,8 +374,10 @@ export default function MusicMood() {
     return (
         <div className="min-h-screen text-white relative pb-32 pb-safe font-sans selection:/20 bg-transparent">
             <SEO
-                title="Soothing Night Sounds & Ambient Music"
-                description="Drift into deep sleep and evening focus with Nocturne's curated ambient soundscapes, nature sounds, and lofi beats."
+                title="Soothing Night Sounds & Ambient Music | Nocturne"
+                description="Drift into deep sleep and evening focus with Nocturne's curated ambient soundscapes, nature sounds, and lofi beats for night owls."
+                path="/music-mood"
+                keywords="ambient music, sleep sounds, lofi night beats, soothing night music, soundscapes, nocturne"
             />
 
             {/* ── Hero Header ───────────────────────────────── */}

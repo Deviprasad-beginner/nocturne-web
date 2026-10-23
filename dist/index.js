@@ -4197,8 +4197,13 @@ import path from "path";
 import sitemap from "vite-plugin-sitemap";
 var publicRoutes = [
   "/",
-  "/diaries",
+  "/feed",
   "/whispers",
+  "/diaries",
+  "/night-thoughts",
+  "/sanctuary",
+  "/resonance",
+  "/explore",
   "/mind-maze",
   "/night-circles",
   "/midnight-cafe",
@@ -4207,15 +4212,20 @@ var publicRoutes = [
   "/night-conversations",
   "/digital-journals",
   "/mindful-spaces",
-  "/3am-founder",
   "/starlit-speaker",
   "/moon-messenger",
-  "/night-thoughts",
+  "/library",
   "/read-card",
   "/read-alone",
   "/read-tonight",
+  "/nightcap-studio",
+  "/about",
+  "/guidelines",
+  "/help",
   "/privacy",
-  "/help"
+  "/privacy-policy",
+  "/terms",
+  "/contact"
 ];
 var vite_config_default = defineConfig({
   plugins: [
@@ -9327,9 +9337,13 @@ var router26 = Router26();
 var BASE_URL = "https://nocturnesocial.in";
 var routes = [
   { path: "/", changefreq: "daily", priority: 1 },
-  { path: "/diaries", changefreq: "daily", priority: 0.9 },
+  { path: "/feed", changefreq: "daily", priority: 0.9 },
   { path: "/whispers", changefreq: "daily", priority: 0.9 },
+  { path: "/diaries", changefreq: "daily", priority: 0.9 },
   { path: "/night-thoughts", changefreq: "daily", priority: 0.8 },
+  { path: "/sanctuary", changefreq: "daily", priority: 0.8 },
+  { path: "/resonance", changefreq: "daily", priority: 0.8 },
+  { path: "/explore", changefreq: "daily", priority: 0.8 },
   { path: "/mind-maze", changefreq: "weekly", priority: 0.8 },
   { path: "/night-circles", changefreq: "weekly", priority: 0.8 },
   { path: "/midnight-cafe", changefreq: "weekly", priority: 0.8 },
@@ -9338,21 +9352,27 @@ var routes = [
   { path: "/night-conversations", changefreq: "weekly", priority: 0.8 },
   { path: "/digital-journals", changefreq: "weekly", priority: 0.8 },
   { path: "/mindful-spaces", changefreq: "weekly", priority: 0.8 },
-  { path: "/3am-founder", changefreq: "weekly", priority: 0.7 },
-  { path: "/starlit-speaker", changefreq: "weekly", priority: 0.7 },
-  { path: "/moon-messenger", changefreq: "weekly", priority: 0.7 },
+  { path: "/starlit-speaker", changefreq: "weekly", priority: 0.8 },
+  { path: "/moon-messenger", changefreq: "weekly", priority: 0.8 },
+  { path: "/library", changefreq: "weekly", priority: 0.7 },
   { path: "/read-card", changefreq: "weekly", priority: 0.7 },
   { path: "/read-alone", changefreq: "weekly", priority: 0.7 },
   { path: "/read-tonight", changefreq: "weekly", priority: 0.7 },
+  { path: "/nightcap-studio", changefreq: "weekly", priority: 0.7 },
+  { path: "/about", changefreq: "monthly", priority: 0.6 },
+  { path: "/guidelines", changefreq: "monthly", priority: 0.5 },
+  { path: "/help", changefreq: "monthly", priority: 0.5 },
   { path: "/privacy", changefreq: "monthly", priority: 0.4 },
-  { path: "/help", changefreq: "monthly", priority: 0.5 }
+  { path: "/privacy-policy", changefreq: "monthly", priority: 0.4 },
+  { path: "/terms", changefreq: "monthly", priority: 0.4 },
+  { path: "/contact", changefreq: "monthly", priority: 0.5 }
 ];
 function buildSitemapXml() {
   const lastmod = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
   const urlEntries = routes.map(
     ({ path: path4, changefreq, priority }) => `
   <url>
-    <loc>${BASE_URL}${path4}</loc>
+    <loc>${BASE_URL}${path4 === "/" ? "/" : path4}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority.toFixed(1)}</priority>
@@ -9377,25 +9397,35 @@ var ROBOTS_TXT = `User-agent: *
 Allow: /
 
 # Public feature pages \u2014 allow all crawlers
-Allow: /diaries
+Allow: /feed
 Allow: /whispers
+Allow: /diaries
 Allow: /night-thoughts
+Allow: /sanctuary
+Allow: /resonance
+Allow: /explore
 Allow: /mind-maze
 Allow: /night-circles
 Allow: /midnight-cafe
 Allow: /music-mood
 Allow: /nightly-reflection
-Allow: /3am-founder
-Allow: /starlit-speaker
-Allow: /moon-messenger
 Allow: /night-conversations
 Allow: /digital-journals
 Allow: /mindful-spaces
+Allow: /starlit-speaker
+Allow: /moon-messenger
+Allow: /library
 Allow: /read-card
 Allow: /read-alone
 Allow: /read-tonight
-Allow: /privacy
+Allow: /nightcap-studio
+Allow: /about
+Allow: /guidelines
 Allow: /help
+Allow: /privacy
+Allow: /privacy-policy
+Allow: /terms
+Allow: /contact
 
 # Private / user-specific routes \u2014 no indexing
 Disallow: /settings
