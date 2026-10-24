@@ -69,6 +69,24 @@ export function SEO({
     }
   } : undefined);
 
+  // Site‑wide WebSite schema (improves Knowledge Graph visibility)
+  const siteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "url": BASE_URL,
+    "name": "Nocturne",
+    "alternateName": "Nocturne Night Social Platform",
+    "sameAs": [
+      "https://github.com/Deviprasad-beginner/nocturne-web",
+      "https://twitter.com/NocturneSocial"
+    ],
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": `${BASE_URL}/search?q={search_term_string}`,
+      "query-input": "required name=search_term_string"
+    }
+  };
+
   return (
     <Helmet>
       {/* Basic Meta Tags */}
@@ -118,6 +136,8 @@ export function SEO({
           {JSON.stringify(pageSchema)}
         </script>
       )}
+      {/* Site‑wide WebSite schema */}
+      <script type="application/ld+json">{JSON.stringify(siteSchema)}</script>
     </Helmet>
   );
 }
